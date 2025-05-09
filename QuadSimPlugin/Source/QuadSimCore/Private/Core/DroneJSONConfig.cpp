@@ -27,9 +27,12 @@ UDroneJSONConfig& UDroneJSONConfig::Get()
 
 FString UDroneJSONConfig::GetConfigFilePath() const
 {
-    return FPaths::ProjectConfigDir() / TEXT("DroneConfig.json");
+    // <Project>/Plugins/QuadSimPlugin/Config/DroneConfig.json
+    const FString PluginName = TEXT("QuadSimPlugin");
+    const FString PluginsDir = FPaths::ProjectPluginsDir(); // .../YourProject/Plugins/
+    const FString ConfigDir  = FPaths::Combine(PluginsDir, PluginName, TEXT("Config"));
+    return FPaths::Combine(ConfigDir, TEXT("DroneConfig.json"));
 }
-
 bool UDroneJSONConfig::LoadConfig()
 {
     FString JsonString;
