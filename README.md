@@ -34,7 +34,9 @@ QuadSimPlugin is a Windows-specific plugin for Unreal Engine 5.5.4 that provides
 
 * After launching your project, navigate to **Edit > Plugins** and ensure **QuadSimPlugin** is enabled.
 * Restart the editor if prompted.
-* Place the **QuadPawn** actor into your level to get started with the simulation.
+* Make sure you enable plugins from the settings on the content browser
+* ![image](https://github.com/user-attachments/assets/7e53e9a8-4dc4-42d9-ada0-df8aca305e8b)
+* Place the **Quad Environment** actor into your level to get started with the simulation.
 
 ---
 
