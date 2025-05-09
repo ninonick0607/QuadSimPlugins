@@ -11,6 +11,7 @@
 #include <string>
 #include "Misc/DateTime.h"
 #include "Core/DroneManager.h"
+#include "Interfaces/IPluginManager.h"
 
 UImGuiUtil::UImGuiUtil()
 	: DronePawn(nullptr)
@@ -689,7 +690,12 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 		// Save logic remains the same
 		if (ImGui::Button("Save PID Gains", ImVec2(200, 50)))
 		{
-			FString FilePath = FPaths::ProjectDir() + "PIDGains.csv";
+			// Determine plugin directory for PID history file
+			TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("QuadSimPlugin"));
+			FString PluginDir = Plugin.IsValid()
+				? Plugin->GetBaseDir()
+				: FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("QuadSimPlugin"));
+			FString FilePath = FPaths::Combine(PluginDir, TEXT("PIDGains.csv"));
 			IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 			bool bFileExists = PlatformFile.FileExists(*FilePath);
 			FString Header = TEXT("Timestamp,xP,xI,xD,yP,yI,yD,zP,zI,zD,rollP,rollI,rollD,pitchP,pitchI,pitchD,yawP,yawI,yawD\n");
@@ -1099,8 +1105,13 @@ void UImGuiUtil::DisplayPIDHistoryWindow()
 		return;
 	}
 
+	// Determine plugin directory for PID history file
+	TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("QuadSimPlugin"));
+	FString PluginDir = Plugin.IsValid()
+		? Plugin->GetBaseDir()
+		: FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("QuadSimPlugin"));
 	// Path to the CSV file
-	FString FilePath = FPaths::ProjectDir() + "PIDGains.csv";
+	FString FilePath = FPaths::Combine(PluginDir, TEXT("PIDGains.csv"));
 
 	// Check if file exists
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();

@@ -3,6 +3,7 @@
 #include "Core/DroneJSONConfig.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Interfaces/IPluginManager.h"
 // JSON serialization includes
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonWriter.h"
@@ -27,11 +28,16 @@ UDroneJSONConfig& UDroneJSONConfig::Get()
 
 FString UDroneJSONConfig::GetConfigFilePath() const
 {
-    // <Project>/Plugins/QuadSimPlugin/Config/DroneConfig.json
+    // Attempt to locate the plugin and load config from its own Config folder
+    TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("QuadSimPlugin"));
+    if (Plugin.IsValid())
+    {
+        return FPaths::Combine(Plugin->GetBaseDir(), TEXT("Config"), TEXT("DroneConfig.json"));
+    }
+    // Fallback: project Plugins directory
     const FString PluginName = TEXT("QuadSimPlugin");
-    const FString PluginsDir = FPaths::ProjectPluginsDir(); // .../YourProject/Plugins/
-    const FString ConfigDir  = FPaths::Combine(PluginsDir, PluginName, TEXT("Config"));
-    return FPaths::Combine(ConfigDir, TEXT("DroneConfig.json"));
+    const FString PluginsDir = FPaths::ProjectPluginsDir();
+    return FPaths::Combine(PluginsDir, PluginName, TEXT("Config"), TEXT("DroneConfig.json"));
 }
 bool UDroneJSONConfig::LoadConfig()
 {
