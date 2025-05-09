@@ -1,4 +1,6 @@
 #include "Controllers/ZMQController.h"
+#include "Misc/Paths.h"
+#include "HAL/PlatformProcess.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include <zmq.hpp>
@@ -13,8 +15,21 @@
 
 #include "Kismet/GameplayStatics.h"
 
+// Helper to explicitly load the ZMQ DLL before any zmq::context_t is constructed
+namespace {
+static void* LoadZmqDll()
+{
+    FString PluginsDir       = FPaths::ProjectPluginsDir();
+    FString BinarySubDir     = FPlatformProcess::GetBinariesSubdirectory();
+    FString ZmqDllName       = TEXT("libzmq-v143-mt-4_3_6.dll");
+    FString ZmqDllPath       = FPaths::Combine(PluginsDir, TEXT("QuadSimPlugin"), TEXT("Binaries"), BinarySubDir, ZmqDllName);
+    return FPlatformProcess::GetDllHandle(*ZmqDllPath);
+}
+}
+
 AZMQController::AZMQController()
-    : bIsCapturing(false)
+    : ZmqDllHandle(LoadZmqDll())
+    , bIsCapturing(false)
     , bIsProcessingCommand(false)
     , DronePawn(nullptr)
     , DroneController(nullptr)
@@ -22,7 +37,7 @@ AZMQController::AZMQController()
     , RenderTarget(nullptr)
     , CurrentGoalPosition(FVector(0.0f, 0.0f, 1000.0f))
     , TargetPawn(nullptr)
-    , ObstacleManagerInstance(nullptr)  
+    , ObstacleManagerInstance(nullptr)
 
 {
     PrimaryActorTick.bCanEverTick = true;

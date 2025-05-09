@@ -1,7 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include <zmq.hpp>
+#include <zmq.hpp>    
 #include <zmq_addon.hpp>
 
 #include "ZMQController.generated.h"
@@ -89,6 +89,8 @@ private:
     TArray<uint8> CompressImageData(const TArray<FColor>& ImageData);
 
     // ZMQ and image capture members
+    // Dummy handle initializer to ensure the ZMQ DLL is loaded before context_t constructor runs
+    void* ZmqDllHandle;
     zmq::context_t Context;
     TSharedPtr<zmq::socket_t> PublishSocket;
     TSharedPtr<zmq::socket_t> CommandSocket;

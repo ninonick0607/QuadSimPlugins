@@ -5,8 +5,8 @@ public class QuadSimCore : ModuleRules
 {
     public QuadSimCore(ReadOnlyTargetRules Target) : base(Target)
     {
-        PCHUsage         = PCHUsageMode.UseExplicitOrSharedPCHs;
-        CppStandard      = CppStandardVersion.Cpp20;
+        PCHUsage        = PCHUsageMode.UseExplicitOrSharedPCHs;
+        CppStandard     = CppStandardVersion.Cpp20;
         bEnableExceptions = true;
 
         PublicDependencyModuleNames.AddRange(new[]
@@ -31,27 +31,28 @@ public class QuadSimCore : ModuleRules
 
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
-            // Point at the plugin’s ThirdParty folder:
-            // ModuleDirectory == Plugins/QuadSimPlugin/Source/QuadSimCore
-            string ThirdPartyPath = Path.GetFullPath(Path.Combine(ModuleDirectory, "..", "..", "ThirdParty"));
+            // expect ThirdParty under the plugin root: <project>/Plugins/QuadSimPlugin/ThirdParty
+            // Compute plugin's base directory (two levels up from ModuleDirectory)
+            string PluginRoot   = Path.GetFullPath(Path.Combine(ModuleDirectory, "../../"));
+            string ThirdParty = Path.Combine(PluginRoot, "ThirdParty");
 
-            // ZeroMQ C API headers
-            string ZeroMQInc = Path.Combine(ThirdPartyPath, "ZeroMQ", "include");
-            // cppzmq C++ headers
-            string CppZmqInc = Path.Combine(ThirdPartyPath, "cppzmq", "include");
+            // C API
+            string ZeroMQInc = Path.Combine(ThirdParty, "ZeroMQ", "include");
+            // C++ bindings
+            string CppZmqInc = Path.Combine(ThirdParty, "cppzmq", "include");
             PublicIncludePaths.Add(ZeroMQInc);
             PublicIncludePaths.Add(CppZmqInc);
 
             const string LibName = "libzmq-v143-mt-4_3_6";
-            string ZeroMQLibDir = Path.Combine(ThirdPartyPath, "ZeroMQ", "lib");
+            string LibDir = Path.Combine(ThirdParty, "ZeroMQ", "lib");
 
             // Link the .lib
-            PublicAdditionalLibraries.Add(Path.Combine(ZeroMQLibDir, LibName + ".lib"));
-            // Delay-load and package the DLL
+            PublicAdditionalLibraries.Add(Path.Combine(LibDir, LibName + ".lib"));
+            // Delay-load the DLL and package it
             PublicDelayLoadDLLs.Add(LibName + ".dll");
             RuntimeDependencies.Add(
-                Path.Combine("$(BinaryOutputDir)", LibName + ".dll"),
-                Path.Combine(ZeroMQLibDir, LibName + ".dll")
+                "$(BinaryOutputDir)/" + LibName + ".dll",
+                Path.Combine(LibDir, LibName + ".dll")
             );
         }
     }
