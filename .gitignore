@@ -1,0 +1,7 @@
+# .gitignore - ignore build artifacts for Unreal Engine plugins
+
+# Directories for compiled binaries
+Binaries/
+
+# Directories for intermediate build files
+Intermediate/
