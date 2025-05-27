@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Utility/QuadPIDController.h"
 #include "UI/ImGuiUtil.h"
+#include "Msgs/ROS2Quat.h"
 #include "QuadDroneController.generated.h"
 
 class AQuadPawn;
@@ -41,7 +42,7 @@ struct FFullPIDSet
 
 
 UCLASS(Blueprintable, BlueprintType)
-class QUADSIMCORE_API UQuadDroneController : public UObject
+class QUADSIMTOREALITY_API UQuadDroneController : public UObject
 {
     GENERATED_BODY()
 
@@ -53,6 +54,7 @@ public:
     TArray<float> Thrusts;
 
     UQuadDroneController(const FObjectInitializer& ObjectInitializer);
+    virtual ~UQuadDroneController();
 
     void Initialize(AQuadPawn* InPawn);
     void Update(double DeltaTime);
@@ -96,7 +98,11 @@ public:
     float GetCurrentThrustOutput(int32 ThrusterIndex) const;
     UFUNCTION(BlueprintPure, Category = "Drone State")
     FVector GetCurrentVelocity() const; 
-
+    UFUNCTION(BlueprintPure, Category = "Drone State|ROS")
+    FQuat GetOrientationAsQuat() const;
+    UFUNCTION(BlueprintPure, Category = "Drone State|ROS")
+    FVector GetCurrentAngularVelocityRADPS() const;
+    
     UFUNCTION(BlueprintCallable, Category = "Flight")
     void SetFlightMode(EFlightMode NewMode);
     FFullPIDSet* GetPIDSet(EFlightMode Mode)
@@ -127,9 +133,6 @@ private:
     FVector setPoint;
     float minAltitudeLocal;
     float acceptableDistance;
-    // Cascaded yaw control parameters
-    float maxYawRate;
-    float minVelocityForYaw;
 
     // VelocityControl
     FVector desiredNewVelocity;
@@ -143,6 +146,5 @@ private:
     bool Debug_DrawDroneWaypoint;
     
     bool bManualThrustMode = false;
-
 
 };

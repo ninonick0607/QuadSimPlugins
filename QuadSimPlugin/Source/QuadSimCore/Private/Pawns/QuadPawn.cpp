@@ -14,9 +14,7 @@
 #include "Core/ThrusterComponent.h"       
 #include "UI/ImGuiUtil.h"
 #include "Components/ChildActorComponent.h"
-
-#include "Controllers/ZMQController.h"
-
+#include "Controllers/ROS2Controller.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -35,7 +33,7 @@ namespace DroneWaypointConfig
 
 const FVector start = FVector(0, 0, 1000);
 
-// Generate a spiral of waypoints around a given start position
+// Generate a repeated figure-8 path after an initial ascent
 static TArray<FVector> spiralWaypoints(const FVector& startPos)
 {
     TArray<FVector> waypoints;
@@ -140,14 +138,14 @@ AQuadPawn::AQuadPawn()
 
 	}
 
-	// Create additional components
 	ImGuiUtil = CreateDefaultSubobject<UImGuiUtil>(TEXT("DroneImGuiUtil"));
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
 	NavigationComponent = CreateDefaultSubobject<UNavigationComponent>(TEXT("NavigationComponent"));
-    // Child Actor Component for ZMQController
-    ZMQControllerComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("ZMQControllerComponent"));
-    ZMQControllerComponent->SetupAttachment(RootComponent);
-    ZMQControllerComponent->SetChildActorClass(AZMQController::StaticClass());
+    // Child Actor Component for ROS2Controller
+    ROS2ControllerComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("ROS2ControllerComponent"));
+    ROS2ControllerComponent->SetupAttachment(RootComponent);
+    ROS2ControllerComponent->SetChildActorClass(AROS2Controller::StaticClass());
+	
 }
 
 void AQuadPawn::BeginPlay()

@@ -34,7 +34,7 @@ enum class EWaypointMode
 	ReadyToStart
 };
 UCLASS()
-class QUADSIMCORE_API AQuadPawn : public APawn 
+class QUADSIMTOREALITY_API AQuadPawn : public APawn 
 {
 	GENERATED_BODY()
 
@@ -72,10 +72,9 @@ public:
 
    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
    TArray<UThrusterComponent*> Thrusters;
-	
-   // ZMQ Controller as a child actor component
+   // ROS2 Controller as a child actor component
    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-   UChildActorComponent* ZMQControllerComponent;
+   UChildActorComponent* ROS2ControllerComponent;
 
 	// --- Drone Configuration ---
 	UPROPERTY(EditDefaultsOnly, Category = "Drone Configuration")

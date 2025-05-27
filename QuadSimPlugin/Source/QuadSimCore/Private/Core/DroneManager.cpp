@@ -2,7 +2,9 @@
 // Controller includes
 #include "Controllers/QuadDroneController.h"
 #include "Pawns/QuadPawn.h"
+//#include "Controllers/ROS2Controller.h"  // Removed; ROS2Controller is now a child actor of QuadPawn
 #include "Kismet/GameplayStatics.h"
+    #include "Kismet/GameplayStatics.h"
     #include "Engine/World.h"
     #include "imgui.h"
     #include "Engine/Engine.h"
@@ -21,17 +23,12 @@
     {
         PrimaryActorTick.bCanEverTick = true;
         SelectedDroneIndex = 0;
+        // Default to C++ pawn class if no Blueprint subclass is set
     }
 
     void ADroneManager::BeginPlay()
     {
-       Super::BeginPlay();
-       // Ensure QuadPawnClass is set; fallback to C++ base class if unset
-       if (!QuadPawnClass)
-       {
-           QuadPawnClass = AQuadPawn::StaticClass();
-           UE_LOG(LogTemp, Warning, TEXT("QuadPawnClass not set; defaulting to C++ AQuadPawn class"));
-       }
+        Super::BeginPlay();
         
         if (UWorld* World = GetWorld())
         {

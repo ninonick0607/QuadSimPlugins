@@ -5,7 +5,7 @@
 /**
  * Utility class for drone-specific mathematical calculations.
  */
-class QUADSIMCORE_API DroneMathUtils
+class QUADSIMTOREALITY_API DroneMathUtils
 {
 public:
     /**

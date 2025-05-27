@@ -35,7 +35,7 @@ struct FDroneConfigData
 };
 
 UCLASS()
-class QUADSIMCORE_API UDroneJSONConfig : public UObject
+class QUADSIMTOREALITY_API UDroneJSONConfig : public UObject
 {
 	GENERATED_BODY()
 

@@ -5,11 +5,12 @@
 #include "DroneManager.generated.h"
 
 class AQuadPawn;
+//class AROS2Controller; // Removed; ROS2Controller is now embedded within QuadPawn
 // Forward declaration for flight modes
 enum class EFlightMode : uint8;
 
 UCLASS()
-class QUADSIMCORE_API ADroneManager : public AActor
+class QUADSIMTOREALITY_API ADroneManager : public AActor
 {
 	GENERATED_BODY()
 
@@ -24,7 +25,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Drone Manager")
 	TArray<AQuadPawn*> GetDroneList() const;
-	
+
+    
     // Register a quad-drone controller for global flight mode broadcasts
     void RegisterDroneController(class UQuadDroneController* Controller);
 

@@ -5,7 +5,7 @@
 #include "NavigationComponent.generated.h"
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class QUADSIMCORE_API UNavigationComponent : public UActorComponent
+class QUADSIMTOREALITY_API UNavigationComponent : public UActorComponent
 {
     GENERATED_BODY()
 
@@ -17,7 +17,7 @@ public:
     void UpdateNavigation(const FVector& CurrentPosition);
     void ResetNavigation();
 
-    // ? new:
+    // ← new:
     UFUNCTION(BlueprintCallable, Category="Navigation")
     void SetCurrentDestination(const FVector& Destination);
 

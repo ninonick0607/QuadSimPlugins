@@ -1,4 +1,5 @@
-﻿#pragma once
+// Fill out your copyright notice in the Description page of Project Settings.
+#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -15,7 +16,7 @@ enum class EGoalPosition : uint8
 };
 
 UCLASS(Blueprintable)
-class QUADSIMCORE_API AObstacleManager : public AActor {
+class QUADSIMTOREALITY_API AObstacleManager : public AActor {
     GENERATED_BODY()
 
 public:

@@ -4,6 +4,7 @@
 #include "Pawns/QuadPawn.h"
 #include "string"
 #include "Controllers/QuadDroneController.h"
+#include "Controllers/ROS2Controller.h"
 #include "Kismet/GameplayStatics.h"
 #include "Core/DroneJSONConfig.h"
 #include "Misc/FileHelper.h"
@@ -11,7 +12,6 @@
 #include <string>
 #include "Misc/DateTime.h"
 #include "Core/DroneManager.h"
-#include "Interfaces/IPluginManager.h"
 
 UImGuiUtil::UImGuiUtil()
 	: DronePawn(nullptr)
@@ -62,8 +62,28 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
 	ImGui::SetNextWindowPos(ImVec2(420, 10), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(500, 500), ImGuiCond_FirstUseEver);
  
+    // Get the ROS2Controller attached to this Pawn to query goal state
+    AROS2Controller* ros2ControllerCurrent = nullptr;
+    if (DronePawn)
+    {
+        TArray<AActor*> AttachedActors;
+        DronePawn->GetAttachedActors(AttachedActors);
+        for (AActor* Actor : AttachedActors)
+        {
+            ros2ControllerCurrent = Cast<AROS2Controller>(Actor);
+            if (ros2ControllerCurrent)
+            {
+                break;
+            }
+        }
+    }
+    FVector currentGoalState = FVector::ZeroVector;
     // Use Pawn's DroneID as identifier
     FString droneID = DronePawn ? DronePawn->DroneID : FString(TEXT("Unknown"));
+    if (ros2ControllerCurrent)
+    {
+        currentGoalState = ros2ControllerCurrent->GetCurrentGoalPosition();
+    }
  
 	FString WindowName = FString::Printf(TEXT("Drone Controller##%s"), *droneID);
     ImGui::Begin(TCHAR_TO_UTF8(*WindowName), nullptr, ImGuiWindowFlags_AlwaysVerticalScrollbar);
@@ -690,12 +710,7 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 		// Save logic remains the same
 		if (ImGui::Button("Save PID Gains", ImVec2(200, 50)))
 		{
-			// Determine plugin directory for PID history file
-			TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("QuadSimPlugin"));
-			FString PluginDir = Plugin.IsValid()
-				? Plugin->GetBaseDir()
-				: FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("QuadSimPlugin"));
-			FString FilePath = FPaths::Combine(PluginDir, TEXT("PIDGains.csv"));
+			FString FilePath = FPaths::ProjectDir() + "PIDGains.csv";
 			IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 			bool bFileExists = PlatformFile.FileExists(*FilePath);
 			FString Header = TEXT("Timestamp,xP,xI,xD,yP,yI,yD,zP,zI,zD,rollP,rollI,rollD,pitchP,pitchI,pitchD,yawP,yawI,yawD\n");
@@ -1105,13 +1120,8 @@ void UImGuiUtil::DisplayPIDHistoryWindow()
 		return;
 	}
 
-	// Determine plugin directory for PID history file
-	TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("QuadSimPlugin"));
-	FString PluginDir = Plugin.IsValid()
-		? Plugin->GetBaseDir()
-		: FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("QuadSimPlugin"));
 	// Path to the CSV file
-	FString FilePath = FPaths::Combine(PluginDir, TEXT("PIDGains.csv"));
+	FString FilePath = FPaths::ProjectDir() + "PIDGains.csv";
 
 	// Check if file exists
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
@@ -1272,3 +1282,86 @@ void UImGuiUtil::LoadPIDValues(EFlightMode Mode, const TArray<FString>& Values)
 	// Notify of successful load
 	UE_LOG(LogTemp, Display, TEXT("Loaded PID configuration from %s"), *Values[0]);
 }
+
+
+//
+// void UImGuiUtil::DisplayDesiredVelocities()
+// {
+//     static float prevVx = 0.0f, prevVy = 0.0f, prevVz = 0.0f, prevYr = 0.0f;
+//     static bool firstRun = true;
+//     static bool resetXChecked = false, resetYChecked = false, resetZChecked = false, resetYrChecked = false;
+//
+//     if (!Controller) return;
+//
+//     FVector currentDesiredVelocity = Controller->GetDesiredVelocity();
+//     float currentYawRate = Controller->GetDesiredYawRate();
+//     bool hoverModeActive = Controller->IsHoverModeActive();
+//
+//     float tempVx = currentDesiredVelocity.X;
+//     float tempVy = currentDesiredVelocity.Y;
+//     float tempVz = currentDesiredVelocity.Z;
+//     float tempYr = currentYawRate;
+//     bool velocityChanged = false;
+//
+//     ImGui::PushStyleColor(ImGuiCol_Button, hoverModeActive ? ImVec4(0.1f, 0.8f, 0.6f, 1.0f) : ImVec4(0.1f, 0.6f, 0.8f, 1.0f));
+//     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hoverModeActive ? ImVec4(0.2f, 0.9f, 0.7f, 1.0f) : ImVec4(0.2f, 0.7f, 0.9f, 1.0f));
+//     ImGui::PushStyleColor(ImGuiCol_ButtonActive, hoverModeActive ? ImVec4(0.0f, 0.7f, 0.5f, 1.0f) : ImVec4(0.0f, 0.5f, 0.7f, 1.0f));
+//     if (ImGui::Button(hoverModeActive ? "Hover Mode: ON" : "Hover Mode: OFF", ImVec2(150, 30))) {
+//         Controller->SetHoverMode(!hoverModeActive);
+//         velocityChanged = true;
+//     }
+//     ImGui::PopStyleColor(3);
+//     if (hoverModeActive) { ImGui::SameLine(); ImGui::TextDisabled("(Z Velocity Disabled)"); }
+//     ImGui::Spacing();
+//
+//     auto VelocitySlider = [&](const char* label, float* value, float minVal, float maxVal, bool disabled = false) {
+//         bool changed = false;
+//         ImGui::PushItemWidth(-1);
+//         if(disabled) {
+//             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+//             ImGui::SliderFloat(label, value, minVal, maxVal, "%.1f");
+//             ImGui::PopStyleVar();
+//         } else {
+//             changed = ImGui::SliderFloat(label, value, minVal, maxVal, "%.1f");
+//         }
+//         ImGui::PopItemWidth();
+//         return changed;
+//     };
+//     velocityChanged |= VelocitySlider("X", &tempVx, -maxVelocity, maxVelocity);
+//     velocityChanged |= VelocitySlider("Y", &tempVy, -maxVelocity, maxVelocity);
+//     velocityChanged |= VelocitySlider("Z", &tempVz, -maxVelocity, maxVelocity, hoverModeActive);
+//     velocityChanged |= VelocitySlider("Yaw", &tempYr, -50.f, 50.f);
+//
+//     ImGui::Separator();
+//     ImGui::Text("Reset Axes to 0:");
+//     ImGui::Spacing();
+//     ImGui::PushID("ResetChecks");
+//     if (ImGui::Checkbox("X", &resetXChecked)) { if (resetXChecked) { tempVx = 0.0f; velocityChanged = true; } resetXChecked = false; }
+//     ImGui::SameLine(0, 20);
+//     if (ImGui::Checkbox("Y", &resetYChecked)) { if (resetYChecked) { tempVy = 0.0f; velocityChanged = true; } resetYChecked = false; }
+//     ImGui::SameLine(0, 20);
+//     if (ImGui::Checkbox("Z", &resetZChecked)) { if (resetZChecked) { tempVz = 0.0f; velocityChanged = true; } resetZChecked = false; }
+//     ImGui::SameLine(0, 20);
+//     if (ImGui::Checkbox("Yaw", &resetYrChecked)) { if (resetYrChecked) { tempYr = 0.0f; velocityChanged = true; } resetYrChecked = false; }
+//     ImGui::PopID();
+//
+//     if (firstRun) {
+//         prevVx = tempVx; prevVy = tempVy; prevVz = tempVz; prevYr = tempYr;
+//         firstRun = false;
+//     }
+//     const float threshold = 0.01f;
+//     bool significantChange = false;
+//     if (!velocityChanged) {
+//         significantChange = (FMath::Abs(tempVx - prevVx) > threshold) ||
+//                            (FMath::Abs(tempVy - prevVy) > threshold) ||
+//                            (FMath::Abs(tempVz - prevVz) > threshold) ||
+//                            (FMath::Abs(tempYr - prevYr) > threshold);
+//     }
+//     if (velocityChanged || significantChange) {
+//         if (hoverModeActive) tempVz = 0.0f;
+//         FVector desiredNewVelocity = FVector(tempVx, tempVy, tempVz);
+//         Controller->SetDesiredVelocity(desiredNewVelocity);
+//         Controller->SetDesiredYawRate(tempYr);
+//         prevVx = tempVx; prevVy = tempVy; prevVz = tempVz; prevYr = tempYr;
+//     }
+// }

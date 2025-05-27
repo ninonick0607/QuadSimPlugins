@@ -5,6 +5,7 @@
 #include "Pawns/QuadPawn.h"
 #include "DrawDebugHelpers.h"
 #include "imgui.h"
+#include "Core/DroneGlobalState.h"
 #include "UI/ImGuiUtil.h"
 #include "Core/DroneJSONConfig.h"
 #include "Core/DroneManager.h"
@@ -38,10 +39,7 @@ UQuadDroneController::UQuadDroneController(const FObjectInitializer& ObjectIniti
 	maxAngle = Config.FlightParams.MaxAngle;
 	maxPIDOutput = Config.FlightParams.MaxPIDOutput;
 	minAltitudeLocal = Config.FlightParams.MinAltitudeLocal;
-   acceptableDistance = Config.FlightParams.AcceptableDistance;
-   // Yaw control parameters from config
-   maxYawRate = Config.ControllerParams.YawRate;
-   minVelocityForYaw = Config.ControllerParams.MinVelocityForYaw;
+	acceptableDistance = Config.FlightParams.AcceptableDistance;
 
    // Start with flight mode None (motors off) until mode is selected via UI
    currentFlightMode = EFlightMode::None;
@@ -132,8 +130,13 @@ UQuadDroneController::UQuadDroneController(const FObjectInitializer& ObjectIniti
 	AltitudePID->SetLimits(-maxPIDOutput, maxPIDOutput);
 	AltitudePID->SetGains(5.f, 1.f, 0.1f);
 
+	DroneGlobalState::Get().BindController(this);
 }
 
+UQuadDroneController::~UQuadDroneController()
+{
+	DroneGlobalState::Get().UnbindController(this);
+}
 
 // ---------------------- Initialization ------------------------
 
@@ -258,7 +261,7 @@ void UQuadDroneController::VelocityControl(double DeltaTime)
  	}
  
 	FRotator yawOnlyRotation(0, currentRotation.Yaw, 0);
-	currentLocalVelocity = yawOnlyRotation.UnrotateVector(currentVelocity);
+	FVector currentLocalVelocity = yawOnlyRotation.UnrotateVector(currentVelocity);
  	FVector velocityError = desiredLocalVelocity - currentLocalVelocity;
  	SafetyReset();
 	
@@ -355,28 +358,8 @@ void UQuadDroneController::AutoWaypointControl(double a_deltaTime)
 	pitch_output = CurrentSet->PitchPID->Calculate(pitch_error, a_deltaTime);
 	
 
-   ThrustMixer(x_output, y_output, z_output, roll_output, pitch_output);
-   // Cascaded yaw control: compute desired yaw rate from yaw error
-   {
-       // Only enable yaw control above minimum velocity threshold
-       if (currentVelocity.Size() > minVelocityForYaw)
-       {
-           // Compute local position error in drone's frame
-           FVector localPositionError = yawOnlyRotation.UnrotateVector(positionError);
-           // Compute yaw error (radians) and convert to degrees
-           float yawErrorRad = FMath::Atan2(localPositionError.Y, localPositionError.X);
-           float yawErrorDeg = FMath::RadiansToDegrees(yawErrorRad);
-           // Calculate desired yaw rate using PID on yaw error
-           float rawRate = CurrentSet->YawPID->Calculate(yawErrorDeg, a_deltaTime);
-           desiredYawRate = FMath::Clamp(rawRate, -maxYawRate, maxYawRate);
-       }
-       else
-       {
-           desiredYawRate = 0.0f;
-       }
-   }
-   // Apply yaw rate control to generate torque
-   YawRateControl(a_deltaTime);
+	ThrustMixer(x_output, y_output, z_output, roll_output, pitch_output);
+	YawRateControl(a_deltaTime);
      
 	// UI: show only for independent possessed drone or first in swarm
 	if (dronePawn && dronePawn->ImGuiUtil)
@@ -666,15 +649,45 @@ void UQuadDroneController::SetDestination(FVector desiredSetPoints) {
 
 void UQuadDroneController::DrawDebugVisuals(const FVector& currentPosition) const
 {
-   // Draw only a line connecting the current position to the setpoint (no spheres).
-   DrawDebugLine(
-       dronePawn->GetWorld(),
-       currentPosition,
-       setPoint,
-       FColor::Green,
-       /*bPersistent=*/false,
-       /*LifeTime=*/0.0f
-   );
+	if (Debug_DrawDroneCollisionSphere)
+	{
+		// Draw a sphere around the drone (using its collision radius)
+		FBoxSphereBounds MeshBounds = dronePawn->DroneBody->CalcBounds(dronePawn->DroneBody->GetComponentTransform());
+		float VerticalOffset = MeshBounds.BoxExtent.Z;
+		FVector AdjustedPosition = currentPosition + FVector(0.0f, 0.0f, VerticalOffset);
+		DrawDebugSphere(
+			dronePawn->GetWorld(),
+			AdjustedPosition,
+			dronePawn->DroneBody->GetCollisionShape().GetSphereRadius(),
+			10,
+			FColor::Red,
+			false,  // not persistent
+			0.0f
+		);
+	}
+
+	if (Debug_DrawDroneWaypoint)
+	{
+		// Draw the debug sphere at the desired setpoint.
+		DrawDebugSphere(
+			dronePawn->GetWorld(),
+			setPoint,
+			50.0f,  // using the hover threshold as the sphere radius for visibility
+			10,
+			FColor::Blue,
+			false,
+			0.0f
+		);
+		// Draw a line connecting the current position to the setpoint.
+		DrawDebugLine(
+			dronePawn->GetWorld(),
+			currentPosition,
+			setPoint,
+			FColor::Green,
+			false,
+			0.0f
+		);
+	}
 }
 
  void UQuadDroneController::DrawDebugVisualsVel(const FVector& horizontalVelocity) const
@@ -756,6 +769,30 @@ float UQuadDroneController::GetCurrentThrustOutput(int32 ThrusterIndex) const
 	return 0.0f;
 }
 
+FQuat UQuadDroneController::GetOrientationAsQuat() const 
+{
+	if (IsValid(dronePawn))
+	{
+		const FRotator WorldRotation = dronePawn->GetActorRotation();
+		return FQuat(WorldRotation); 
+	}
+	return FQuat::Identity; 
+}
+
+FVector UQuadDroneController::GetCurrentAngularVelocityRADPS() const
+{
+	if (IsValid(dronePawn) && IsValid(dronePawn->DroneBody))
+	{
+		FVector AngularVelocityDegS = dronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
+		return FVector(
+			FMath::DegreesToRadians(AngularVelocityDegS.X),
+			FMath::DegreesToRadians(AngularVelocityDegS.Y),
+			FMath::DegreesToRadians(AngularVelocityDegS.Z)
+		);
+	}
+	UE_LOG(LogTemp, Warning, TEXT("GetCurrentAngularVelocityRADPS: dronePawn or DroneBody invalid. Returning zero vector."));
+	return FVector::ZeroVector;
+}
 
 FVector UQuadDroneController::GetCurrentVelocity() const
 {
@@ -793,18 +830,11 @@ void UQuadDroneController::SetFlightMode(EFlightMode NewMode)
             const float LifeTime = 0.0f;
             for (int32 i = 0; i < plan.Num(); i += debugStep)
             {
-                // Draw only connecting lines for auto-waypoint path (no spheres)
+                DrawDebugSphere(World, plan[i], SphereSize, 8, FColor::Green, bPersistent, LifeTime);
                 int32 nextIdx = i + debugStep;
                 if (nextIdx < plan.Num())
                 {
-                    DrawDebugLine(World,
-                        plan[i],
-                        plan[nextIdx],
-                        FColor::Green,
-                        /*bPersistent=*/true,
-                        /*LifeTime=*/0.0f,
-                        /*DepthPriority=*/0,
-                        /*Thickness=*/5.0f);
+                    DrawDebugLine(World, plan[i], plan[nextIdx], FColor::Green, bPersistent, LifeTime, 0, 5.0f);
                 }
             }
         }

@@ -2,61 +2,58 @@ using UnrealBuildTool;
 using System.IO;
 
 public class QuadSimCore : ModuleRules
-{
+{ // Opening brace for the CLASS
     public QuadSimCore(ReadOnlyTargetRules Target) : base(Target)
-    {
-        PCHUsage        = PCHUsageMode.UseExplicitOrSharedPCHs;
-        CppStandard     = CppStandardVersion.Cpp20;
-        bEnableExceptions = true;
-
-        PublicDependencyModuleNames.AddRange(new[]
-        {
-            "Core",
-            "CoreUObject",
-            "Engine",
-            "InputCore",
-            "EnhancedInput",
-            "PhysicsCore",
-            "RenderCore",
-            "RHI",
-            "Sockets",
-            "Networking",
-            "Json",
-            "JsonUtilities",
-            // For accessing plugin directory
-            // For accessing plugin directory
-            "Projects",
-            "ImGui",
-            "Slate",
-            "SlateCore",
-            "UMG"
+    { // Opening brace for the CONSTRUCTOR
+        // ... all your existing code from inside the constructor ...
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+        
+        PublicDependencyModuleNames.AddRange(new string[] {
+            "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput",
+            "ChaosVehicles", "PhysicsCore", "RenderCore", "RHI",
+            "Sockets", "Networking", "ImGui", "Slate", "SlateCore", 
+            "UMG", "Json", "JsonUtilities",
+            "rclUE" 
         });
+
+        PrivateDependencyModuleNames.AddRange(new string[] { });
+        
+	string ProjectPluginsDirectory = Path.GetFullPath(Path.Combine(ModuleDirectory, "../../../")); 
+
+	string RclUEPath = Path.Combine(ProjectPluginsDirectory, "rclUE"); // Path to .../QuadSim/Plugins/rclUE/
+
+	// Verify the exact subdirectory structure within rclUE for Source and ThirdParty
+	// Based on common plugin structures, it might be:
+	string RclUESourcePublicPath = Path.Combine(RclUEPath, "Source", "rclUE", "Public"); 
+	string ROS2IncludePath = Path.Combine(RclUEPath, "ThirdParty", "ros", "include");
+
+	PublicIncludePaths.AddRange(new string[] {
+	    RclUESourcePublicPath,
+	    ROS2IncludePath,
+	    Path.Combine(ROS2IncludePath, "rcl"),
+	    Path.Combine(ROS2IncludePath, "rcl_interfaces"),
+	    Path.Combine(ROS2IncludePath, "std_msgs")
+	});
 
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
-            // expect ThirdParty under the plugin root: <project>/Plugins/QuadSimPlugin/ThirdParty
-            // Compute plugin's base directory (two levels up from ModuleDirectory)
-            string PluginRoot   = Path.GetFullPath(Path.Combine(ModuleDirectory, "../../"));
-            string ThirdParty = Path.Combine(PluginRoot, "ThirdParty");
-
-            // C API
-            string ZeroMQInc = Path.Combine(ThirdParty, "ZeroMQ", "include");
-            // C++ bindings
-            string CppZmqInc = Path.Combine(ThirdParty, "cppzmq", "include");
-            PublicIncludePaths.Add(ZeroMQInc);
-            PublicIncludePaths.Add(CppZmqInc);
-
-            const string LibName = "libzmq-v143-mt-4_3_6";
-            string LibDir = Path.Combine(ThirdParty, "ZeroMQ", "lib");
-
-            // Link the .lib
-            PublicAdditionalLibraries.Add(Path.Combine(LibDir, LibName + ".lib"));
-            // Delay-load the DLL and package it
-            PublicDelayLoadDLLs.Add(LibName + ".dll");
-            RuntimeDependencies.Add(
-                "$(BinaryOutputDir)/" + LibName + ".dll",
-                Path.Combine(LibDir, LibName + ".dll")
-            );
+            PublicDefinitions.Add("WITH_ROS=0");
         }
-    }
-}
+        else if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+            
+            // ROS2 specific configuration for Linux
+            PublicDefinitions.Add("WITH_ROS=1");
+            
+            // Set the ROS_VERSION definition
+            PublicDefinitions.Add("ROS_VERSION=2");
+            
+            // If you need specific ROS2 Foxy version
+            PublicDefinitions.Add("ROS_DISTRO=foxy");
+        }
+
+        bEnableExceptions = true;
+        CppStandard = CppStandardVersion.Cpp20;
+    } 
+
+} 
