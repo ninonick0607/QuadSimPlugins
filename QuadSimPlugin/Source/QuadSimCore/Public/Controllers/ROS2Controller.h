@@ -33,7 +33,7 @@ class UNavigationComponent; // Forward declare your navigation component class
 #include "ROS2Controller.generated.h"
 
 UCLASS()
-class QUADSIMTOREALITY_API AROS2Controller : public AActor
+class QUADSIMCORE_API AROS2Controller : public AActor
 {
     GENERATED_BODY()
 

@@ -5,7 +5,7 @@
 #include "NavigationComponent.generated.h"
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class QUADSIMTOREALITY_API UNavigationComponent : public UActorComponent
+class QUADSIMCORE_API UNavigationComponent : public UActorComponent
 {
     GENERATED_BODY()
 

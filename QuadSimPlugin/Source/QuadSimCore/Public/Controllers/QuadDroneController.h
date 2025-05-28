@@ -42,7 +42,7 @@ struct FFullPIDSet
 
 
 UCLASS(Blueprintable, BlueprintType)
-class QUADSIMTOREALITY_API UQuadDroneController : public UObject
+class QUADSIMCORE_API UQuadDroneController : public UObject
 {
     GENERATED_BODY()
 

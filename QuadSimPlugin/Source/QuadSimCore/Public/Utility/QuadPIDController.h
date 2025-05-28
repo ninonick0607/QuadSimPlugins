@@ -3,7 +3,7 @@
 
 #include "CoreMinimal.h"
 
-class QUADSIMTOREALITY_API QuadPIDController
+class QUADSIMCORE_API QuadPIDController
 {
 public:
 	QuadPIDController();

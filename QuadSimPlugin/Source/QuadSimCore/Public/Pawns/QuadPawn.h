@@ -34,7 +34,7 @@ enum class EWaypointMode
 	ReadyToStart
 };
 UCLASS()
-class QUADSIMTOREALITY_API AQuadPawn : public APawn 
+class QUADSIMCORE_API AQuadPawn : public APawn 
 {
 	GENERATED_BODY()
 

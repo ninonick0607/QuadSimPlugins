@@ -10,7 +10,7 @@ class UQuadDroneController;
 enum class EFlightMode : uint8;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
-class QUADSIMTOREALITY_API UImGuiUtil : public UActorComponent
+class QUADSIMCORE_API UImGuiUtil : public UActorComponent
 {
     GENERATED_BODY()
 public:

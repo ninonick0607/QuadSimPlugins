@@ -4,7 +4,7 @@
 
 class UQuadDroneController;
 
-class QUADSIMTOREALITY_API DroneGlobalState
+class QUADSIMCORE_API DroneGlobalState
 {
 public:
     // Remove the public constructor declaration since it's private

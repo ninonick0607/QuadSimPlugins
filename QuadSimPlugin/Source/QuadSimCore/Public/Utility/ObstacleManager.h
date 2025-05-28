@@ -16,7 +16,7 @@ enum class EGoalPosition : uint8
 };
 
 UCLASS(Blueprintable)
-class QUADSIMTOREALITY_API AObstacleManager : public AActor {
+class QUADSIMCORE_API AObstacleManager : public AActor {
     GENERATED_BODY()
 
 public:

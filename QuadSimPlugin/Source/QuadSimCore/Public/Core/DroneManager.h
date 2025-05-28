@@ -10,7 +10,7 @@ class AQuadPawn;
 enum class EFlightMode : uint8;
 
 UCLASS()
-class QUADSIMTOREALITY_API ADroneManager : public AActor
+class QUADSIMCORE_API ADroneManager : public AActor
 {
 	GENERATED_BODY()
 

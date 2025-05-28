@@ -8,7 +8,7 @@
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class QUADSIMTOREALITY_API UThrusterComponent : public USceneComponent
+class QUADSIMCORE_API UThrusterComponent : public USceneComponent
 {
     GENERATED_BODY()
 
