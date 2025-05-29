@@ -45,7 +45,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogROS2, Log, All);
 
-static TAutoConsoleVariable<int32> CVarRclUERcsSoftCheck(
+ inline TAutoConsoleVariable<int32> CVarRclUERcsSoftCheck(
     TEXT("RCLUE.RCSOFTCHECK"),
     0,
     TEXT("Exit UE with rcl function error or not.\n")

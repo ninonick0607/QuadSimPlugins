@@ -9,6 +9,8 @@
 
 UDroneJSONConfig* UDroneJSONConfig::Instance = nullptr;
 
+// Include plugin manager to locate plugin directory for config files
+#include "Interfaces/IPluginManager.h"
 UDroneJSONConfig::UDroneJSONConfig()
 {
     LoadConfig();
@@ -26,6 +28,13 @@ UDroneJSONConfig& UDroneJSONConfig::Get()
 
 FString UDroneJSONConfig::GetConfigFilePath() const
 {
+    // Attempt to load config from this plugin's Config directory
+    TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("QuadSimPlugin"));
+    if (Plugin.IsValid())
+    {
+        return FPaths::Combine(Plugin->GetBaseDir(), TEXT("Config"), TEXT("DroneConfig.json"));
+    }
+    // Fallback to project Config directory
     return FPaths::ProjectConfigDir() / TEXT("DroneConfig.json");
 }
 
