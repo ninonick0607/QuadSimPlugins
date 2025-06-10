@@ -3,7 +3,7 @@
   "Version": 1,
   "Name": "QuadSimPlugin",
   "FriendlyName": "QuadSim",
-  "Description": "Quadcopter sim + ZMQ comms",
+  "Description": "Quadcopter sim + ROS2 comms",
   "Category": "Simulation",
   "CreatedBy": "Nico",
   "CanContainContent": true,

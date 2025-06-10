@@ -508,9 +508,9 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 		float sliderWidth = totalWidth > (inputWidth + 20.0f) ? totalWidth - inputWidth - 20.0f : 100.0f;
 
 		// Define gain limits based on request
-		const float minXGain = 0.0f;
+		const float minXGain = 0.00001f;
 		const float maxXGain = -0.8f;
-		const float minYGain = 0.0f;
+		const float minYGain = 0.00001f;
 		const float maxYGain = 0.8f;
 
 		// --- X Axis ---

@@ -1,9 +1,12 @@
 #include "Utility/NavigationComponent.h"
+#include "Core/DroneJSONConfig.h"
 
 UNavigationComponent::UNavigationComponent()
 {
     PrimaryComponentTick.bCanEverTick = false;
     CurrentIndex = 0;
+    AcceptableDistance = UDroneJSONConfig::Get().Config.FlightParams.AcceptableDistance;
+
 }
 
 void UNavigationComponent::SetNavigationPlan(const TArray<FVector>& InWaypoints)

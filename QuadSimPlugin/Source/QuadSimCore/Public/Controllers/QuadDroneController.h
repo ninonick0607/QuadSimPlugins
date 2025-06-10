@@ -14,7 +14,7 @@ enum class EFlightMode : uint8
     None UMETA(DisplayName = "None"),
     AutoWaypoint UMETA(DisplayName = "AutoWaypoint"),
     JoyStickControl UMETA(DisplayName = "JoyStickControl"),
-    VelocityControl UMETA(DisplayName = "VelocityControl")
+    VelocityControl UMETA(DisplayName = "VelocityControl"),
 };
 
 USTRUCT()
@@ -62,8 +62,8 @@ public:
     void VelocityControl(double a_deltaTime);
     //void ApplyControllerInput(double a_deltaTime);
     void AutoWaypointControl(double DeltaTime);
+    void dynamicController(double DeltaTime);
     void ThrustMixer(double currentRoll, double currentPitch, double zOutput, double rollOutput, double pitchOutput);
-    void YawStabilization(double DeltaTime);
     void YawRateControl(double DeltaTime);
     
     void ResetPID();
