@@ -23,9 +23,6 @@ public class QuadSimCore : ModuleRules
             "Networking",
             "Json",
             "JsonUtilities",
-            // For accessing plugin directory
-            // For accessing plugin directory
-            "Projects",
             "ImGui",
             "Slate",
             "SlateCore",
