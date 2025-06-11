@@ -1,9 +1,17 @@
 #include "Utility/NavigationComponent.h"
+#include "Core/DroneJSONConfig.h"
 
 UNavigationComponent::UNavigationComponent()
 {
     PrimaryComponentTick.bCanEverTick = false;
     CurrentIndex = 0;
+}
+// Called when the game starts
+void UNavigationComponent::BeginPlay()
+{
+    Super::BeginPlay();
+    // Initialize AcceptableDistance from JSON config
+    AcceptableDistance = UDroneJSONConfig::Get().Config.FlightParams.AcceptableDistance;
 }
 
 void UNavigationComponent::SetNavigationPlan(const TArray<FVector>& InWaypoints)
@@ -26,7 +34,7 @@ void UNavigationComponent::UpdateNavigation(const FVector& CurrentPosition)
     if (!Waypoints.IsValidIndex(CurrentIndex))
         return;
 
-    if (FVector::Dist(CurrentPosition, Waypoints[CurrentIndex]) < AcceptableDistance)
+    if (FVector::Dist(CurrentPosition, Waypoints[CurrentIndex]) <= AcceptableDistance)
     {
         CurrentIndex++;
         if (CurrentIndex >= Waypoints.Num())

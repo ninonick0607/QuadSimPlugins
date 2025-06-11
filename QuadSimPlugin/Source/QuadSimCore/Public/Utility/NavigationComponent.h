@@ -30,4 +30,8 @@ public:
 private:
     TArray<FVector> Waypoints;
     int32 CurrentIndex;
+    
+protected:
+    // Load acceptable distance from JSON config on start
+    virtual void BeginPlay() override;
 };

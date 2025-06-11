@@ -7,7 +7,7 @@
 		"max_pid_output": 10000,
 		"altitude_threshold": 0.60000002384185791,
 		"min_altitude_local": 500,
-		"acceptable_distance": 200
+		"acceptable_distance": 50
 	},
 	"controller":
 	{
