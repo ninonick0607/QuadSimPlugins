@@ -96,8 +96,10 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
                 ImGui::InputFloat("Max Velocity Bound", &Cfg.FlightParams.MaxVelocityBound);
                 ImGui::InputFloat("Max Velocity", &Cfg.FlightParams.MaxVelocity);
                 ImGui::InputFloat("Max Angle", &Cfg.FlightParams.MaxAngle);
-                ImGui::InputFloat("Max PID Output", &Cfg.FlightParams.MaxPIDOutput);
-                ImGui::InputFloat("Altitude Threshold", &Cfg.FlightParams.AltitudeThreshold);
+                ImGui::InputFloat("Max PID Output",        &Cfg.FlightParams.MaxPIDOutput);
+                // Allow editing maximum thrust
+                ImGui::InputFloat("Max Thrust",            &Cfg.FlightParams.MaxThrust);
+                ImGui::InputFloat("Altitude Threshold",    &Cfg.FlightParams.AltitudeThreshold);
                 ImGui::InputFloat("Min Altitude Local", &Cfg.FlightParams.MinAltitudeLocal);
                 ImGui::InputFloat("Acceptable Distance", &Cfg.FlightParams.AcceptableDistance);
             }
@@ -116,6 +118,10 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
             if (ImGui::Button("Save Settings")) {
                 if (UDroneJSONConfig::Get().SaveConfig()) {
                     UE_LOG(LogTemp, Log, TEXT("Config saved successfully."));
+                    // Refresh UI bounds from updated config
+                    const auto& NewCfg = UDroneJSONConfig::Get().Config;
+                    maxVelocityBound = NewCfg.FlightParams.MaxVelocityBound;
+                    maxThrust        = NewCfg.FlightParams.MaxThrust;
                 } else {
                     UE_LOG(LogTemp, Error, TEXT("Failed to save config."));
                 }

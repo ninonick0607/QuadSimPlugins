@@ -92,7 +92,9 @@ bool UDroneJSONConfig::SaveConfig()
      FlightParamsObj->SetNumberField(TEXT("max_velocity_bound"),    Config.FlightParams.MaxVelocityBound);
      FlightParamsObj->SetNumberField(TEXT("max_velocity"),          Config.FlightParams.MaxVelocity);
      FlightParamsObj->SetNumberField(TEXT("max_angle"),             Config.FlightParams.MaxAngle);
-     FlightParamsObj->SetNumberField(TEXT("max_pid_output"),        Config.FlightParams.MaxPIDOutput);
+    FlightParamsObj->SetNumberField(TEXT("max_pid_output"),        Config.FlightParams.MaxPIDOutput);
+    // Save the maximum thrust parameter
+    FlightParamsObj->SetNumberField(TEXT("max_thrust"),            Config.FlightParams.MaxThrust);
      FlightParamsObj->SetNumberField(TEXT("altitude_threshold"),    Config.FlightParams.AltitudeThreshold);
      FlightParamsObj->SetNumberField(TEXT("min_altitude_local"),    Config.FlightParams.MinAltitudeLocal);
      FlightParamsObj->SetNumberField(TEXT("acceptable_distance"),   Config.FlightParams.AcceptableDistance);
