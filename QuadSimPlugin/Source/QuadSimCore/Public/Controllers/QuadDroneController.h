@@ -60,6 +60,7 @@ public:
     void VelocityControl(double a_deltaTime);
     //void ApplyControllerInput(double a_deltaTime);
     void AutoWaypointControl(double DeltaTime);
+    void dynamicController(double DeltaTime);
     void ThrustMixer(double currentRoll, double currentPitch, double zOutput, double rollOutput, double pitchOutput);
     void YawStabilization(double DeltaTime);
     void YawRateControl(double DeltaTime);

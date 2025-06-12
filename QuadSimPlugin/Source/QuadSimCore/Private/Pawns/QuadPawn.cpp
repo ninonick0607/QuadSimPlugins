@@ -89,7 +89,7 @@ AQuadPawn::AQuadPawn()
 	PrimaryActorTick.bCanEverTick = true;
 
     // Skeletal mesh for drone body (physics & visuals)
-    DroneBody = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("DroneBody"));
+    DroneBody = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DroneBody"));
     RootComponent = DroneBody;
     DroneBody->SetSimulatePhysics(true);
     DroneBody->SetNotifyRigidBodyCollision(true);

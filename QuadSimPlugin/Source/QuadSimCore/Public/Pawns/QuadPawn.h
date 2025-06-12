@@ -50,7 +50,7 @@ public:
 
 	// --- Drone Components ---
    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-   USkeletalMeshComponent* DroneBody;
+   UStaticMeshComponent* DroneBody;
 
 	// --- Camera Components ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")

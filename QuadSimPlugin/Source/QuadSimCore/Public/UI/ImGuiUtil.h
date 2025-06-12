@@ -84,6 +84,6 @@ private:
     // Helper method to load PID values from a CSV row
     void LoadPIDValues(EFlightMode Mode, const TArray<FString>& Values);
 
-    static const int32 MaxDataPoints = 500;
+    int32 MaxDataPoints;
     bool bShowSettingsUI;
 };
