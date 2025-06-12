@@ -239,114 +239,239 @@ void UQuadDroneController::Update(double a_deltaTime)
 	case EFlightMode::VelocityControl:
 		dynamicController(a_deltaTime);
 		break;
-
 	}
 	
 }
 
+// Velocity‑control inner‑loop for QuadRotor
+// ------------------------------------------------------------
+// Notes on conventions:
+//   • All vectors returned by UE are **world‑space**.
+//   • We do control in the **body‑local** X (forward) / Y (right) / Z (up) frame.
+//   • Yaw is separated: we rotate world vectors by the current yaw only so that
+//     roll & pitch commands are not affected by the drone’s heading.
+//   • Translational PIDs (XPID,YPID ZPID) work on **velocity error** in m/s.
+//   • Attitude PIDs (RollPID,PitchPID) work on **angle error** in degrees.
+//   • ThrustMixer maps desired forces/torques → 4 individual motor thrusts.
+// ------------------------------------------------------------
+
 void UQuadDroneController::VelocityControl(double DeltaTime)
- {
-	FFullPIDSet* CurrentSet = PIDMap.Find(EFlightMode::VelocityControl);
-	
- 	FVector currentPosition = dronePawn->GetActorLocation();
- 	FVector currentVelocity = dronePawn->GetVelocity();
- 	FRotator currentRotation = dronePawn->GetActorRotation();
- 	FVector desiredLocalVelocity = desiredNewVelocity;
- 
- 	if (bHoverModeActive)
- 	{
- 		float currentAltitude = dronePawn->GetActorLocation().Z;
- 		float altitudeError = hoverTargetAltitude - currentAltitude;
- 		desiredLocalVelocity.Z = AltitudePID->Calculate(altitudeError, DeltaTime);
- 		desiredLocalVelocity.Z = FMath::Clamp(desiredLocalVelocity.Z, -100.0f, 100.0f);
- 	}
- 
-	FRotator yawOnlyRotation(0, currentRotation.Yaw, 0);
-	FVector currentLocalVelocity = yawOnlyRotation.UnrotateVector(currentVelocity);
- 	FVector velocityError = desiredLocalVelocity - currentLocalVelocity;
- 	SafetyReset();
-	
-	double x_output = 0.f, y_output = 0.f, z_output = 0.f;
-	double roll_output = 0.f, pitch_output = 0.f, yaw_output = 0.f;
+{
+    //  Fetch the active PID set for this flight‑mode
+    FFullPIDSet* CurrentSet = PIDMap.Find(EFlightMode::VelocityControl);
+    if (!CurrentSet || !dronePawn) return;
 
-	x_output = CurrentSet->XPID->Calculate(velocityError.X, DeltaTime);
-	y_output = CurrentSet->YPID->Calculate(velocityError.Y, DeltaTime);
-	z_output = CurrentSet->ZPID->Calculate(velocityError.Z, DeltaTime);
-	
-	y_output = FMath::Clamp(y_output, -maxAngle, maxAngle);
-	float roll_error = y_output-currentRotation.Roll;
-	roll_output = CurrentSet->RollPID->Calculate(roll_error, DeltaTime);
+    //  Read current state (world‑space)
+    const FVector   worldPos  = dronePawn->GetActorLocation();   // cm
+    const FVector   worldVel  = dronePawn->GetVelocity();        // cm/s
+    const FRotator  worldRot  = dronePawn->GetActorRotation();   // deg
 
-	x_output = FMath::Clamp(x_output, -maxAngle, maxAngle);
-	float pitch_error = x_output-currentRotation.Pitch;
-	pitch_output = CurrentSet->PitchPID->Calculate(pitch_error, DeltaTime);
-	
- 	ThrustMixer(x_output, y_output, z_output, roll_output, pitch_output);
- 	YawRateControl(DeltaTime);
- 
+    //  Build **desired local velocity**
+    FVector desiredLocalVel = desiredNewVelocity; // set by external caller (body frame)
 
-	DrawDebugVisualsVel(FVector(desiredLocalVelocity.X, desiredLocalVelocity.Y, 0));
+    // If hover‑hold is enabled, Z velocity is produced by a dedicated Altitude PID
+    if (bHoverModeActive)
+    {
+        const float altitudeError   = hoverTargetAltitude - worldPos.Z;      //cm
+        desiredLocalVel.Z = AltitudePID->Calculate(altitudeError, DeltaTime); // cm/s
+        desiredLocalVel.Z = FMath::Clamp(desiredLocalVel.Z, -100.f, 100.f);
+    }
+
+    //------------------------------------------------------------
+    //  Transform current velocity into the **body‑local** frame
+    //    (rotate world velocity by –Yaw so X = forward, Y = right)
+    //------------------------------------------------------------
+    const FRotator yawOnlyRot(0.f, worldRot.Yaw, 0.f);
+    currentLocalVelocity = yawOnlyRot.UnrotateVector(worldVel); // cm/s in body frame
+
+    //  Compute velocity error in the local frame
+    const FVector velError = desiredLocalVel - currentLocalVelocity; // cm/s
 	
-	// UI: only show for possessed (independent) or first drone in swarm
+    //  Optional safety reset (limits max attitude, etc.)
+    SafetyReset();
+
+    //  Translational PIDs  (output: desired roll/pitch angles & Z force
+    double xOut = CurrentSet->XPID->Calculate(velError.X, DeltaTime); // desired pitch (deg)
+    double yOut = CurrentSet->YPID->Calculate(velError.Y, DeltaTime); // desired roll  (deg)
+    double zOut = CurrentSet->ZPID->Calculate(velError.Z, DeltaTime); // desired Z force component
+
+    // Clamp roll & pitch commands to physical max angle
+    yOut = FMath::Clamp(yOut, -maxAngle, maxAngle);
+    xOut = FMath::Clamp(xOut, -maxAngle, maxAngle);
+
+    //  Attitude PIDs  (output: torque commands)
+    const double rollError  = yOut - worldRot.Roll;   // deg
+    const double pitchError = xOut - worldRot.Pitch;  // deg
+
+    const double rollOut  = CurrentSet->RollPID ->Calculate(rollError , DeltaTime); // Nm (abstract)
+    const double pitchOut = CurrentSet->PitchPID->Calculate(pitchError, DeltaTime); // Nm (abstract)
+
+    //  Mix & apply motor thrusts / torques
+    ThrustMixer(xOut, yOut, zOut, rollOut, pitchOut);
+
+    //  Yaw is controlled as a separate outer/inner loop elsewhere
+    YawRateControl(DeltaTime);
+
+    //  Debug drawing and on‑screen HUD (optional)
+    DrawDebugVisualsVel(FVector(desiredLocalVel.X, desiredLocalVel.Y, 0.f));
+
+    if (dronePawn && dronePawn->ImGuiUtil)
+    {
+        // Display HUD only for the selected drone (independent) or all (swarm)
+        bool bShowUI = true;
+        if (ADroneManager* Manager = ADroneManager::Get(dronePawn->GetWorld()))
+        {
+            if (!Manager->IsSwarmMode())
+            {
+                const int32 myIdx = Manager->GetDroneIndex(dronePawn);
+                bShowUI = (myIdx == Manager->SelectedDroneIndex);
+            }
+        }
+
+        if (bShowUI)
+        {
+            dronePawn->ImGuiUtil->ImGuiHud(
+                currentFlightMode,
+                Thrusts,
+                /*yCmd =*/ yOut,
+                /*xCmd =*/ xOut,
+                worldRot,
+                /*unused accel*/ FVector::ZeroVector,
+                worldPos,
+                /*unused target*/ FVector::ZeroVector,
+                currentLocalVelocity,
+                maxVelocity,
+                maxAngle,
+                /*pidOutputs*/ xOut, yOut, zOut,
+                DeltaTime);
+        }
+    }
+}
+
+void UQuadDroneController::AutoWaypointControl(double DeltaTime)
+{
+    FFullPIDSet* CurrentSet = PIDMap.Find(EFlightMode::AutoWaypoint);
+    if (!CurrentSet || !dronePawn) return;
+
+    const FVector  currentPos      = dronePawn->GetActorLocation(); //cm
+    const FVector  worldVel        = dronePawn->GetVelocity(); // cm/s
+    const FRotator currentRot      = dronePawn->GetActorRotation(); // degrees
+    const FRotator yawOnlyRot      (0.f, currentRot.Yaw, 0.f);
+
+    // ───── Update / fetch next set-point ─────
+    if (UNavigationComponent* Nav = dronePawn->FindComponentByClass<UNavigationComponent>())
+    {
+        Nav->UpdateNavigation(currentPos);
+        setPoint = Nav->GetCurrentSetpoint();
+    }
+
+    /*---------------- LOCAL FRAME ----------------*/
+    const FVector worldPosErr   = setPoint - currentPos;
+    const FVector localPosErr   = yawOnlyRot.UnrotateVector(worldPosErr);  
+    currentLocalVelocity        = yawOnlyRot.UnrotateVector(worldVel);     
+
+    // Desired velocity in **local** frame
+    const FVector desiredLocalVelocity =
+        DroneMathUtils::CalculateDesiredVelocity(localPosErr, maxVelocity); // <-- use local error
+
+    // Velocity error also in local frame
+    const FVector velErrLocal = desiredLocalVelocity - currentLocalVelocity;
+
+    /*-------------- PID TRANSLATIONAL -------------*/
+    const double xOut = CurrentSet->XPID  ->Calculate(velErrLocal.X, DeltaTime);
+    const double yOut = CurrentSet->YPID  ->Calculate(velErrLocal.Y, DeltaTime);
+    const double zOut = CurrentSet->ZPID  ->Calculate(velErrLocal.Z, DeltaTime);
+
+    /*-------------- PID ATTITUDE ------------------*/
+    double rollCmd  = FMath::Clamp( yOut, -maxAngle,  maxAngle);
+    double pitchCmd = FMath::Clamp( xOut, -maxAngle,  maxAngle);
+
+    const double rollErr  = rollCmd  - currentRot.Roll;
+    const double pitchErr = pitchCmd - currentRot.Pitch;
+
+    const double rollOut  = CurrentSet->RollPID->Calculate(rollErr , DeltaTime);
+    const double pitchOut = CurrentSet->PitchPID->Calculate(pitchErr, DeltaTime);
+
+    /*-------------- Mix / Apply -------------------*/
+    ThrustMixer(rollCmd, pitchCmd, zOut, rollOut, pitchOut);
+
+    /*-------------- Cascaded yaw (unchanged) ------*/
+    {
+        if (worldVel.Size() > minVelocityForYaw)
+        {
+            const FVector localErrYaw = localPosErr; // already in local frame
+            const float   yawErrRad   = FMath::Atan2(localErrYaw.Y, localErrYaw.X);
+            const float   yawErrDeg   = FMath::RadiansToDegrees(yawErrRad);
+
+            const float rawRate = CurrentSet->YawPID->Calculate(yawErrDeg, DeltaTime);
+            desiredYawRate      = FMath::Clamp(rawRate, -maxYawRate, maxYawRate);
+        }
+        else
+        {
+            desiredYawRate = 0.f;
+        }
+    }
+   // Apply yaw rate control to generate torque
+   YawRateControl(DeltaTime);
+     
+	// UI: show only for independent possessed drone or first in swarm
 	if (dronePawn && dronePawn->ImGuiUtil)
 	{
-		// Show UI for the drone at the selected index in the manager
+		APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 		ADroneManager* Manager = ADroneManager::Get(dronePawn->GetWorld());
+		bool bSwarm = Manager && Manager->IsSwarmMode();
+		bool bPossessed = PC && PC->GetPawn() == dronePawn;
 		bool bShowUI = true;
- 		if (Manager)
- 		{
- 			if (!Manager->IsSwarmMode())
- 			{
- 				int32 MyIndex = Manager->GetDroneIndex(dronePawn);
- 				bShowUI = (MyIndex == Manager->SelectedDroneIndex);
- 			}
- 			else
- 			{
- 				// In swarm mode, show UI on all drones
- 				bShowUI = true;
- 			}
- 		}
+		if (Manager)
+		{
+			if (!bSwarm)
+				bShowUI = bPossessed;
+			else
+				bShowUI = (Manager->GetDroneIndex(dronePawn) == 0);
+		}
 		if (bShowUI)
 		{
-			dronePawn->ImGuiUtil->ImGuiHud(currentFlightMode, Thrusts, y_output, x_output, currentRotation,
-				FVector::ZeroVector, currentPosition, FVector::ZeroVector, currentLocalVelocity,
-				maxVelocity, maxAngle, x_output, y_output, z_output, DeltaTime);
+			dronePawn->ImGuiUtil->ImGuiHud(currentFlightMode, Thrusts, rollErr, pitchErr, currentRot,
+				FVector::ZeroVector, currentPos, FVector::ZeroVector, currentLocalVelocity,
+				maxVelocity, maxAngle, xOut, yOut, zOut, DeltaTime);
 		}
 	}
- }
+}
+
 void UQuadDroneController::dynamicController(double DeltaTime)
 {
 	FFullPIDSet* CurrentSet = PIDMap.Find(EFlightMode::VelocityControl);
 	
-	FVector currentPosition = dronePawn->GetActorLocation(); //cm / 100 - m
-	FVector currentVelocity = dronePawn->GetVelocity(); //cm/s^2/100 - m/s
-	FRotator currentRotation = FMath::DegreesToRadians(dronePawn->GetActorRotation()); //degrees -> Radians
-	FVector desiredLocalVelocity = desiredNewVelocity; // m/s^2
+	FVector currentPosition = dronePawn->GetActorLocation(); //cm 
+	FVector currentVelocity = dronePawn->GetVelocity(); //cm/s
+	FRotator currentRotation = (dronePawn->GetActorRotation()); //degrees 
+	FVector desiredLocalVelocity = desiredNewVelocity; // cm/s
 
 	// Drone Config
-	float droneMass = 0.05;
-	float gravity = 980; // See if you need to change units, probably will
+	float droneMass = 2.f;
+	float gravity = 980; // cm/s^2
 	float hover_thrust =  droneMass*gravity;
 
-	float motorArm_x_m = 3.1; // See if you need to change units, probably will
-	float motorArm_y_m = 3.1; // See if you need to change units, probably will
+	float motorArm_x_m = 23; // cm
+	float motorArm_y_m = 23; // cm
 	float armLength_m = FMath::Sqrt(FMath::Square(motorArm_x_m)+FMath::Square(motorArm_y_m));
 	float angleRad = FMath::Atan2(motorArm_y_m,motorArm_x_m);
 	float armAngleSin = FMath::Sin(angleRad);
 	float armAngleCos = FMath::Cos(angleRad);
 	
-	float thrustCoeff = 4e-05;
-	float torqueCoeff = 2.4e-06;
+	float thrustCoeff =8.54858e-06;
+	float torqueCoeff = 0.06;
 	float torqueToThrust = thrustCoeff / torqueCoeff;
-	float maxMotorSpeed = 600.f; // Rad/s
+	float maxMotorSpeed = 1100.f; // Rad/s
 	float maxThrust = thrustCoeff * FMath::Square(maxMotorSpeed);
+
 	float maxTotalThrust = maxThrust * 4;
 	float maxThrustMotor = maxTotalThrust/4;
 	
 	float motorSpeed = FMath::Sqrt(1/torqueCoeff); // Gives me angular velocity for each propeller (Needed for correct rotation)
 
-	float maxAngle = 15.0;
-	float maxYawRate = 45;
+	float maxAngleI = 15.0;
+	//float maxYawRate = 45;
 	
 	// End of Drone Config
 	//
@@ -359,8 +484,8 @@ void UQuadDroneController::dynamicController(double DeltaTime)
 	}
  
 	FRotator yawOnlyRotation(0, currentRotation.Yaw, 0);
-	FVector currentLocalVelocity = yawOnlyRotation.UnrotateVector(currentVelocity);
-	FVector velocityError = desiredLocalVelocity - currentLocalVelocity;
+	FVector currentLocalVelocityI = yawOnlyRotation.UnrotateVector(currentVelocity);
+	FVector velocityError = desiredLocalVelocity - currentLocalVelocityI;
 	SafetyReset();
 	
 	double x_output = 0.f, y_output = 0.f, z_output = 0.f;
@@ -370,26 +495,32 @@ void UQuadDroneController::dynamicController(double DeltaTime)
 	y_output = CurrentSet->YPID->Calculate(velocityError.Y, DeltaTime);
 	z_output = CurrentSet->ZPID->Calculate(velocityError.Z, DeltaTime);
 	
-	y_output = FMath::DegreesToRadians(FMath::Clamp(y_output, -maxAngle, maxAngle));
+	y_output = (FMath::Clamp(y_output, -maxAngle, maxAngleI));
 	float roll_error = y_output-currentRotation.Roll;
 	roll_output = CurrentSet->RollPID->Calculate(roll_error, DeltaTime);
 
-	x_output = FMath::DegreesToRadians(FMath::Clamp(x_output, -maxAngle, maxAngle));
+	x_output = (FMath::Clamp(x_output, -maxAngle, maxAngleI));
 	float pitch_error = x_output-currentRotation.Pitch;
 	pitch_output = CurrentSet->PitchPID->Calculate(pitch_error, DeltaTime);
 
 	float altitudeOutput = z_output+hover_thrust;
+
+	const float hoverThrust = (droneMass * gravity) / 4.0f; 
+ 
+	float baseThrust = hoverThrust + z_output / 4.0f;
+	//baseThrust /= FMath::Cos(FMath::DegreesToRadians(FMath::Sqrt(FMath::Pow(currentRotation.Roll, 2) + FMath::Pow(currentRotation.Pitch, 2))));
+	
 	float pitchMomentArm = armLength_m*armAngleSin;
 	float rollMomentArm = armLength_m*armAngleCos;
 	
-	Thrusts[0] = (altitudeOutput - pitch_output/pitchMomentArm + roll_output/rollMomentArm)/4; // FL
-	Thrusts[1] = (altitudeOutput - pitch_output/pitchMomentArm - roll_output/rollMomentArm)/4; // FR
-	Thrusts[2] = (altitudeOutput + pitch_output/pitchMomentArm + roll_output/rollMomentArm)/4; // BL
-	Thrusts[3] = (altitudeOutput + pitch_output/pitchMomentArm - roll_output/rollMomentArm)/4; // BR
+	Thrusts[0] = (baseThrust - pitch_output/pitchMomentArm + roll_output/rollMomentArm)/4; // FL
+	Thrusts[1] = (baseThrust - pitch_output/pitchMomentArm - roll_output/rollMomentArm)/4; // FR
+	Thrusts[2] = (baseThrust + pitch_output/pitchMomentArm + roll_output/rollMomentArm)/4; // BL
+	Thrusts[3] = (baseThrust + pitch_output/pitchMomentArm - roll_output/rollMomentArm)/4; // BR
 
 	for (int i = 0; i < Thrusts.Num(); i++)
 	{
-		Thrusts[i] = FMath::Clamp(Thrusts[i], 0.0f, maxThrustMotor);
+		Thrusts[i] = FMath::Clamp(Thrusts[i], 0.0f, 700);
 	}
 
 	for (int i = 0; i < Thrusts.Num(); i++)
@@ -425,10 +556,40 @@ void UQuadDroneController::dynamicController(double DeltaTime)
 		{
 			dronePawn->ImGuiUtil->ImGuiHud(currentFlightMode, Thrusts, y_output, x_output, currentRotation,
 				FVector::ZeroVector, currentPosition, FVector::ZeroVector, currentLocalVelocity,
-				maxVelocity, maxAngle, x_output, y_output, z_output, DeltaTime);
+				maxVelocity, maxAngleI, x_output, y_output, z_output, DeltaTime);
 		}
 	}
 }
+// ---------------------- Thrust Functions ------------------------
+
+void UQuadDroneController::ThrustMixer(double currentRoll, double currentPitch, double zOutput, double rollOutput, double pitchOutput)
+{
+	float droneMass = dronePawn->DroneBody->GetMass();
+	const float gravity = 980.0f;
+	const float hoverThrust = (droneMass * gravity) / 4.0f; 
+ 
+	float baseThrust = hoverThrust + zOutput / 4.0f;
+	baseThrust /= FMath::Cos(FMath::DegreesToRadians(FMath::Sqrt(FMath::Pow(currentRoll, 2) + FMath::Pow(currentPitch, 2))));
+ 
+	Thrusts[0] = baseThrust - pitchOutput + rollOutput;
+	Thrusts[1] = baseThrust - pitchOutput - rollOutput;
+	Thrusts[2] = baseThrust + pitchOutput + rollOutput;
+	Thrusts[3] = baseThrust + pitchOutput - rollOutput;
+ 
+	for (int i = 0; i < Thrusts.Num(); i++)
+	{
+		Thrusts[i] = FMath::Clamp(Thrusts[i], 0.0f, 700.0f);
+	}
+
+	for (int i = 0; i < Thrusts.Num(); i++)
+	{
+		if (!dronePawn || !dronePawn->Thrusters.IsValidIndex(i))
+			continue;
+		double force = Thrusts[i];
+		dronePawn->Thrusters[i]->ApplyForce(force);
+	}
+}
+
 void UQuadDroneController::AutoWaypointControl(double a_deltaTime)
 {
 	

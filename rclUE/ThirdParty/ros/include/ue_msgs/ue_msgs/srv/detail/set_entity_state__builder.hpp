@@ -2,9 +2,6 @@
 // with input from ue_msgs:srv/SetEntityState.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "ue_msgs/srv/set_entity_state.hpp"
-
-
 #ifndef UE_MSGS__SRV__DETAIL__SET_ENTITY_STATE__BUILDER_HPP_
 #define UE_MSGS__SRV__DETAIL__SET_ENTITY_STATE__BUILDER_HPP_
 
@@ -94,80 +91,6 @@ inline
 auto build<::ue_msgs::srv::SetEntityState_Response>()
 {
   return ue_msgs::srv::builder::Init_SetEntityState_Response_success();
-}
-
-}  // namespace ue_msgs
-
-
-namespace ue_msgs
-{
-
-namespace srv
-{
-
-namespace builder
-{
-
-class Init_SetEntityState_Event_response
-{
-public:
-  explicit Init_SetEntityState_Event_response(::ue_msgs::srv::SetEntityState_Event & msg)
-  : msg_(msg)
-  {}
-  ::ue_msgs::srv::SetEntityState_Event response(::ue_msgs::srv::SetEntityState_Event::_response_type arg)
-  {
-    msg_.response = std::move(arg);
-    return std::move(msg_);
-  }
-
-private:
-  ::ue_msgs::srv::SetEntityState_Event msg_;
-};
-
-class Init_SetEntityState_Event_request
-{
-public:
-  explicit Init_SetEntityState_Event_request(::ue_msgs::srv::SetEntityState_Event & msg)
-  : msg_(msg)
-  {}
-  Init_SetEntityState_Event_response request(::ue_msgs::srv::SetEntityState_Event::_request_type arg)
-  {
-    msg_.request = std::move(arg);
-    return Init_SetEntityState_Event_response(msg_);
-  }
-
-private:
-  ::ue_msgs::srv::SetEntityState_Event msg_;
-};
-
-class Init_SetEntityState_Event_info
-{
-public:
-  Init_SetEntityState_Event_info()
-  : msg_(::rosidl_runtime_cpp::MessageInitialization::SKIP)
-  {}
-  Init_SetEntityState_Event_request info(::ue_msgs::srv::SetEntityState_Event::_info_type arg)
-  {
-    msg_.info = std::move(arg);
-    return Init_SetEntityState_Event_request(msg_);
-  }
-
-private:
-  ::ue_msgs::srv::SetEntityState_Event msg_;
-};
-
-}  // namespace builder
-
-}  // namespace srv
-
-template<typename MessageType>
-auto build();
-
-template<>
-inline
-auto build<::ue_msgs::srv::SetEntityState_Event>()
-{
-  return ue_msgs::srv::builder::Init_SetEntityState_Event_info();
 }
 
 }  // namespace ue_msgs

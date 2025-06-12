@@ -9,7 +9,6 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_cpp/message_type_support.hpp"
 #include "rosidl_typesupport_interface/macros.h"
-#include "nav_msgs/msg/detail/occupancy_grid__functions.h"
 #include "nav_msgs/msg/detail/occupancy_grid__struct.hpp"
 #include "rosidl_typesupport_introspection_cpp/field_types.hpp"
 #include "rosidl_typesupport_introspection_cpp/identifier.hpp"
@@ -89,7 +88,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember OccupancyGrid
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<std_msgs::msg::Header>(),  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -107,7 +105,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember OccupancyGrid
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<nav_msgs::msg::MapMetaData>(),  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -125,7 +122,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember OccupancyGrid
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_INT8,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -145,7 +141,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMembers OccupancyGri
   "OccupancyGrid",  // message name
   3,  // number of fields
   sizeof(nav_msgs::msg::OccupancyGrid),
-  false,  // has_any_key_member_
   OccupancyGrid_message_member_array,  // message members
   OccupancyGrid_init_function,  // function to initialize message memory (memory has to be allocated)
   OccupancyGrid_fini_function  // function to terminate message instance (will not free memory)
@@ -155,9 +150,6 @@ static const rosidl_message_type_support_t OccupancyGrid_message_type_support_ha
   ::rosidl_typesupport_introspection_cpp::typesupport_identifier,
   &OccupancyGrid_message_members,
   get_message_typesupport_handle_function,
-  &nav_msgs__msg__OccupancyGrid__get_type_hash,
-  &nav_msgs__msg__OccupancyGrid__get_type_description,
-  &nav_msgs__msg__OccupancyGrid__get_type_description_sources,
 };
 
 }  // namespace rosidl_typesupport_introspection_cpp

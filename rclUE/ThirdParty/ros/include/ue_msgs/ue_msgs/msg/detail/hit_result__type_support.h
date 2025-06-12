@@ -2,9 +2,6 @@
 // with input from ue_msgs:msg/HitResult.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "ue_msgs/msg/hit_result.h"
-
-
 #ifndef UE_MSGS__MSG__DETAIL__HIT_RESULT__TYPE_SUPPORT_H_
 #define UE_MSGS__MSG__DETAIL__HIT_RESULT__TYPE_SUPPORT_H_
 
@@ -27,7 +24,7 @@ ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(
   ue_msgs,
   msg,
   HitResult
-)(void);
+)();
 
 #ifdef __cplusplus
 }

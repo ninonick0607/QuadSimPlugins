@@ -106,7 +106,6 @@ static rosidl_typesupport_introspection_c__MessageMember pcl_msgs__msg__PolygonM
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -124,7 +123,6 @@ static rosidl_typesupport_introspection_c__MessageMember pcl_msgs__msg__PolygonM
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -142,7 +140,6 @@ static rosidl_typesupport_introspection_c__MessageMember pcl_msgs__msg__PolygonM
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -162,7 +159,6 @@ static const rosidl_typesupport_introspection_c__MessageMembers pcl_msgs__msg__P
   "PolygonMesh",  // message name
   3,  // number of fields
   sizeof(pcl_msgs__msg__PolygonMesh),
-  false,  // has_any_key_member_
   pcl_msgs__msg__PolygonMesh__rosidl_typesupport_introspection_c__PolygonMesh_message_member_array,  // message members
   pcl_msgs__msg__PolygonMesh__rosidl_typesupport_introspection_c__PolygonMesh_init_function,  // function to initialize message memory (memory has to be allocated)
   pcl_msgs__msg__PolygonMesh__rosidl_typesupport_introspection_c__PolygonMesh_fini_function  // function to terminate message instance (will not free memory)
@@ -174,9 +170,6 @@ static rosidl_message_type_support_t pcl_msgs__msg__PolygonMesh__rosidl_typesupp
   0,
   &pcl_msgs__msg__PolygonMesh__rosidl_typesupport_introspection_c__PolygonMesh_message_members,
   get_message_typesupport_handle_function,
-  &pcl_msgs__msg__PolygonMesh__get_type_hash,
-  &pcl_msgs__msg__PolygonMesh__get_type_description,
-  &pcl_msgs__msg__PolygonMesh__get_type_description_sources,
 };
 
 ROSIDL_TYPESUPPORT_INTROSPECTION_C_EXPORT_pcl_msgs

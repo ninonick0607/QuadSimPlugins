@@ -114,7 +114,7 @@ sensor_msgs__msg__PointCloud__copy(
 }
 
 sensor_msgs__msg__PointCloud *
-sensor_msgs__msg__PointCloud__create(void)
+sensor_msgs__msg__PointCloud__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   sensor_msgs__msg__PointCloud * msg = (sensor_msgs__msg__PointCloud *)allocator.allocate(sizeof(sensor_msgs__msg__PointCloud), allocator.state);

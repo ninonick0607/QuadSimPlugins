@@ -2,9 +2,6 @@
 // with input from rmw_dds_common:msg/Gid.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "rmw_dds_common/msg/gid.hpp"
-
-
 #ifndef RMW_DDS_COMMON__MSG__DETAIL__GID__STRUCT_HPP_
 #define RMW_DDS_COMMON__MSG__DETAIL__GID__STRUCT_HPP_
 
@@ -41,7 +38,7 @@ struct Gid_
     if (rosidl_runtime_cpp::MessageInitialization::ALL == _init ||
       rosidl_runtime_cpp::MessageInitialization::ZERO == _init)
     {
-      std::fill<typename std::array<uint8_t, 16>::iterator, uint8_t>(this->data.begin(), this->data.end(), 0);
+      std::fill<typename std::array<uint8_t, 24>::iterator, uint8_t>(this->data.begin(), this->data.end(), 0);
     }
   }
 
@@ -51,18 +48,18 @@ struct Gid_
     if (rosidl_runtime_cpp::MessageInitialization::ALL == _init ||
       rosidl_runtime_cpp::MessageInitialization::ZERO == _init)
     {
-      std::fill<typename std::array<uint8_t, 16>::iterator, uint8_t>(this->data.begin(), this->data.end(), 0);
+      std::fill<typename std::array<uint8_t, 24>::iterator, uint8_t>(this->data.begin(), this->data.end(), 0);
     }
   }
 
   // field types and members
   using _data_type =
-    std::array<uint8_t, 16>;
+    std::array<uint8_t, 24>;
   _data_type data;
 
   // setters for named parameter idiom
   Type & set__data(
-    const std::array<uint8_t, 16> & _arg)
+    const std::array<uint8_t, 24> & _arg)
   {
     this->data = _arg;
     return *this;

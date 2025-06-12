@@ -134,7 +134,7 @@ ue_msgs__msg__EntityState__copy(
 }
 
 ue_msgs__msg__EntityState *
-ue_msgs__msg__EntityState__create(void)
+ue_msgs__msg__EntityState__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   ue_msgs__msg__EntityState * msg = (ue_msgs__msg__EntityState *)allocator.allocate(sizeof(ue_msgs__msg__EntityState), allocator.state);

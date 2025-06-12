@@ -2,9 +2,6 @@
 // with input from rcl_interfaces:msg/IntegerRange.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "rcl_interfaces/msg/integer_range.hpp"
-
-
 #ifndef RCL_INTERFACES__MSG__DETAIL__INTEGER_RANGE__TRAITS_HPP_
 #define RCL_INTERFACES__MSG__DETAIL__INTEGER_RANGE__TRAITS_HPP_
 

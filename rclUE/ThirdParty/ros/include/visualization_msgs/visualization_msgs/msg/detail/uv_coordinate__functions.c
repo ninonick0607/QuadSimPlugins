@@ -65,7 +65,7 @@ visualization_msgs__msg__UVCoordinate__copy(
 }
 
 visualization_msgs__msg__UVCoordinate *
-visualization_msgs__msg__UVCoordinate__create(void)
+visualization_msgs__msg__UVCoordinate__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   visualization_msgs__msg__UVCoordinate * msg = (visualization_msgs__msg__UVCoordinate *)allocator.allocate(sizeof(visualization_msgs__msg__UVCoordinate), allocator.state);

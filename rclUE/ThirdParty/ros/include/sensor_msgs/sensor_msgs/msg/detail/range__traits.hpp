@@ -2,9 +2,6 @@
 // with input from sensor_msgs:msg/Range.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "sensor_msgs/msg/range.hpp"
-
-
 #ifndef SENSOR_MSGS__MSG__DETAIL__RANGE__TRAITS_HPP_
 #define SENSOR_MSGS__MSG__DETAIL__RANGE__TRAITS_HPP_
 
@@ -71,13 +68,6 @@ inline void to_flow_style_yaml(
   {
     out << "range: ";
     rosidl_generator_traits::value_to_yaml(msg.range, out);
-    out << ", ";
-  }
-
-  // member: variance
-  {
-    out << "variance: ";
-    rosidl_generator_traits::value_to_yaml(msg.variance, out);
   }
   out << "}";
 }  // NOLINT(readability/fn_size)
@@ -142,16 +132,6 @@ inline void to_block_style_yaml(
     }
     out << "range: ";
     rosidl_generator_traits::value_to_yaml(msg.range, out);
-    out << "\n";
-  }
-
-  // member: variance
-  {
-    if (indentation > 0) {
-      out << std::string(indentation, ' ');
-    }
-    out << "variance: ";
-    rosidl_generator_traits::value_to_yaml(msg.variance, out);
     out << "\n";
   }
 }  // NOLINT(readability/fn_size)

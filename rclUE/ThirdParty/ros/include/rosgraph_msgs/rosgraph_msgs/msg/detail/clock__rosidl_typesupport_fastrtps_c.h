@@ -9,23 +9,11 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "rosgraph_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-#include "rosgraph_msgs/msg/detail/clock__struct.h"
-#include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rosgraph_msgs
-bool cdr_serialize_rosgraph_msgs__msg__Clock(
-  const rosgraph_msgs__msg__Clock * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rosgraph_msgs
-bool cdr_deserialize_rosgraph_msgs__msg__Clock(
-  eprosima::fastcdr::Cdr &,
-  rosgraph_msgs__msg__Clock * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rosgraph_msgs
 size_t get_serialized_size_rosgraph_msgs__msg__Clock(
@@ -34,22 +22,6 @@ size_t get_serialized_size_rosgraph_msgs__msg__Clock(
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rosgraph_msgs
 size_t max_serialized_size_rosgraph_msgs__msg__Clock(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rosgraph_msgs
-bool cdr_serialize_key_rosgraph_msgs__msg__Clock(
-  const rosgraph_msgs__msg__Clock * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rosgraph_msgs
-size_t get_serialized_size_key_rosgraph_msgs__msg__Clock(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rosgraph_msgs
-size_t max_serialized_size_key_rosgraph_msgs__msg__Clock(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

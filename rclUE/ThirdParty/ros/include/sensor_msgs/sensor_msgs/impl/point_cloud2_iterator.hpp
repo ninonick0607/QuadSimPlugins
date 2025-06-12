@@ -121,36 +121,21 @@ inline void PointCloud2Modifier::reserve(size_t size)
 
 inline void PointCloud2Modifier::resize(size_t size)
 {
-  size_t total_size = size * cloud_msg_.point_step;
-  cloud_msg_.data.resize(total_size);
-
-  size_t original_size = cloud_msg_.height * cloud_msg_.width;
-  if (original_size == size) {
-    return;
-  }
+  cloud_msg_.data.resize(size * cloud_msg_.point_step);
 
   // Update height/width
   if (cloud_msg_.height == 1) {
     cloud_msg_.width = static_cast<uint32_t>(size);
-    cloud_msg_.row_step = static_cast<uint32_t>(total_size);
+    cloud_msg_.row_step = static_cast<uint32_t>(size * cloud_msg_.point_step);
   } else {
     if (cloud_msg_.width == 1) {
       cloud_msg_.height = static_cast<uint32_t>(size);
     } else {
       cloud_msg_.height = 1;
       cloud_msg_.width = static_cast<uint32_t>(size);
-      cloud_msg_.row_step = static_cast<uint32_t>(total_size);
+      cloud_msg_.row_step = static_cast<uint32_t>(size * cloud_msg_.point_step);
     }
   }
-}
-
-inline void PointCloud2Modifier::resize(uint32_t width, uint32_t height)
-{
-  size_t size = width * height;
-  resize(size);
-
-  cloud_msg_.width = width;
-  cloud_msg_.height = height;
 }
 
 inline void PointCloud2Modifier::clear()

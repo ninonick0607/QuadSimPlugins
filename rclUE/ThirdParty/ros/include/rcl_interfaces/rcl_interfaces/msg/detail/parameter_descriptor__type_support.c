@@ -161,7 +161,6 @@ static rosidl_typesupport_introspection_c__MessageMember rcl_interfaces__msg__Pa
     rosidl_typesupport_introspection_c__ROS_TYPE_STRING,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -179,7 +178,6 @@ static rosidl_typesupport_introspection_c__MessageMember rcl_interfaces__msg__Pa
     rosidl_typesupport_introspection_c__ROS_TYPE_UINT8,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -197,7 +195,6 @@ static rosidl_typesupport_introspection_c__MessageMember rcl_interfaces__msg__Pa
     rosidl_typesupport_introspection_c__ROS_TYPE_STRING,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -215,7 +212,6 @@ static rosidl_typesupport_introspection_c__MessageMember rcl_interfaces__msg__Pa
     rosidl_typesupport_introspection_c__ROS_TYPE_STRING,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -233,7 +229,6 @@ static rosidl_typesupport_introspection_c__MessageMember rcl_interfaces__msg__Pa
     rosidl_typesupport_introspection_c__ROS_TYPE_BOOLEAN,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -251,7 +246,6 @@ static rosidl_typesupport_introspection_c__MessageMember rcl_interfaces__msg__Pa
     rosidl_typesupport_introspection_c__ROS_TYPE_BOOLEAN,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -269,7 +263,6 @@ static rosidl_typesupport_introspection_c__MessageMember rcl_interfaces__msg__Pa
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     true,  // is array
     1,  // array size
     true,  // is upper bound
@@ -287,7 +280,6 @@ static rosidl_typesupport_introspection_c__MessageMember rcl_interfaces__msg__Pa
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     true,  // is array
     1,  // array size
     true,  // is upper bound
@@ -307,7 +299,6 @@ static const rosidl_typesupport_introspection_c__MessageMembers rcl_interfaces__
   "ParameterDescriptor",  // message name
   8,  // number of fields
   sizeof(rcl_interfaces__msg__ParameterDescriptor),
-  false,  // has_any_key_member_
   rcl_interfaces__msg__ParameterDescriptor__rosidl_typesupport_introspection_c__ParameterDescriptor_message_member_array,  // message members
   rcl_interfaces__msg__ParameterDescriptor__rosidl_typesupport_introspection_c__ParameterDescriptor_init_function,  // function to initialize message memory (memory has to be allocated)
   rcl_interfaces__msg__ParameterDescriptor__rosidl_typesupport_introspection_c__ParameterDescriptor_fini_function  // function to terminate message instance (will not free memory)
@@ -319,9 +310,6 @@ static rosidl_message_type_support_t rcl_interfaces__msg__ParameterDescriptor__r
   0,
   &rcl_interfaces__msg__ParameterDescriptor__rosidl_typesupport_introspection_c__ParameterDescriptor_message_members,
   get_message_typesupport_handle_function,
-  &rcl_interfaces__msg__ParameterDescriptor__get_type_hash,
-  &rcl_interfaces__msg__ParameterDescriptor__get_type_description,
-  &rcl_interfaces__msg__ParameterDescriptor__get_type_description_sources,
 };
 
 ROSIDL_TYPESUPPORT_INTROSPECTION_C_EXPORT_rcl_interfaces

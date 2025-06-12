@@ -93,7 +93,7 @@ pcl_msgs__msg__PointIndices__copy(
 }
 
 pcl_msgs__msg__PointIndices *
-pcl_msgs__msg__PointIndices__create(void)
+pcl_msgs__msg__PointIndices__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   pcl_msgs__msg__PointIndices * msg = (pcl_msgs__msg__PointIndices *)allocator.allocate(sizeof(pcl_msgs__msg__PointIndices), allocator.state);

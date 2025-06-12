@@ -54,8 +54,7 @@ public:
             const RTPSReliableWriterQos& b) const
     {
         return (this->times == b.times) &&
-               (this->disable_positive_acks == b.disable_positive_acks) &&
-               (this->disable_heartbeat_piggyback == b.disable_heartbeat_piggyback);
+               (this->disable_positive_acks == b.disable_positive_acks);
     }
 
     //!Writer Timing Attributes
@@ -910,7 +909,6 @@ private:
 };
 
 RTPS_DllAPI extern const DataWriterQos DATAWRITER_QOS_DEFAULT;
-RTPS_DllAPI extern const DataWriterQos DATAWRITER_QOS_USE_TOPIC_QOS;
 
 } // namespace dds
 } // namespace fastdds

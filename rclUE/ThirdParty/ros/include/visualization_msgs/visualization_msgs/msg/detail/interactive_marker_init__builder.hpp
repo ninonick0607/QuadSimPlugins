@@ -2,9 +2,6 @@
 // with input from visualization_msgs:msg/InteractiveMarkerInit.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "visualization_msgs/msg/interactive_marker_init.hpp"
-
-
 #ifndef VISUALIZATION_MSGS__MSG__DETAIL__INTERACTIVE_MARKER_INIT__BUILDER_HPP_
 #define VISUALIZATION_MSGS__MSG__DETAIL__INTERACTIVE_MARKER_INIT__BUILDER_HPP_
 

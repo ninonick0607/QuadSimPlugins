@@ -109,7 +109,7 @@ nav_msgs__msg__GridCells__copy(
 }
 
 nav_msgs__msg__GridCells *
-nav_msgs__msg__GridCells__create(void)
+nav_msgs__msg__GridCells__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   nav_msgs__msg__GridCells * msg = (nav_msgs__msg__GridCells *)allocator.allocate(sizeof(nav_msgs__msg__GridCells), allocator.state);

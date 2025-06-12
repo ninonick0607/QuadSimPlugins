@@ -2,9 +2,6 @@
 // with input from geometry_msgs:msg/PoseWithCovarianceStamped.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
-
-
 #ifndef GEOMETRY_MSGS__MSG__DETAIL__POSE_WITH_COVARIANCE_STAMPED__TRAITS_HPP_
 #define GEOMETRY_MSGS__MSG__DETAIL__POSE_WITH_COVARIANCE_STAMPED__TRAITS_HPP_
 

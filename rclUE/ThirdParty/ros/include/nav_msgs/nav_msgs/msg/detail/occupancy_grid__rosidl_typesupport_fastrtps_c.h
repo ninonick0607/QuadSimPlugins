@@ -9,23 +9,11 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "nav_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-#include "nav_msgs/msg/detail/occupancy_grid__struct.h"
-#include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_nav_msgs
-bool cdr_serialize_nav_msgs__msg__OccupancyGrid(
-  const nav_msgs__msg__OccupancyGrid * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_nav_msgs
-bool cdr_deserialize_nav_msgs__msg__OccupancyGrid(
-  eprosima::fastcdr::Cdr &,
-  nav_msgs__msg__OccupancyGrid * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_nav_msgs
 size_t get_serialized_size_nav_msgs__msg__OccupancyGrid(
@@ -34,22 +22,6 @@ size_t get_serialized_size_nav_msgs__msg__OccupancyGrid(
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_nav_msgs
 size_t max_serialized_size_nav_msgs__msg__OccupancyGrid(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_nav_msgs
-bool cdr_serialize_key_nav_msgs__msg__OccupancyGrid(
-  const nav_msgs__msg__OccupancyGrid * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_nav_msgs
-size_t get_serialized_size_key_nav_msgs__msg__OccupancyGrid(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_nav_msgs
-size_t max_serialized_size_key_nav_msgs__msg__OccupancyGrid(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

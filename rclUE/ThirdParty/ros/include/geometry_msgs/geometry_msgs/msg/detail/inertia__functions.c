@@ -128,7 +128,7 @@ geometry_msgs__msg__Inertia__copy(
 }
 
 geometry_msgs__msg__Inertia *
-geometry_msgs__msg__Inertia__create(void)
+geometry_msgs__msg__Inertia__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   geometry_msgs__msg__Inertia * msg = (geometry_msgs__msg__Inertia *)allocator.allocate(sizeof(geometry_msgs__msg__Inertia), allocator.state);

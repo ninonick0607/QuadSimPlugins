@@ -57,7 +57,7 @@ example_interfaces__msg__Byte__copy(
 }
 
 example_interfaces__msg__Byte *
-example_interfaces__msg__Byte__create(void)
+example_interfaces__msg__Byte__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   example_interfaces__msg__Byte * msg = (example_interfaces__msg__Byte *)allocator.allocate(sizeof(example_interfaces__msg__Byte), allocator.state);

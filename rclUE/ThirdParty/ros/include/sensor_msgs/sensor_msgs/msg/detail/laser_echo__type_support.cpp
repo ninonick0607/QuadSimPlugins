@@ -9,7 +9,6 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_cpp/message_type_support.hpp"
 #include "rosidl_typesupport_interface/macros.h"
-#include "sensor_msgs/msg/detail/laser_echo__functions.h"
 #include "sensor_msgs/msg/detail/laser_echo__struct.hpp"
 #include "rosidl_typesupport_introspection_cpp/field_types.hpp"
 #include "rosidl_typesupport_introspection_cpp/identifier.hpp"
@@ -89,7 +88,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember LaserEcho_mes
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_FLOAT,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -109,7 +107,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMembers LaserEcho_me
   "LaserEcho",  // message name
   1,  // number of fields
   sizeof(sensor_msgs::msg::LaserEcho),
-  false,  // has_any_key_member_
   LaserEcho_message_member_array,  // message members
   LaserEcho_init_function,  // function to initialize message memory (memory has to be allocated)
   LaserEcho_fini_function  // function to terminate message instance (will not free memory)
@@ -119,9 +116,6 @@ static const rosidl_message_type_support_t LaserEcho_message_type_support_handle
   ::rosidl_typesupport_introspection_cpp::typesupport_identifier,
   &LaserEcho_message_members,
   get_message_typesupport_handle_function,
-  &sensor_msgs__msg__LaserEcho__get_type_hash,
-  &sensor_msgs__msg__LaserEcho__get_type_description,
-  &sensor_msgs__msg__LaserEcho__get_type_description_sources,
 };
 
 }  // namespace rosidl_typesupport_introspection_cpp

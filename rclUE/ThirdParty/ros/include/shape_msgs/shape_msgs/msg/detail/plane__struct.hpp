@@ -2,9 +2,6 @@
 // with input from shape_msgs:msg/Plane.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "shape_msgs/msg/plane.hpp"
-
-
 #ifndef SHAPE_MSGS__MSG__DETAIL__PLANE__STRUCT_HPP_
 #define SHAPE_MSGS__MSG__DETAIL__PLANE__STRUCT_HPP_
 

@@ -100,7 +100,6 @@ static rosidl_typesupport_introspection_c__MessageMember pcl_msgs__msg__PointInd
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -118,7 +117,6 @@ static rosidl_typesupport_introspection_c__MessageMember pcl_msgs__msg__PointInd
     rosidl_typesupport_introspection_c__ROS_TYPE_INT32,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -138,7 +136,6 @@ static const rosidl_typesupport_introspection_c__MessageMembers pcl_msgs__msg__P
   "PointIndices",  // message name
   2,  // number of fields
   sizeof(pcl_msgs__msg__PointIndices),
-  false,  // has_any_key_member_
   pcl_msgs__msg__PointIndices__rosidl_typesupport_introspection_c__PointIndices_message_member_array,  // message members
   pcl_msgs__msg__PointIndices__rosidl_typesupport_introspection_c__PointIndices_init_function,  // function to initialize message memory (memory has to be allocated)
   pcl_msgs__msg__PointIndices__rosidl_typesupport_introspection_c__PointIndices_fini_function  // function to terminate message instance (will not free memory)
@@ -150,9 +147,6 @@ static rosidl_message_type_support_t pcl_msgs__msg__PointIndices__rosidl_typesup
   0,
   &pcl_msgs__msg__PointIndices__rosidl_typesupport_introspection_c__PointIndices_message_members,
   get_message_typesupport_handle_function,
-  &pcl_msgs__msg__PointIndices__get_type_hash,
-  &pcl_msgs__msg__PointIndices__get_type_description,
-  &pcl_msgs__msg__PointIndices__get_type_description_sources,
 };
 
 ROSIDL_TYPESUPPORT_INTROSPECTION_C_EXPORT_pcl_msgs

@@ -5,7 +5,6 @@
 #ifndef SHAPE_MSGS__MSG__DETAIL__PLANE__ROSIDL_TYPESUPPORT_FASTRTPS_CPP_HPP_
 #define SHAPE_MSGS__MSG__DETAIL__PLANE__ROSIDL_TYPESUPPORT_FASTRTPS_CPP_HPP_
 
-#include <cstddef>
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "shape_msgs/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h"
@@ -55,25 +54,6 @@ get_serialized_size(
 size_t
 ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC_shape_msgs
 max_serialized_size_Plane(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-bool
-ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC_shape_msgs
-cdr_serialize_key(
-  const shape_msgs::msg::Plane & ros_message,
-  eprosima::fastcdr::Cdr &);
-
-size_t
-ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC_shape_msgs
-get_serialized_size_key(
-  const shape_msgs::msg::Plane & ros_message,
-  size_t current_alignment);
-
-size_t
-ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC_shape_msgs
-max_serialized_size_key_Plane(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

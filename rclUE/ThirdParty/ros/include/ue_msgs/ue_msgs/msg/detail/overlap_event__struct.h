@@ -2,9 +2,6 @@
 // with input from ue_msgs:msg/OverlapEvent.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "ue_msgs/msg/overlap_event.h"
-
-
 #ifndef UE_MSGS__MSG__DETAIL__OVERLAP_EVENT__STRUCT_H_
 #define UE_MSGS__MSG__DETAIL__OVERLAP_EVENT__STRUCT_H_
 
@@ -16,6 +13,7 @@ extern "C"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
 
 // Constants defined in the message
 

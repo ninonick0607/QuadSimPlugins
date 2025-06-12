@@ -92,7 +92,7 @@ ue_msgs__msg__OverlappingObjects__copy(
 }
 
 ue_msgs__msg__OverlappingObjects *
-ue_msgs__msg__OverlappingObjects__create(void)
+ue_msgs__msg__OverlappingObjects__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   ue_msgs__msg__OverlappingObjects * msg = (ue_msgs__msg__OverlappingObjects *)allocator.allocate(sizeof(ue_msgs__msg__OverlappingObjects), allocator.state);

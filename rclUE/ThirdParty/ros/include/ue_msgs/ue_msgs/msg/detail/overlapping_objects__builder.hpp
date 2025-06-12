@@ -2,9 +2,6 @@
 // with input from ue_msgs:msg/OverlappingObjects.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "ue_msgs/msg/overlapping_objects.hpp"
-
-
 #ifndef UE_MSGS__MSG__DETAIL__OVERLAPPING_OBJECTS__BUILDER_HPP_
 #define UE_MSGS__MSG__DETAIL__OVERLAPPING_OBJECTS__BUILDER_HPP_
 

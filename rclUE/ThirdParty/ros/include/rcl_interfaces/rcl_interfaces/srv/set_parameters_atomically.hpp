@@ -7,6 +7,5 @@
 #include "rcl_interfaces/srv/detail/set_parameters_atomically__struct.hpp"
 #include "rcl_interfaces/srv/detail/set_parameters_atomically__builder.hpp"
 #include "rcl_interfaces/srv/detail/set_parameters_atomically__traits.hpp"
-#include "rcl_interfaces/srv/detail/set_parameters_atomically__type_support.hpp"
 
 #endif  // RCL_INTERFACES__SRV__SET_PARAMETERS_ATOMICALLY_HPP_

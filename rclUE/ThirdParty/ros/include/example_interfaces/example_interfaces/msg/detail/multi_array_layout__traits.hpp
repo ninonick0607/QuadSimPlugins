@@ -2,9 +2,6 @@
 // with input from example_interfaces:msg/MultiArrayLayout.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "example_interfaces/msg/multi_array_layout.hpp"
-
-
 #ifndef EXAMPLE_INTERFACES__MSG__DETAIL__MULTI_ARRAY_LAYOUT__TRAITS_HPP_
 #define EXAMPLE_INTERFACES__MSG__DETAIL__MULTI_ARRAY_LAYOUT__TRAITS_HPP_
 

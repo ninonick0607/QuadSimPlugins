@@ -9,23 +9,11 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "example_interfaces/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-#include "example_interfaces/msg/detail/byte_multi_array__struct.h"
-#include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_example_interfaces
-bool cdr_serialize_example_interfaces__msg__ByteMultiArray(
-  const example_interfaces__msg__ByteMultiArray * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_example_interfaces
-bool cdr_deserialize_example_interfaces__msg__ByteMultiArray(
-  eprosima::fastcdr::Cdr &,
-  example_interfaces__msg__ByteMultiArray * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_example_interfaces
 size_t get_serialized_size_example_interfaces__msg__ByteMultiArray(
@@ -34,22 +22,6 @@ size_t get_serialized_size_example_interfaces__msg__ByteMultiArray(
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_example_interfaces
 size_t max_serialized_size_example_interfaces__msg__ByteMultiArray(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_example_interfaces
-bool cdr_serialize_key_example_interfaces__msg__ByteMultiArray(
-  const example_interfaces__msg__ByteMultiArray * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_example_interfaces
-size_t get_serialized_size_key_example_interfaces__msg__ByteMultiArray(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_example_interfaces
-size_t max_serialized_size_key_example_interfaces__msg__ByteMultiArray(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

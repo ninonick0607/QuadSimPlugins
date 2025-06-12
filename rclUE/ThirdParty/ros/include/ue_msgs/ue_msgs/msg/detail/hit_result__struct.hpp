@@ -2,9 +2,6 @@
 // with input from ue_msgs:msg/HitResult.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "ue_msgs/msg/hit_result.hpp"
-
-
 #ifndef UE_MSGS__MSG__DETAIL__HIT_RESULT__STRUCT_HPP_
 #define UE_MSGS__MSG__DETAIL__HIT_RESULT__STRUCT_HPP_
 

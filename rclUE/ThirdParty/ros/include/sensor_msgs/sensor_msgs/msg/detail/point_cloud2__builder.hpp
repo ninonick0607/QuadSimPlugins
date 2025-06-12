@@ -2,9 +2,6 @@
 // with input from sensor_msgs:msg/PointCloud2.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "sensor_msgs/msg/point_cloud2.hpp"
-
-
 #ifndef SENSOR_MSGS__MSG__DETAIL__POINT_CLOUD2__BUILDER_HPP_
 #define SENSOR_MSGS__MSG__DETAIL__POINT_CLOUD2__BUILDER_HPP_
 

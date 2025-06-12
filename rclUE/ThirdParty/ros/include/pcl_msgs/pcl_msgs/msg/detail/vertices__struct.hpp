@@ -2,9 +2,6 @@
 // with input from pcl_msgs:msg/Vertices.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "pcl_msgs/msg/vertices.hpp"
-
-
 #ifndef PCL_MSGS__MSG__DETAIL__VERTICES__STRUCT_HPP_
 #define PCL_MSGS__MSG__DETAIL__VERTICES__STRUCT_HPP_
 

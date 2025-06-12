@@ -5,7 +5,6 @@
 #ifndef RCL_INTERFACES__MSG__DETAIL__PARAMETER_DESCRIPTOR__ROSIDL_TYPESUPPORT_FASTRTPS_CPP_HPP_
 #define RCL_INTERFACES__MSG__DETAIL__PARAMETER_DESCRIPTOR__ROSIDL_TYPESUPPORT_FASTRTPS_CPP_HPP_
 
-#include <cstddef>
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "rcl_interfaces/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h"
@@ -55,25 +54,6 @@ get_serialized_size(
 size_t
 ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC_rcl_interfaces
 max_serialized_size_ParameterDescriptor(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-bool
-ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC_rcl_interfaces
-cdr_serialize_key(
-  const rcl_interfaces::msg::ParameterDescriptor & ros_message,
-  eprosima::fastcdr::Cdr &);
-
-size_t
-ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC_rcl_interfaces
-get_serialized_size_key(
-  const rcl_interfaces::msg::ParameterDescriptor & ros_message,
-  size_t current_alignment);
-
-size_t
-ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC_rcl_interfaces
-max_serialized_size_key_ParameterDescriptor(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

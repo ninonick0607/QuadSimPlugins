@@ -71,16 +71,16 @@ public:
     public:
 
         //! Bit index for matching failing due to different topic
-        static const uint32_t different_topic = 0u;
+        static const uint32_t different_topic = (0x00000001 << 0u);
 
         //! Bit index for matching failing due to inconsistent topic (same topic name but different characteristics)
-        static const uint32_t inconsistent_topic = 1u;
+        static const uint32_t inconsistent_topic = (0x00000001 << 1u);
 
         //! Bit index for matching failing due to incompatible QoS
-        static const uint32_t incompatible_qos = 2u;
+        static const uint32_t incompatible_qos = (0x00000001 << 2u);
 
         //! Bit index for matching failing due to inconsistent partitions
-        static const uint32_t partitions = 3u;
+        static const uint32_t partitions = (0x00000001 << 3u);
     };
 
     /**
@@ -103,11 +103,9 @@ public:
     /**
      * Abstract method that assigns remote endpoints when a new RTPSParticipantProxyData is discovered.
      * @param pdata Discovered ParticipantProxyData
-     * @param assign_secure_endpoints Whether to try assigning secure endpoints
      */
     virtual void assignRemoteEndpoints(
-            const ParticipantProxyData& pdata,
-            bool assign_secure_endpoints) = 0;
+            const ParticipantProxyData& pdata) = 0;
     /**
      * Remove remote endpoints from the endpoint discovery protocol
      * @param pdata Pointer to the ParticipantProxyData to remove

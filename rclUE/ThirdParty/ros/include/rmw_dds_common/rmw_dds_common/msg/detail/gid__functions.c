@@ -37,7 +37,7 @@ rmw_dds_common__msg__Gid__are_equal(const rmw_dds_common__msg__Gid * lhs, const 
     return false;
   }
   // data
-  for (size_t i = 0; i < 16; ++i) {
+  for (size_t i = 0; i < 24; ++i) {
     if (lhs->data[i] != rhs->data[i]) {
       return false;
     }
@@ -54,14 +54,14 @@ rmw_dds_common__msg__Gid__copy(
     return false;
   }
   // data
-  for (size_t i = 0; i < 16; ++i) {
+  for (size_t i = 0; i < 24; ++i) {
     output->data[i] = input->data[i];
   }
   return true;
 }
 
 rmw_dds_common__msg__Gid *
-rmw_dds_common__msg__Gid__create(void)
+rmw_dds_common__msg__Gid__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   rmw_dds_common__msg__Gid * msg = (rmw_dds_common__msg__Gid *)allocator.allocate(sizeof(rmw_dds_common__msg__Gid), allocator.state);

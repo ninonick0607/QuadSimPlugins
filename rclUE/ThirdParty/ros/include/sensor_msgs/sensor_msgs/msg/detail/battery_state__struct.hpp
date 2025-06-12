@@ -2,9 +2,6 @@
 // with input from sensor_msgs:msg/BatteryState.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "sensor_msgs/msg/battery_state.hpp"
-
-
 #ifndef SENSOR_MSGS__MSG__DETAIL__BATTERY_STATE__STRUCT_HPP_
 #define SENSOR_MSGS__MSG__DETAIL__BATTERY_STATE__STRUCT_HPP_
 
@@ -277,10 +274,6 @@ struct BatteryState_
     5u;
   static constexpr uint8_t POWER_SUPPLY_TECHNOLOGY_LIMN =
     6u;
-  static constexpr uint8_t POWER_SUPPLY_TECHNOLOGY_TERNARY =
-    7u;
-  static constexpr uint8_t POWER_SUPPLY_TECHNOLOGY_VRLA =
-    8u;
 
   // pointer types
   using RawPtr =
@@ -487,16 +480,6 @@ constexpr uint8_t BatteryState_<ContainerAllocator>::POWER_SUPPLY_TECHNOLOGY_NIC
 // static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr uint8_t BatteryState_<ContainerAllocator>::POWER_SUPPLY_TECHNOLOGY_LIMN;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
-template<typename ContainerAllocator>
-constexpr uint8_t BatteryState_<ContainerAllocator>::POWER_SUPPLY_TECHNOLOGY_TERNARY;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
-template<typename ContainerAllocator>
-constexpr uint8_t BatteryState_<ContainerAllocator>::POWER_SUPPLY_TECHNOLOGY_VRLA;
 #endif  // __cplusplus < 201703L
 
 }  // namespace msg

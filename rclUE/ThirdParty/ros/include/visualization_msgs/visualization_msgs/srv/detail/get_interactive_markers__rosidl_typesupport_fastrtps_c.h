@@ -9,23 +9,11 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "visualization_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-#include "visualization_msgs/srv/detail/get_interactive_markers__struct.h"
-#include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-bool cdr_serialize_visualization_msgs__srv__GetInteractiveMarkers_Request(
-  const visualization_msgs__srv__GetInteractiveMarkers_Request * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-bool cdr_deserialize_visualization_msgs__srv__GetInteractiveMarkers_Request(
-  eprosima::fastcdr::Cdr &,
-  visualization_msgs__srv__GetInteractiveMarkers_Request * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
 size_t get_serialized_size_visualization_msgs__srv__GetInteractiveMarkers_Request(
@@ -34,22 +22,6 @@ size_t get_serialized_size_visualization_msgs__srv__GetInteractiveMarkers_Reques
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
 size_t max_serialized_size_visualization_msgs__srv__GetInteractiveMarkers_Request(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-bool cdr_serialize_key_visualization_msgs__srv__GetInteractiveMarkers_Request(
-  const visualization_msgs__srv__GetInteractiveMarkers_Request * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-size_t get_serialized_size_key_visualization_msgs__srv__GetInteractiveMarkers_Request(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-size_t max_serialized_size_key_visualization_msgs__srv__GetInteractiveMarkers_Request(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);
@@ -70,25 +42,11 @@ ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_fastrtps_c,
 // #include "rosidl_typesupport_interface/macros.h"
 // already included above
 // #include "visualization_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-// already included above
-// #include "visualization_msgs/srv/detail/get_interactive_markers__struct.h"
-// already included above
-// #include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-bool cdr_serialize_visualization_msgs__srv__GetInteractiveMarkers_Response(
-  const visualization_msgs__srv__GetInteractiveMarkers_Response * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-bool cdr_deserialize_visualization_msgs__srv__GetInteractiveMarkers_Response(
-  eprosima::fastcdr::Cdr &,
-  visualization_msgs__srv__GetInteractiveMarkers_Response * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
 size_t get_serialized_size_visualization_msgs__srv__GetInteractiveMarkers_Response(
@@ -102,87 +60,8 @@ size_t max_serialized_size_visualization_msgs__srv__GetInteractiveMarkers_Respon
   size_t current_alignment);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-bool cdr_serialize_key_visualization_msgs__srv__GetInteractiveMarkers_Response(
-  const visualization_msgs__srv__GetInteractiveMarkers_Response * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-size_t get_serialized_size_key_visualization_msgs__srv__GetInteractiveMarkers_Response(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-size_t max_serialized_size_key_visualization_msgs__srv__GetInteractiveMarkers_Response(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
 const rosidl_message_type_support_t *
 ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_fastrtps_c, visualization_msgs, srv, GetInteractiveMarkers_Response)();
-
-#ifdef __cplusplus
-}
-#endif
-
-// already included above
-// #include <stddef.h>
-// already included above
-// #include "rosidl_runtime_c/message_type_support_struct.h"
-// already included above
-// #include "rosidl_typesupport_interface/macros.h"
-// already included above
-// #include "visualization_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-// already included above
-// #include "visualization_msgs/srv/detail/get_interactive_markers__struct.h"
-// already included above
-// #include "fastcdr/Cdr.h"
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-bool cdr_serialize_visualization_msgs__srv__GetInteractiveMarkers_Event(
-  const visualization_msgs__srv__GetInteractiveMarkers_Event * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-bool cdr_deserialize_visualization_msgs__srv__GetInteractiveMarkers_Event(
-  eprosima::fastcdr::Cdr &,
-  visualization_msgs__srv__GetInteractiveMarkers_Event * ros_message);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-size_t get_serialized_size_visualization_msgs__srv__GetInteractiveMarkers_Event(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-size_t max_serialized_size_visualization_msgs__srv__GetInteractiveMarkers_Event(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-bool cdr_serialize_key_visualization_msgs__srv__GetInteractiveMarkers_Event(
-  const visualization_msgs__srv__GetInteractiveMarkers_Event * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-size_t get_serialized_size_key_visualization_msgs__srv__GetInteractiveMarkers_Event(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-size_t max_serialized_size_key_visualization_msgs__srv__GetInteractiveMarkers_Event(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_visualization_msgs
-const rosidl_message_type_support_t *
-ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_fastrtps_c, visualization_msgs, srv, GetInteractiveMarkers_Event)();
 
 #ifdef __cplusplus
 }

@@ -2,9 +2,6 @@
 // with input from action_msgs:msg/GoalStatus.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "action_msgs/msg/goal_status.hpp"
-
-
 #ifndef ACTION_MSGS__MSG__DETAIL__GOAL_STATUS__BUILDER_HPP_
 #define ACTION_MSGS__MSG__DETAIL__GOAL_STATUS__BUILDER_HPP_
 

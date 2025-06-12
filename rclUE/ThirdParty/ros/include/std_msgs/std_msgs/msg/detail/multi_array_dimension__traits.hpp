@@ -2,9 +2,6 @@
 // with input from std_msgs:msg/MultiArrayDimension.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "std_msgs/msg/multi_array_dimension.hpp"
-
-
 #ifndef STD_MSGS__MSG__DETAIL__MULTI_ARRAY_DIMENSION__TRAITS_HPP_
 #define STD_MSGS__MSG__DETAIL__MULTI_ARRAY_DIMENSION__TRAITS_HPP_
 

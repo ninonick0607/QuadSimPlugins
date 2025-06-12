@@ -2,9 +2,6 @@
 // with input from sensor_msgs:msg/NavSatStatus.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "sensor_msgs/msg/nav_sat_status.hpp"
-
-
 #ifndef SENSOR_MSGS__MSG__DETAIL__NAV_SAT_STATUS__STRUCT_HPP_
 #define SENSOR_MSGS__MSG__DETAIL__NAV_SAT_STATUS__STRUCT_HPP_
 
@@ -39,16 +36,9 @@ struct NavSatStatus_
   explicit NavSatStatus_(rosidl_runtime_cpp::MessageInitialization _init = rosidl_runtime_cpp::MessageInitialization::ALL)
   {
     if (rosidl_runtime_cpp::MessageInitialization::ALL == _init ||
-      rosidl_runtime_cpp::MessageInitialization::DEFAULTS_ONLY == _init)
-    {
-      this->status = -2;
-    } else if (rosidl_runtime_cpp::MessageInitialization::ZERO == _init) {
-      this->status = 0;
-      this->service = 0;
-    }
-    if (rosidl_runtime_cpp::MessageInitialization::ALL == _init ||
       rosidl_runtime_cpp::MessageInitialization::ZERO == _init)
     {
+      this->status = 0;
       this->service = 0;
     }
   }
@@ -57,16 +47,9 @@ struct NavSatStatus_
   {
     (void)_alloc;
     if (rosidl_runtime_cpp::MessageInitialization::ALL == _init ||
-      rosidl_runtime_cpp::MessageInitialization::DEFAULTS_ONLY == _init)
-    {
-      this->status = -2;
-    } else if (rosidl_runtime_cpp::MessageInitialization::ZERO == _init) {
-      this->status = 0;
-      this->service = 0;
-    }
-    if (rosidl_runtime_cpp::MessageInitialization::ALL == _init ||
       rosidl_runtime_cpp::MessageInitialization::ZERO == _init)
     {
+      this->status = 0;
       this->service = 0;
     }
   }
@@ -94,8 +77,6 @@ struct NavSatStatus_
   }
 
   // constant declarations
-  static constexpr int8_t STATUS_UNKNOWN =
-    -2;
   static constexpr int8_t STATUS_NO_FIX =
     -1;
   static constexpr int8_t STATUS_FIX =
@@ -104,8 +85,6 @@ struct NavSatStatus_
     1;
   static constexpr int8_t STATUS_GBAS_FIX =
     2;
-  static constexpr uint16_t SERVICE_UNKNOWN =
-    0u;
   static constexpr uint16_t SERVICE_GPS =
     1u;
   static constexpr uint16_t SERVICE_GLONASS =
@@ -177,11 +156,6 @@ using NavSatStatus =
 #if __cplusplus < 201703L
 // static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
-constexpr int8_t NavSatStatus_<ContainerAllocator>::STATUS_UNKNOWN;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
-template<typename ContainerAllocator>
 constexpr int8_t NavSatStatus_<ContainerAllocator>::STATUS_NO_FIX;
 #endif  // __cplusplus < 201703L
 #if __cplusplus < 201703L
@@ -198,11 +172,6 @@ constexpr int8_t NavSatStatus_<ContainerAllocator>::STATUS_SBAS_FIX;
 // static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr int8_t NavSatStatus_<ContainerAllocator>::STATUS_GBAS_FIX;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
-template<typename ContainerAllocator>
-constexpr uint16_t NavSatStatus_<ContainerAllocator>::SERVICE_UNKNOWN;
 #endif  // __cplusplus < 201703L
 #if __cplusplus < 201703L
 // static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17

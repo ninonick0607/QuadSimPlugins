@@ -16,11 +16,11 @@
 #define _FASTRTPS_CONFIG_H_
 
 #define FASTRTPS_VERSION_MAJOR 2
-#define FASTRTPS_VERSION_MINOR 14
-#define FASTRTPS_VERSION_MICRO 3
-#define FASTRTPS_VERSION_STR "2.14.3"
+#define FASTRTPS_VERSION_MINOR 6
+#define FASTRTPS_VERSION_MICRO 4
+#define FASTRTPS_VERSION_STR "2.6.4"
 
-#define GEN_API_VER 2
+#define GEN_API_VER 1
 
 // C++20 support defines
 #ifndef HAVE_CXX20
@@ -46,6 +46,22 @@
 #ifndef HAVE_CXX11
 #define HAVE_CXX11 1
 #endif /* ifndef HAVE_CXX11 */
+
+// C++0x support defines
+#ifndef HAVE_CXX0X
+#define HAVE_CXX0X 1
+#endif /* ifndef HAVE_CXX0X */
+
+// C++ constexpr support
+#ifndef HAVE_CXX_CONSTEXPR
+#define HAVE_CXX_CONSTEXPR 1
+#endif /* ifndef HAVE_CXX_CONSTEXPR */
+
+#if HAVE_CXX_CONSTEXPR
+#define CONSTEXPR constexpr
+#else
+#define CONSTEXPR const
+#endif /* if HAVE_CXX_CONSTEXPR */
 
 // Endianness defines
 #ifndef FASTDDS_IS_BIG_ENDIAN_TARGET
@@ -77,15 +93,8 @@
 
 /* Log Macros */
 
-// Enable compilation for eProsima Log Macros
-#ifndef ENABLE_OLD_LOG_MACROS_
-#define ENABLE_OLD_LOG_MACROS_ 1
-#endif /* ifndef ENABLE_OLD_LOG_MACROS_ */
-
 // Log Info
-#ifndef FASTDDS_ENFORCE_LOG_INFO
 /* #undef FASTDDS_ENFORCE_LOG_INFO */
-#endif
 #ifndef HAVE_LOG_NO_INFO
 #define HAVE_LOG_NO_INFO 1
 #endif /* ifndef HAVE_LOG_NO_INFO */
@@ -101,7 +110,7 @@
 #endif /* ifndef HAVE_LOG_NO_ERROR */
 
 // Statistics
-#define FASTDDS_STATISTICS
+/* #undef FASTDDS_STATISTICS */
 
 // Deprecated macro
 #if __cplusplus >= 201402L
@@ -122,12 +131,6 @@
 #define FASTDDS_TODO_BEFORE(major, minor, msg)                                          \
     static_assert((FASTRTPS_VERSION_MAJOR < major) ||                                   \
             (FASTRTPS_VERSION_MAJOR == major && FASTRTPS_VERSION_MINOR < minor),  \
-            "TODO before version " #major "." #minor " : " #msg)
-
-#if FASTCDR_VERSION_MAJOR > 1
-#define FASTDDS_SER_METHOD_DEPRECATED(major, entity_name, msg) FASTDDS_DEPRECATED_UNTIL(major, entity_name, msg)
-#else
-#define FASTDDS_SER_METHOD_DEPRECATED(major, entity_name, msg)
-#endif
+            "TODO before version " #major "." #minor " : " #msg);
 
 #endif // _FASTRTPS_CONFIG_H_

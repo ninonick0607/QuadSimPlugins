@@ -2,9 +2,6 @@
 // with input from ue_msgs:msg/Overlaps.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "ue_msgs/msg/overlaps.hpp"
-
-
 #ifndef UE_MSGS__MSG__DETAIL__OVERLAPS__TRAITS_HPP_
 #define UE_MSGS__MSG__DETAIL__OVERLAPS__TRAITS_HPP_
 

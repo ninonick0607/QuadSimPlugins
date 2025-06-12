@@ -18,7 +18,6 @@ sensor_msgs__msg__NavSatStatus__init(sensor_msgs__msg__NavSatStatus * msg)
     return false;
   }
   // status
-  msg->status = -2;
   // service
   return true;
 }
@@ -66,7 +65,7 @@ sensor_msgs__msg__NavSatStatus__copy(
 }
 
 sensor_msgs__msg__NavSatStatus *
-sensor_msgs__msg__NavSatStatus__create(void)
+sensor_msgs__msg__NavSatStatus__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   sensor_msgs__msg__NavSatStatus * msg = (sensor_msgs__msg__NavSatStatus *)allocator.allocate(sizeof(sensor_msgs__msg__NavSatStatus), allocator.state);

@@ -98,7 +98,6 @@ static rosidl_typesupport_introspection_c__MessageMember tf2_msgs__msg__TFMessag
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -118,7 +117,6 @@ static const rosidl_typesupport_introspection_c__MessageMembers tf2_msgs__msg__T
   "TFMessage",  // message name
   1,  // number of fields
   sizeof(tf2_msgs__msg__TFMessage),
-  false,  // has_any_key_member_
   tf2_msgs__msg__TFMessage__rosidl_typesupport_introspection_c__TFMessage_message_member_array,  // message members
   tf2_msgs__msg__TFMessage__rosidl_typesupport_introspection_c__TFMessage_init_function,  // function to initialize message memory (memory has to be allocated)
   tf2_msgs__msg__TFMessage__rosidl_typesupport_introspection_c__TFMessage_fini_function  // function to terminate message instance (will not free memory)
@@ -130,9 +128,6 @@ static rosidl_message_type_support_t tf2_msgs__msg__TFMessage__rosidl_typesuppor
   0,
   &tf2_msgs__msg__TFMessage__rosidl_typesupport_introspection_c__TFMessage_message_members,
   get_message_typesupport_handle_function,
-  &tf2_msgs__msg__TFMessage__get_type_hash,
-  &tf2_msgs__msg__TFMessage__get_type_description,
-  &tf2_msgs__msg__TFMessage__get_type_description_sources,
 };
 
 ROSIDL_TYPESUPPORT_INTROSPECTION_C_EXPORT_tf2_msgs

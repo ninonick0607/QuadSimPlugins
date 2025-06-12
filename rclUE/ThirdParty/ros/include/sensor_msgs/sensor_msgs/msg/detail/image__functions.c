@@ -146,7 +146,7 @@ sensor_msgs__msg__Image__copy(
 }
 
 sensor_msgs__msg__Image *
-sensor_msgs__msg__Image__create(void)
+sensor_msgs__msg__Image__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   sensor_msgs__msg__Image * msg = (sensor_msgs__msg__Image *)allocator.allocate(sizeof(sensor_msgs__msg__Image), allocator.state);

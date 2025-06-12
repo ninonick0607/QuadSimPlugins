@@ -2,9 +2,6 @@
 // with input from geometry_msgs:msg/Point32.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "geometry_msgs/msg/point32.hpp"
-
-
 #ifndef GEOMETRY_MSGS__MSG__DETAIL__POINT32__STRUCT_HPP_
 #define GEOMETRY_MSGS__MSG__DETAIL__POINT32__STRUCT_HPP_
 

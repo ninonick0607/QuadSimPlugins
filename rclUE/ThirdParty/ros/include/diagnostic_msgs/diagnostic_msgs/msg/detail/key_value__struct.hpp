@@ -2,9 +2,6 @@
 // with input from diagnostic_msgs:msg/KeyValue.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "diagnostic_msgs/msg/key_value.hpp"
-
-
 #ifndef DIAGNOSTIC_MSGS__MSG__DETAIL__KEY_VALUE__STRUCT_HPP_
 #define DIAGNOSTIC_MSGS__MSG__DETAIL__KEY_VALUE__STRUCT_HPP_
 

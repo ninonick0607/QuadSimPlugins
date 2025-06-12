@@ -15,9 +15,9 @@
 #ifndef RCPPUTILS__PROCESS_HPP_
 #define RCPPUTILS__PROCESS_HPP_
 
-#include <string>
+#include <rcutils/process.h>
 
-#include "rcpputils/visibility_control.hpp"
+#include <string>
 
 namespace rcpputils
 {
@@ -32,8 +32,17 @@ namespace rcpputils
  * \return The program name.
  * \throws std::runtime_error on error
  */
-RCPPUTILS_PUBLIC
-std::string get_executable_name();
+std::string get_executable_name()
+{
+  rcutils_allocator_t allocator = rcutils_get_default_allocator();
+  char * executable_name = rcutils_get_executable_name(allocator);
+  if (nullptr == executable_name) {
+    throw std::runtime_error("Failed to get executable name");
+  }
+  std::string ret(executable_name);
+  allocator.deallocate(executable_name, allocator.state);
+  return ret;
+}
 
 }  // namespace rcpputils
 

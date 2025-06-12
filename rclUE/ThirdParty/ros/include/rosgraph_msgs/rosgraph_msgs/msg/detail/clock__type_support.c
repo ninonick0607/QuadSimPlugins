@@ -43,7 +43,6 @@ static rosidl_typesupport_introspection_c__MessageMember rosgraph_msgs__msg__Clo
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -63,7 +62,6 @@ static const rosidl_typesupport_introspection_c__MessageMembers rosgraph_msgs__m
   "Clock",  // message name
   1,  // number of fields
   sizeof(rosgraph_msgs__msg__Clock),
-  false,  // has_any_key_member_
   rosgraph_msgs__msg__Clock__rosidl_typesupport_introspection_c__Clock_message_member_array,  // message members
   rosgraph_msgs__msg__Clock__rosidl_typesupport_introspection_c__Clock_init_function,  // function to initialize message memory (memory has to be allocated)
   rosgraph_msgs__msg__Clock__rosidl_typesupport_introspection_c__Clock_fini_function  // function to terminate message instance (will not free memory)
@@ -75,9 +73,6 @@ static rosidl_message_type_support_t rosgraph_msgs__msg__Clock__rosidl_typesuppo
   0,
   &rosgraph_msgs__msg__Clock__rosidl_typesupport_introspection_c__Clock_message_members,
   get_message_typesupport_handle_function,
-  &rosgraph_msgs__msg__Clock__get_type_hash,
-  &rosgraph_msgs__msg__Clock__get_type_description,
-  &rosgraph_msgs__msg__Clock__get_type_description_sources,
 };
 
 ROSIDL_TYPESUPPORT_INTROSPECTION_C_EXPORT_rosgraph_msgs

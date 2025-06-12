@@ -2,9 +2,6 @@
 // with input from std_msgs:msg/Int8MultiArray.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "std_msgs/msg/int8_multi_array.hpp"
-
-
 #ifndef STD_MSGS__MSG__DETAIL__INT8_MULTI_ARRAY__BUILDER_HPP_
 #define STD_MSGS__MSG__DETAIL__INT8_MULTI_ARRAY__BUILDER_HPP_
 

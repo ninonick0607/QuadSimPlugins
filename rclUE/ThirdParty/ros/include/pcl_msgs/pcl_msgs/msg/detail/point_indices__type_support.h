@@ -2,9 +2,6 @@
 // with input from pcl_msgs:msg/PointIndices.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "pcl_msgs/msg/point_indices.h"
-
-
 #ifndef PCL_MSGS__MSG__DETAIL__POINT_INDICES__TYPE_SUPPORT_H_
 #define PCL_MSGS__MSG__DETAIL__POINT_INDICES__TYPE_SUPPORT_H_
 
@@ -27,7 +24,7 @@ ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(
   pcl_msgs,
   msg,
   PointIndices
-)(void);
+)();
 
 #ifdef __cplusplus
 }

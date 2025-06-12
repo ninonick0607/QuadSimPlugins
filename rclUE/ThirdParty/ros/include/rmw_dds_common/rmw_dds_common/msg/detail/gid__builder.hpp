@@ -2,9 +2,6 @@
 // with input from rmw_dds_common:msg/Gid.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "rmw_dds_common/msg/gid.hpp"
-
-
 #ifndef RMW_DDS_COMMON__MSG__DETAIL__GID__BUILDER_HPP_
 #define RMW_DDS_COMMON__MSG__DETAIL__GID__BUILDER_HPP_
 

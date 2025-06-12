@@ -15,11 +15,13 @@
 #ifndef _FASTDDS_TRANSPORT_DESCRIPTOR_INTERFACE_H_
 #define _FASTDDS_TRANSPORT_DESCRIPTOR_INTERFACE_H_
 
-#include <cstdint>
-#include <mutex>
-#include <vector>
-
 #include <fastrtps/fastrtps_dll.h>
+
+#ifdef _WIN32
+#include <cstdint>
+#endif // ifdef _WIN32
+#include <vector>
+#include <string>
 
 namespace eprosima {
 namespace fastdds {
@@ -39,10 +41,10 @@ class TransportInterface;
  *
  * @ingroup RTPS_MODULE
  * */
-struct TransportDescriptorInterface
+struct RTPS_DllAPI TransportDescriptorInterface
 {
     //! Constructor
-    RTPS_DllAPI TransportDescriptorInterface(
+    TransportDescriptorInterface(
             uint32_t maximumMessageSize,
             uint32_t maximumInitialPeersRange)
         : maxMessageSize(maximumMessageSize)
@@ -51,37 +53,28 @@ struct TransportDescriptorInterface
     }
 
     //! Copy constructor
-    RTPS_DllAPI TransportDescriptorInterface(
-            const TransportDescriptorInterface& t)
-        : maxMessageSize(t.maxMessageSize)
-        , maxInitialPeersRange(t.maxInitialPeersRange)
-    {
-    }
+    TransportDescriptorInterface(
+            const TransportDescriptorInterface& t) = default;
 
     //! Copy assignment
-    RTPS_DllAPI TransportDescriptorInterface& operator =(
-            const TransportDescriptorInterface& t)
-    {
-        maxMessageSize = t.maxMessageSize;
-        maxInitialPeersRange = t.maxInitialPeersRange;
-        return *this;
-    }
+    TransportDescriptorInterface& operator =(
+            const TransportDescriptorInterface& t) = default;
 
     //! Destructor
-    virtual RTPS_DllAPI ~TransportDescriptorInterface() = default;
+    virtual ~TransportDescriptorInterface() = default;
 
     /**
      * Factory method pattern. It will create and return a TransportInterface
      * corresponding to this descriptor. This provides an interface to the NetworkFactory
      * to create the transports without the need to know about their type
      */
-    virtual RTPS_DllAPI TransportInterface* create_transport() const = 0;
+    virtual TransportInterface* create_transport() const = 0;
 
     //! Returns the minimum size required for a send operation.
-    virtual RTPS_DllAPI uint32_t min_send_buffer_size() const = 0;
+    virtual uint32_t min_send_buffer_size() const = 0;
 
     //! Returns the maximum size expected for received messages.
-    virtual RTPS_DllAPI uint32_t max_message_size() const
+    virtual uint32_t max_message_size() const
     {
         return maxMessageSize;
     }
@@ -89,29 +82,17 @@ struct TransportDescriptorInterface
     /** Returns the maximum number of opened channels for each initial remote peer
      * (maximum number of guessed initial peers to try to connect)
      */
-    virtual RTPS_DllAPI uint32_t max_initial_peers_range() const
+    virtual uint32_t max_initial_peers_range() const
     {
         return maxInitialPeersRange;
     }
 
     //! Comparison operator
-    RTPS_DllAPI bool operator ==(
+    bool operator ==(
             const TransportDescriptorInterface& t) const
     {
         return (this->maxMessageSize == t.max_message_size() &&
                this->maxInitialPeersRange == t.max_initial_peers_range());
-    }
-
-    //! Lock internal mutex (for Fast-DDS internal use)
-    RTPS_DllAPI void lock()
-    {
-        mtx_.lock();
-    }
-
-    //! Unlock internal mutex (for Fast-DDS internal use)
-    RTPS_DllAPI void unlock()
-    {
-        mtx_.unlock();
     }
 
     //! Maximum size of a single message in the transport
@@ -119,10 +100,6 @@ struct TransportDescriptorInterface
 
     //! Number of channels opened with each initial remote peer.
     uint32_t maxInitialPeersRange;
-
-private:
-
-    mutable std::mutex mtx_;
 };
 
 } // namespace rtps

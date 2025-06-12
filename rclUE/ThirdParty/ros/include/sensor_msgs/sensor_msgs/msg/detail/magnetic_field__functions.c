@@ -105,7 +105,7 @@ sensor_msgs__msg__MagneticField__copy(
 }
 
 sensor_msgs__msg__MagneticField *
-sensor_msgs__msg__MagneticField__create(void)
+sensor_msgs__msg__MagneticField__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   sensor_msgs__msg__MagneticField * msg = (sensor_msgs__msg__MagneticField *)allocator.allocate(sizeof(sensor_msgs__msg__MagneticField), allocator.state);

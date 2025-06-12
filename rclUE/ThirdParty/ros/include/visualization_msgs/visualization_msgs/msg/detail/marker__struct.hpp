@@ -2,9 +2,6 @@
 // with input from visualization_msgs:msg/Marker.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "visualization_msgs/msg/marker.hpp"
-
-
 #ifndef VISUALIZATION_MSGS__MSG__DETAIL__MARKER__STRUCT_HPP_
 #define VISUALIZATION_MSGS__MSG__DETAIL__MARKER__STRUCT_HPP_
 
@@ -309,8 +306,6 @@ struct Marker_
     10;
   static constexpr int32_t TRIANGLE_LIST =
     11;
-  static constexpr int32_t ARROW_STRIP =
-    12;
   static constexpr int32_t ADD =
     0;
   static constexpr int32_t MODIFY =
@@ -500,11 +495,6 @@ constexpr int32_t Marker_<ContainerAllocator>::MESH_RESOURCE;
 // static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr int32_t Marker_<ContainerAllocator>::TRIANGLE_LIST;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
-template<typename ContainerAllocator>
-constexpr int32_t Marker_<ContainerAllocator>::ARROW_STRIP;
 #endif  // __cplusplus < 201703L
 #if __cplusplus < 201703L
 // static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17

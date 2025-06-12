@@ -2,9 +2,6 @@
 // with input from shape_msgs:msg/SolidPrimitive.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "shape_msgs/msg/solid_primitive.hpp"
-
-
 #ifndef SHAPE_MSGS__MSG__DETAIL__SOLID_PRIMITIVE__BUILDER_HPP_
 #define SHAPE_MSGS__MSG__DETAIL__SOLID_PRIMITIVE__BUILDER_HPP_
 

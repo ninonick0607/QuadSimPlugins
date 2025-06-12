@@ -2,9 +2,6 @@
 // with input from sensor_msgs:msg/Range.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "sensor_msgs/msg/range.hpp"
-
-
 #ifndef SENSOR_MSGS__MSG__DETAIL__RANGE__STRUCT_HPP_
 #define SENSOR_MSGS__MSG__DETAIL__RANGE__STRUCT_HPP_
 
@@ -51,7 +48,6 @@ struct Range_
       this->min_range = 0.0f;
       this->max_range = 0.0f;
       this->range = 0.0f;
-      this->variance = 0.0f;
     }
   }
 
@@ -66,7 +62,6 @@ struct Range_
       this->min_range = 0.0f;
       this->max_range = 0.0f;
       this->range = 0.0f;
-      this->variance = 0.0f;
     }
   }
 
@@ -89,9 +84,6 @@ struct Range_
   using _range_type =
     float;
   _range_type range;
-  using _variance_type =
-    float;
-  _variance_type variance;
 
   // setters for named parameter idiom
   Type & set__header(
@@ -128,12 +120,6 @@ struct Range_
     const float & _arg)
   {
     this->range = _arg;
-    return *this;
-  }
-  Type & set__variance(
-    const float & _arg)
-  {
-    this->variance = _arg;
     return *this;
   }
 
@@ -199,9 +185,6 @@ struct Range_
       return false;
     }
     if (this->range != other.range) {
-      return false;
-    }
-    if (this->variance != other.variance) {
       return false;
     }
     return true;

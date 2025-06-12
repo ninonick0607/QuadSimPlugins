@@ -2,9 +2,6 @@
 // with input from sensor_msgs:msg/Range.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "sensor_msgs/msg/range.hpp"
-
-
 #ifndef SENSOR_MSGS__MSG__DETAIL__RANGE__BUILDER_HPP_
 #define SENSOR_MSGS__MSG__DETAIL__RANGE__BUILDER_HPP_
 
@@ -24,32 +21,16 @@ namespace msg
 namespace builder
 {
 
-class Init_Range_variance
-{
-public:
-  explicit Init_Range_variance(::sensor_msgs::msg::Range & msg)
-  : msg_(msg)
-  {}
-  ::sensor_msgs::msg::Range variance(::sensor_msgs::msg::Range::_variance_type arg)
-  {
-    msg_.variance = std::move(arg);
-    return std::move(msg_);
-  }
-
-private:
-  ::sensor_msgs::msg::Range msg_;
-};
-
 class Init_Range_range
 {
 public:
   explicit Init_Range_range(::sensor_msgs::msg::Range & msg)
   : msg_(msg)
   {}
-  Init_Range_variance range(::sensor_msgs::msg::Range::_range_type arg)
+  ::sensor_msgs::msg::Range range(::sensor_msgs::msg::Range::_range_type arg)
   {
     msg_.range = std::move(arg);
-    return Init_Range_variance(msg_);
+    return std::move(msg_);
   }
 
 private:

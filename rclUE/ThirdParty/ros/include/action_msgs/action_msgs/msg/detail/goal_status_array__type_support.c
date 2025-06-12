@@ -98,7 +98,6 @@ static rosidl_typesupport_introspection_c__MessageMember action_msgs__msg__GoalS
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -118,7 +117,6 @@ static const rosidl_typesupport_introspection_c__MessageMembers action_msgs__msg
   "GoalStatusArray",  // message name
   1,  // number of fields
   sizeof(action_msgs__msg__GoalStatusArray),
-  false,  // has_any_key_member_
   action_msgs__msg__GoalStatusArray__rosidl_typesupport_introspection_c__GoalStatusArray_message_member_array,  // message members
   action_msgs__msg__GoalStatusArray__rosidl_typesupport_introspection_c__GoalStatusArray_init_function,  // function to initialize message memory (memory has to be allocated)
   action_msgs__msg__GoalStatusArray__rosidl_typesupport_introspection_c__GoalStatusArray_fini_function  // function to terminate message instance (will not free memory)
@@ -130,9 +128,6 @@ static rosidl_message_type_support_t action_msgs__msg__GoalStatusArray__rosidl_t
   0,
   &action_msgs__msg__GoalStatusArray__rosidl_typesupport_introspection_c__GoalStatusArray_message_members,
   get_message_typesupport_handle_function,
-  &action_msgs__msg__GoalStatusArray__get_type_hash,
-  &action_msgs__msg__GoalStatusArray__get_type_description,
-  &action_msgs__msg__GoalStatusArray__get_type_description_sources,
 };
 
 ROSIDL_TYPESUPPORT_INTROSPECTION_C_EXPORT_action_msgs

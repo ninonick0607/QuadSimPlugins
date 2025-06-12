@@ -2,9 +2,6 @@
 // with input from visualization_msgs:msg/MeshFile.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "visualization_msgs/msg/mesh_file.hpp"
-
-
 #ifndef VISUALIZATION_MSGS__MSG__DETAIL__MESH_FILE__TRAITS_HPP_
 #define VISUALIZATION_MSGS__MSG__DETAIL__MESH_FILE__TRAITS_HPP_
 

@@ -2,9 +2,6 @@
 // with input from std_msgs:msg/Char.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "std_msgs/msg/char.hpp"
-
-
 #ifndef STD_MSGS__MSG__DETAIL__CHAR__STRUCT_HPP_
 #define STD_MSGS__MSG__DETAIL__CHAR__STRUCT_HPP_
 

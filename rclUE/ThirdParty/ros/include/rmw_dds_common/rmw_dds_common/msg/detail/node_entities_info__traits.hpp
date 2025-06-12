@@ -2,9 +2,6 @@
 // with input from rmw_dds_common:msg/NodeEntitiesInfo.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "rmw_dds_common/msg/node_entities_info.hpp"
-
-
 #ifndef RMW_DDS_COMMON__MSG__DETAIL__NODE_ENTITIES_INFO__TRAITS_HPP_
 #define RMW_DDS_COMMON__MSG__DETAIL__NODE_ENTITIES_INFO__TRAITS_HPP_
 

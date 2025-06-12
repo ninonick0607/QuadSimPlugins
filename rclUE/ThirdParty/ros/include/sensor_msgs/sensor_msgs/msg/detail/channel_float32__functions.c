@@ -93,7 +93,7 @@ sensor_msgs__msg__ChannelFloat32__copy(
 }
 
 sensor_msgs__msg__ChannelFloat32 *
-sensor_msgs__msg__ChannelFloat32__create(void)
+sensor_msgs__msg__ChannelFloat32__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   sensor_msgs__msg__ChannelFloat32 * msg = (sensor_msgs__msg__ChannelFloat32 *)allocator.allocate(sizeof(sensor_msgs__msg__ChannelFloat32), allocator.state);

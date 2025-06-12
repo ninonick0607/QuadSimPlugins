@@ -2,9 +2,6 @@
 // with input from nav_msgs:srv/GetPlan.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "nav_msgs/srv/get_plan.hpp"
-
-
 #ifndef NAV_MSGS__SRV__DETAIL__GET_PLAN__BUILDER_HPP_
 #define NAV_MSGS__SRV__DETAIL__GET_PLAN__BUILDER_HPP_
 
@@ -126,80 +123,6 @@ inline
 auto build<::nav_msgs::srv::GetPlan_Response>()
 {
   return nav_msgs::srv::builder::Init_GetPlan_Response_plan();
-}
-
-}  // namespace nav_msgs
-
-
-namespace nav_msgs
-{
-
-namespace srv
-{
-
-namespace builder
-{
-
-class Init_GetPlan_Event_response
-{
-public:
-  explicit Init_GetPlan_Event_response(::nav_msgs::srv::GetPlan_Event & msg)
-  : msg_(msg)
-  {}
-  ::nav_msgs::srv::GetPlan_Event response(::nav_msgs::srv::GetPlan_Event::_response_type arg)
-  {
-    msg_.response = std::move(arg);
-    return std::move(msg_);
-  }
-
-private:
-  ::nav_msgs::srv::GetPlan_Event msg_;
-};
-
-class Init_GetPlan_Event_request
-{
-public:
-  explicit Init_GetPlan_Event_request(::nav_msgs::srv::GetPlan_Event & msg)
-  : msg_(msg)
-  {}
-  Init_GetPlan_Event_response request(::nav_msgs::srv::GetPlan_Event::_request_type arg)
-  {
-    msg_.request = std::move(arg);
-    return Init_GetPlan_Event_response(msg_);
-  }
-
-private:
-  ::nav_msgs::srv::GetPlan_Event msg_;
-};
-
-class Init_GetPlan_Event_info
-{
-public:
-  Init_GetPlan_Event_info()
-  : msg_(::rosidl_runtime_cpp::MessageInitialization::SKIP)
-  {}
-  Init_GetPlan_Event_request info(::nav_msgs::srv::GetPlan_Event::_info_type arg)
-  {
-    msg_.info = std::move(arg);
-    return Init_GetPlan_Event_request(msg_);
-  }
-
-private:
-  ::nav_msgs::srv::GetPlan_Event msg_;
-};
-
-}  // namespace builder
-
-}  // namespace srv
-
-template<typename MessageType>
-auto build();
-
-template<>
-inline
-auto build<::nav_msgs::srv::GetPlan_Event>()
-{
-  return nav_msgs::srv::builder::Init_GetPlan_Event_info();
 }
 
 }  // namespace nav_msgs

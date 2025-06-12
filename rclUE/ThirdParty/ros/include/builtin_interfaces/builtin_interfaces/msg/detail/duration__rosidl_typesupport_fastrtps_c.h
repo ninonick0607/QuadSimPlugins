@@ -9,23 +9,11 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "builtin_interfaces/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-#include "builtin_interfaces/msg/detail/duration__struct.h"
-#include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_builtin_interfaces
-bool cdr_serialize_builtin_interfaces__msg__Duration(
-  const builtin_interfaces__msg__Duration * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_builtin_interfaces
-bool cdr_deserialize_builtin_interfaces__msg__Duration(
-  eprosima::fastcdr::Cdr &,
-  builtin_interfaces__msg__Duration * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_builtin_interfaces
 size_t get_serialized_size_builtin_interfaces__msg__Duration(
@@ -34,22 +22,6 @@ size_t get_serialized_size_builtin_interfaces__msg__Duration(
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_builtin_interfaces
 size_t max_serialized_size_builtin_interfaces__msg__Duration(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_builtin_interfaces
-bool cdr_serialize_key_builtin_interfaces__msg__Duration(
-  const builtin_interfaces__msg__Duration * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_builtin_interfaces
-size_t get_serialized_size_key_builtin_interfaces__msg__Duration(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_builtin_interfaces
-size_t max_serialized_size_key_builtin_interfaces__msg__Duration(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

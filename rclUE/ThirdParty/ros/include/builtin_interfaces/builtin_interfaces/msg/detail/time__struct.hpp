@@ -2,9 +2,6 @@
 // with input from builtin_interfaces:msg/Time.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "builtin_interfaces/msg/time.hpp"
-
-
 #ifndef BUILTIN_INTERFACES__MSG__DETAIL__TIME__STRUCT_HPP_
 #define BUILTIN_INTERFACES__MSG__DETAIL__TIME__STRUCT_HPP_
 

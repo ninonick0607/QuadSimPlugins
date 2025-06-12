@@ -93,7 +93,7 @@ pcl_msgs__msg__ModelCoefficients__copy(
 }
 
 pcl_msgs__msg__ModelCoefficients *
-pcl_msgs__msg__ModelCoefficients__create(void)
+pcl_msgs__msg__ModelCoefficients__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   pcl_msgs__msg__ModelCoefficients * msg = (pcl_msgs__msg__ModelCoefficients *)allocator.allocate(sizeof(pcl_msgs__msg__ModelCoefficients), allocator.state);

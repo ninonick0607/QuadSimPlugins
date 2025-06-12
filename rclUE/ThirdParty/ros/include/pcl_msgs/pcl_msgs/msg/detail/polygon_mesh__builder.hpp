@@ -2,9 +2,6 @@
 // with input from pcl_msgs:msg/PolygonMesh.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "pcl_msgs/msg/polygon_mesh.hpp"
-
-
 #ifndef PCL_MSGS__MSG__DETAIL__POLYGON_MESH__BUILDER_HPP_
 #define PCL_MSGS__MSG__DETAIL__POLYGON_MESH__BUILDER_HPP_
 

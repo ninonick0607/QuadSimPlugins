@@ -2,9 +2,6 @@
 // with input from std_msgs:msg/Int32.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "std_msgs/msg/int32.hpp"
-
-
 #ifndef STD_MSGS__MSG__DETAIL__INT32__TRAITS_HPP_
 #define STD_MSGS__MSG__DETAIL__INT32__TRAITS_HPP_
 

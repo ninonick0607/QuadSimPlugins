@@ -72,7 +72,7 @@ tf2_msgs__msg__TFMessage__copy(
 }
 
 tf2_msgs__msg__TFMessage *
-tf2_msgs__msg__TFMessage__create(void)
+tf2_msgs__msg__TFMessage__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   tf2_msgs__msg__TFMessage * msg = (tf2_msgs__msg__TFMessage *)allocator.allocate(sizeof(tf2_msgs__msg__TFMessage), allocator.state);

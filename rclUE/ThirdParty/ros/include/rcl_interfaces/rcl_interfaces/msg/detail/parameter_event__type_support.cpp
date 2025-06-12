@@ -9,7 +9,6 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_cpp/message_type_support.hpp"
 #include "rosidl_typesupport_interface/macros.h"
-#include "rcl_interfaces/msg/detail/parameter_event__functions.h"
 #include "rcl_interfaces/msg/detail/parameter_event__struct.hpp"
 #include "rosidl_typesupport_introspection_cpp/field_types.hpp"
 #include "rosidl_typesupport_introspection_cpp/identifier.hpp"
@@ -179,7 +178,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember ParameterEven
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<builtin_interfaces::msg::Time>(),  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -197,7 +195,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember ParameterEven
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_STRING,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -215,7 +212,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember ParameterEven
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<rcl_interfaces::msg::Parameter>(),  // members of sub message
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -233,7 +229,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember ParameterEven
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<rcl_interfaces::msg::Parameter>(),  // members of sub message
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -251,7 +246,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember ParameterEven
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<rcl_interfaces::msg::Parameter>(),  // members of sub message
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -271,7 +265,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMembers ParameterEve
   "ParameterEvent",  // message name
   5,  // number of fields
   sizeof(rcl_interfaces::msg::ParameterEvent),
-  false,  // has_any_key_member_
   ParameterEvent_message_member_array,  // message members
   ParameterEvent_init_function,  // function to initialize message memory (memory has to be allocated)
   ParameterEvent_fini_function  // function to terminate message instance (will not free memory)
@@ -281,9 +274,6 @@ static const rosidl_message_type_support_t ParameterEvent_message_type_support_h
   ::rosidl_typesupport_introspection_cpp::typesupport_identifier,
   &ParameterEvent_message_members,
   get_message_typesupport_handle_function,
-  &rcl_interfaces__msg__ParameterEvent__get_type_hash,
-  &rcl_interfaces__msg__ParameterEvent__get_type_description,
-  &rcl_interfaces__msg__ParameterEvent__get_type_description_sources,
 };
 
 }  // namespace rosidl_typesupport_introspection_cpp

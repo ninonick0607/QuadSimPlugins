@@ -2,9 +2,6 @@
 // with input from action_msgs:srv/CancelGoal.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "action_msgs/srv/cancel_goal.hpp"
-
-
 #ifndef ACTION_MSGS__SRV__DETAIL__CANCEL_GOAL__STRUCT_HPP_
 #define ACTION_MSGS__SRV__DETAIL__CANCEL_GOAL__STRUCT_HPP_
 
@@ -287,141 +284,6 @@ constexpr int8_t CancelGoal_Response_<ContainerAllocator>::ERROR_GOAL_TERMINATED
 
 }  // namespace action_msgs
 
-
-// Include directives for member types
-// Member 'info'
-#include "service_msgs/msg/detail/service_event_info__struct.hpp"
-
-#ifndef _WIN32
-# define DEPRECATED__action_msgs__srv__CancelGoal_Event __attribute__((deprecated))
-#else
-# define DEPRECATED__action_msgs__srv__CancelGoal_Event __declspec(deprecated)
-#endif
-
-namespace action_msgs
-{
-
-namespace srv
-{
-
-// message struct
-template<class ContainerAllocator>
-struct CancelGoal_Event_
-{
-  using Type = CancelGoal_Event_<ContainerAllocator>;
-
-  explicit CancelGoal_Event_(rosidl_runtime_cpp::MessageInitialization _init = rosidl_runtime_cpp::MessageInitialization::ALL)
-  : info(_init)
-  {
-    (void)_init;
-  }
-
-  explicit CancelGoal_Event_(const ContainerAllocator & _alloc, rosidl_runtime_cpp::MessageInitialization _init = rosidl_runtime_cpp::MessageInitialization::ALL)
-  : info(_alloc, _init)
-  {
-    (void)_init;
-  }
-
-  // field types and members
-  using _info_type =
-    service_msgs::msg::ServiceEventInfo_<ContainerAllocator>;
-  _info_type info;
-  using _request_type =
-    rosidl_runtime_cpp::BoundedVector<action_msgs::srv::CancelGoal_Request_<ContainerAllocator>, 1, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<action_msgs::srv::CancelGoal_Request_<ContainerAllocator>>>;
-  _request_type request;
-  using _response_type =
-    rosidl_runtime_cpp::BoundedVector<action_msgs::srv::CancelGoal_Response_<ContainerAllocator>, 1, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<action_msgs::srv::CancelGoal_Response_<ContainerAllocator>>>;
-  _response_type response;
-
-  // setters for named parameter idiom
-  Type & set__info(
-    const service_msgs::msg::ServiceEventInfo_<ContainerAllocator> & _arg)
-  {
-    this->info = _arg;
-    return *this;
-  }
-  Type & set__request(
-    const rosidl_runtime_cpp::BoundedVector<action_msgs::srv::CancelGoal_Request_<ContainerAllocator>, 1, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<action_msgs::srv::CancelGoal_Request_<ContainerAllocator>>> & _arg)
-  {
-    this->request = _arg;
-    return *this;
-  }
-  Type & set__response(
-    const rosidl_runtime_cpp::BoundedVector<action_msgs::srv::CancelGoal_Response_<ContainerAllocator>, 1, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<action_msgs::srv::CancelGoal_Response_<ContainerAllocator>>> & _arg)
-  {
-    this->response = _arg;
-    return *this;
-  }
-
-  // constant declarations
-
-  // pointer types
-  using RawPtr =
-    action_msgs::srv::CancelGoal_Event_<ContainerAllocator> *;
-  using ConstRawPtr =
-    const action_msgs::srv::CancelGoal_Event_<ContainerAllocator> *;
-  using SharedPtr =
-    std::shared_ptr<action_msgs::srv::CancelGoal_Event_<ContainerAllocator>>;
-  using ConstSharedPtr =
-    std::shared_ptr<action_msgs::srv::CancelGoal_Event_<ContainerAllocator> const>;
-
-  template<typename Deleter = std::default_delete<
-      action_msgs::srv::CancelGoal_Event_<ContainerAllocator>>>
-  using UniquePtrWithDeleter =
-    std::unique_ptr<action_msgs::srv::CancelGoal_Event_<ContainerAllocator>, Deleter>;
-
-  using UniquePtr = UniquePtrWithDeleter<>;
-
-  template<typename Deleter = std::default_delete<
-      action_msgs::srv::CancelGoal_Event_<ContainerAllocator>>>
-  using ConstUniquePtrWithDeleter =
-    std::unique_ptr<action_msgs::srv::CancelGoal_Event_<ContainerAllocator> const, Deleter>;
-  using ConstUniquePtr = ConstUniquePtrWithDeleter<>;
-
-  using WeakPtr =
-    std::weak_ptr<action_msgs::srv::CancelGoal_Event_<ContainerAllocator>>;
-  using ConstWeakPtr =
-    std::weak_ptr<action_msgs::srv::CancelGoal_Event_<ContainerAllocator> const>;
-
-  // pointer types similar to ROS 1, use SharedPtr / ConstSharedPtr instead
-  // NOTE: Can't use 'using' here because GNU C++ can't parse attributes properly
-  typedef DEPRECATED__action_msgs__srv__CancelGoal_Event
-    std::shared_ptr<action_msgs::srv::CancelGoal_Event_<ContainerAllocator>>
-    Ptr;
-  typedef DEPRECATED__action_msgs__srv__CancelGoal_Event
-    std::shared_ptr<action_msgs::srv::CancelGoal_Event_<ContainerAllocator> const>
-    ConstPtr;
-
-  // comparison operators
-  bool operator==(const CancelGoal_Event_ & other) const
-  {
-    if (this->info != other.info) {
-      return false;
-    }
-    if (this->request != other.request) {
-      return false;
-    }
-    if (this->response != other.response) {
-      return false;
-    }
-    return true;
-  }
-  bool operator!=(const CancelGoal_Event_ & other) const
-  {
-    return !this->operator==(other);
-  }
-};  // struct CancelGoal_Event_
-
-// alias to use template instance with default allocator
-using CancelGoal_Event =
-  action_msgs::srv::CancelGoal_Event_<std::allocator<void>>;
-
-// constant definitions
-
-}  // namespace srv
-
-}  // namespace action_msgs
-
 namespace action_msgs
 {
 
@@ -432,7 +294,6 @@ struct CancelGoal
 {
   using Request = action_msgs::srv::CancelGoal_Request;
   using Response = action_msgs::srv::CancelGoal_Response;
-  using Event = action_msgs::srv::CancelGoal_Event;
 };
 
 }  // namespace srv

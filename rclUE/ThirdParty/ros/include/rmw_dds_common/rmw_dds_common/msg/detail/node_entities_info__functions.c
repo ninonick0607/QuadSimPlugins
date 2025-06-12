@@ -133,7 +133,7 @@ rmw_dds_common__msg__NodeEntitiesInfo__copy(
 }
 
 rmw_dds_common__msg__NodeEntitiesInfo *
-rmw_dds_common__msg__NodeEntitiesInfo__create(void)
+rmw_dds_common__msg__NodeEntitiesInfo__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   rmw_dds_common__msg__NodeEntitiesInfo * msg = (rmw_dds_common__msg__NodeEntitiesInfo *)allocator.allocate(sizeof(rmw_dds_common__msg__NodeEntitiesInfo), allocator.state);

@@ -9,7 +9,6 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_cpp/message_type_support.hpp"
 #include "rosidl_typesupport_interface/macros.h"
-#include "example_interfaces/msg/detail/float32_multi_array__functions.h"
 #include "example_interfaces/msg/detail/float32_multi_array__struct.hpp"
 #include "rosidl_typesupport_introspection_cpp/field_types.hpp"
 #include "rosidl_typesupport_introspection_cpp/identifier.hpp"
@@ -89,7 +88,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember Float32MultiA
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<example_interfaces::msg::MultiArrayLayout>(),  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -107,7 +105,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember Float32MultiA
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_FLOAT,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -127,7 +124,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMembers Float32Multi
   "Float32MultiArray",  // message name
   2,  // number of fields
   sizeof(example_interfaces::msg::Float32MultiArray),
-  false,  // has_any_key_member_
   Float32MultiArray_message_member_array,  // message members
   Float32MultiArray_init_function,  // function to initialize message memory (memory has to be allocated)
   Float32MultiArray_fini_function  // function to terminate message instance (will not free memory)
@@ -137,9 +133,6 @@ static const rosidl_message_type_support_t Float32MultiArray_message_type_suppor
   ::rosidl_typesupport_introspection_cpp::typesupport_identifier,
   &Float32MultiArray_message_members,
   get_message_typesupport_handle_function,
-  &example_interfaces__msg__Float32MultiArray__get_type_hash,
-  &example_interfaces__msg__Float32MultiArray__get_type_description,
-  &example_interfaces__msg__Float32MultiArray__get_type_description_sources,
 };
 
 }  // namespace rosidl_typesupport_introspection_cpp

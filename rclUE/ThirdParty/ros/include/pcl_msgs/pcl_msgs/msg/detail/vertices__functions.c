@@ -72,7 +72,7 @@ pcl_msgs__msg__Vertices__copy(
 }
 
 pcl_msgs__msg__Vertices *
-pcl_msgs__msg__Vertices__create(void)
+pcl_msgs__msg__Vertices__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   pcl_msgs__msg__Vertices * msg = (pcl_msgs__msg__Vertices *)allocator.allocate(sizeof(pcl_msgs__msg__Vertices), allocator.state);

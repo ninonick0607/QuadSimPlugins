@@ -2,9 +2,6 @@
 // with input from visualization_msgs:msg/ImageMarker.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "visualization_msgs/msg/image_marker.hpp"
-
-
 #ifndef VISUALIZATION_MSGS__MSG__DETAIL__IMAGE_MARKER__TRAITS_HPP_
 #define VISUALIZATION_MSGS__MSG__DETAIL__IMAGE_MARKER__TRAITS_HPP_
 

@@ -2,9 +2,6 @@
 // with input from geometry_msgs:msg/VelocityStamped.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "geometry_msgs/msg/velocity_stamped.hpp"
-
-
 #ifndef GEOMETRY_MSGS__MSG__DETAIL__VELOCITY_STAMPED__TRAITS_HPP_
 #define GEOMETRY_MSGS__MSG__DETAIL__VELOCITY_STAMPED__TRAITS_HPP_
 

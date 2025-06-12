@@ -2,9 +2,6 @@
 // with input from rmw_dds_common:msg/ParticipantEntitiesInfo.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "rmw_dds_common/msg/participant_entities_info.h"
-
-
 #ifndef RMW_DDS_COMMON__MSG__DETAIL__PARTICIPANT_ENTITIES_INFO__STRUCT_H_
 #define RMW_DDS_COMMON__MSG__DETAIL__PARTICIPANT_ENTITIES_INFO__STRUCT_H_
 
@@ -16,6 +13,7 @@ extern "C"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
 
 // Constants defined in the message
 

@@ -2,9 +2,6 @@
 // with input from rmw_dds_common:msg/Gid.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "rmw_dds_common/msg/gid.h"
-
-
 #ifndef RMW_DDS_COMMON__MSG__DETAIL__GID__FUNCTIONS_H_
 #define RMW_DDS_COMMON__MSG__DETAIL__GID__FUNCTIONS_H_
 
@@ -16,12 +13,6 @@ extern "C"
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "rosidl_runtime_c/action_type_support_struct.h"
-#include "rosidl_runtime_c/message_type_support_struct.h"
-#include "rosidl_runtime_c/service_type_support_struct.h"
-#include "rosidl_runtime_c/type_description/type_description__struct.h"
-#include "rosidl_runtime_c/type_description/type_source__struct.h"
-#include "rosidl_runtime_c/type_hash.h"
 #include "rosidl_runtime_c/visibility_control.h"
 #include "rmw_dds_common/msg/rosidl_generator_c__visibility_control.h"
 
@@ -62,7 +53,7 @@ rmw_dds_common__msg__Gid__fini(rmw_dds_common__msg__Gid * msg);
  */
 ROSIDL_GENERATOR_C_PUBLIC_rmw_dds_common
 rmw_dds_common__msg__Gid *
-rmw_dds_common__msg__Gid__create(void);
+rmw_dds_common__msg__Gid__create();
 
 /// Destroy msg/Gid message.
 /**
@@ -101,30 +92,6 @@ bool
 rmw_dds_common__msg__Gid__copy(
   const rmw_dds_common__msg__Gid * input,
   rmw_dds_common__msg__Gid * output);
-
-/// Retrieve pointer to the hash of the description of this type.
-ROSIDL_GENERATOR_C_PUBLIC_rmw_dds_common
-const rosidl_type_hash_t *
-rmw_dds_common__msg__Gid__get_type_hash(
-  const rosidl_message_type_support_t * type_support);
-
-/// Retrieve pointer to the description of this type.
-ROSIDL_GENERATOR_C_PUBLIC_rmw_dds_common
-const rosidl_runtime_c__type_description__TypeDescription *
-rmw_dds_common__msg__Gid__get_type_description(
-  const rosidl_message_type_support_t * type_support);
-
-/// Retrieve pointer to the single raw source text that defined this type.
-ROSIDL_GENERATOR_C_PUBLIC_rmw_dds_common
-const rosidl_runtime_c__type_description__TypeSource *
-rmw_dds_common__msg__Gid__get_individual_type_description_source(
-  const rosidl_message_type_support_t * type_support);
-
-/// Retrieve pointer to the recursive raw sources that defined the description of this type.
-ROSIDL_GENERATOR_C_PUBLIC_rmw_dds_common
-const rosidl_runtime_c__type_description__TypeSource__Sequence *
-rmw_dds_common__msg__Gid__get_type_description_sources(
-  const rosidl_message_type_support_t * type_support);
 
 /// Initialize array of msg/Gid messages.
 /**

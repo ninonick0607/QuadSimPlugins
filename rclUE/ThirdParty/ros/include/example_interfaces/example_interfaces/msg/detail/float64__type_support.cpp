@@ -9,7 +9,6 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_cpp/message_type_support.hpp"
 #include "rosidl_typesupport_interface/macros.h"
-#include "example_interfaces/msg/detail/float64__functions.h"
 #include "example_interfaces/msg/detail/float64__struct.hpp"
 #include "rosidl_typesupport_introspection_cpp/field_types.hpp"
 #include "rosidl_typesupport_introspection_cpp/identifier.hpp"
@@ -44,7 +43,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember Float64_messa
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_DOUBLE,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -64,7 +62,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMembers Float64_mess
   "Float64",  // message name
   1,  // number of fields
   sizeof(example_interfaces::msg::Float64),
-  false,  // has_any_key_member_
   Float64_message_member_array,  // message members
   Float64_init_function,  // function to initialize message memory (memory has to be allocated)
   Float64_fini_function  // function to terminate message instance (will not free memory)
@@ -74,9 +71,6 @@ static const rosidl_message_type_support_t Float64_message_type_support_handle =
   ::rosidl_typesupport_introspection_cpp::typesupport_identifier,
   &Float64_message_members,
   get_message_typesupport_handle_function,
-  &example_interfaces__msg__Float64__get_type_hash,
-  &example_interfaces__msg__Float64__get_type_description,
-  &example_interfaces__msg__Float64__get_type_description_sources,
 };
 
 }  // namespace rosidl_typesupport_introspection_cpp

@@ -114,7 +114,7 @@ visualization_msgs__msg__InteractiveMarkerPose__copy(
 }
 
 visualization_msgs__msg__InteractiveMarkerPose *
-visualization_msgs__msg__InteractiveMarkerPose__create(void)
+visualization_msgs__msg__InteractiveMarkerPose__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   visualization_msgs__msg__InteractiveMarkerPose * msg = (visualization_msgs__msg__InteractiveMarkerPose *)allocator.allocate(sizeof(visualization_msgs__msg__InteractiveMarkerPose), allocator.state);

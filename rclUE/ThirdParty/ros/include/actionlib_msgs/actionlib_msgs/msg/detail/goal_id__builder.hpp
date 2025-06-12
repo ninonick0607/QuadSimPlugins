@@ -2,9 +2,6 @@
 // with input from actionlib_msgs:msg/GoalID.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "actionlib_msgs/msg/goal_id.hpp"
-
-
 #ifndef ACTIONLIB_MSGS__MSG__DETAIL__GOAL_ID__BUILDER_HPP_
 #define ACTIONLIB_MSGS__MSG__DETAIL__GOAL_ID__BUILDER_HPP_
 

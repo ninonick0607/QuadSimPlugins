@@ -215,7 +215,6 @@ static rosidl_typesupport_introspection_c__MessageMember visualization_msgs__msg
     rosidl_typesupport_introspection_c__ROS_TYPE_STRING,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -233,7 +232,6 @@ static rosidl_typesupport_introspection_c__MessageMember visualization_msgs__msg
     rosidl_typesupport_introspection_c__ROS_TYPE_UINT64,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -251,7 +249,6 @@ static rosidl_typesupport_introspection_c__MessageMember visualization_msgs__msg
     rosidl_typesupport_introspection_c__ROS_TYPE_UINT8,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -269,7 +266,6 @@ static rosidl_typesupport_introspection_c__MessageMember visualization_msgs__msg
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -287,7 +283,6 @@ static rosidl_typesupport_introspection_c__MessageMember visualization_msgs__msg
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -305,7 +300,6 @@ static rosidl_typesupport_introspection_c__MessageMember visualization_msgs__msg
     rosidl_typesupport_introspection_c__ROS_TYPE_STRING,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -325,7 +319,6 @@ static const rosidl_typesupport_introspection_c__MessageMembers visualization_ms
   "InteractiveMarkerUpdate",  // message name
   6,  // number of fields
   sizeof(visualization_msgs__msg__InteractiveMarkerUpdate),
-  false,  // has_any_key_member_
   visualization_msgs__msg__InteractiveMarkerUpdate__rosidl_typesupport_introspection_c__InteractiveMarkerUpdate_message_member_array,  // message members
   visualization_msgs__msg__InteractiveMarkerUpdate__rosidl_typesupport_introspection_c__InteractiveMarkerUpdate_init_function,  // function to initialize message memory (memory has to be allocated)
   visualization_msgs__msg__InteractiveMarkerUpdate__rosidl_typesupport_introspection_c__InteractiveMarkerUpdate_fini_function  // function to terminate message instance (will not free memory)
@@ -337,9 +330,6 @@ static rosidl_message_type_support_t visualization_msgs__msg__InteractiveMarkerU
   0,
   &visualization_msgs__msg__InteractiveMarkerUpdate__rosidl_typesupport_introspection_c__InteractiveMarkerUpdate_message_members,
   get_message_typesupport_handle_function,
-  &visualization_msgs__msg__InteractiveMarkerUpdate__get_type_hash,
-  &visualization_msgs__msg__InteractiveMarkerUpdate__get_type_description,
-  &visualization_msgs__msg__InteractiveMarkerUpdate__get_type_description_sources,
 };
 
 ROSIDL_TYPESUPPORT_INTROSPECTION_C_EXPORT_visualization_msgs

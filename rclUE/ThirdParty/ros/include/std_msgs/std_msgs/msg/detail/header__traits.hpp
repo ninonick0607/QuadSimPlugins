@@ -2,9 +2,6 @@
 // with input from std_msgs:msg/Header.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "std_msgs/msg/header.hpp"
-
-
 #ifndef STD_MSGS__MSG__DETAIL__HEADER__TRAITS_HPP_
 #define STD_MSGS__MSG__DETAIL__HEADER__TRAITS_HPP_
 

@@ -9,7 +9,6 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_cpp/message_type_support.hpp"
 #include "rosidl_typesupport_interface/macros.h"
-#include "std_msgs/msg/detail/empty__functions.h"
 #include "std_msgs/msg/detail/empty__struct.hpp"
 #include "rosidl_typesupport_introspection_cpp/field_types.hpp"
 #include "rosidl_typesupport_introspection_cpp/identifier.hpp"
@@ -44,7 +43,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember Empty_message
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_UINT8,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -64,7 +62,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMembers Empty_messag
   "Empty",  // message name
   1,  // number of fields
   sizeof(std_msgs::msg::Empty),
-  false,  // has_any_key_member_
   Empty_message_member_array,  // message members
   Empty_init_function,  // function to initialize message memory (memory has to be allocated)
   Empty_fini_function  // function to terminate message instance (will not free memory)
@@ -74,9 +71,6 @@ static const rosidl_message_type_support_t Empty_message_type_support_handle = {
   ::rosidl_typesupport_introspection_cpp::typesupport_identifier,
   &Empty_message_members,
   get_message_typesupport_handle_function,
-  &std_msgs__msg__Empty__get_type_hash,
-  &std_msgs__msg__Empty__get_type_description,
-  &std_msgs__msg__Empty__get_type_description_sources,
 };
 
 }  // namespace rosidl_typesupport_introspection_cpp

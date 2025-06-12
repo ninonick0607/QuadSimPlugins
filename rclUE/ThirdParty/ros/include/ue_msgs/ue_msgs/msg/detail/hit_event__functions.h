@@ -2,9 +2,6 @@
 // with input from ue_msgs:msg/HitEvent.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "ue_msgs/msg/hit_event.h"
-
-
 #ifndef UE_MSGS__MSG__DETAIL__HIT_EVENT__FUNCTIONS_H_
 #define UE_MSGS__MSG__DETAIL__HIT_EVENT__FUNCTIONS_H_
 
@@ -16,12 +13,6 @@ extern "C"
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "rosidl_runtime_c/action_type_support_struct.h"
-#include "rosidl_runtime_c/message_type_support_struct.h"
-#include "rosidl_runtime_c/service_type_support_struct.h"
-#include "rosidl_runtime_c/type_description/type_description__struct.h"
-#include "rosidl_runtime_c/type_description/type_source__struct.h"
-#include "rosidl_runtime_c/type_hash.h"
 #include "rosidl_runtime_c/visibility_control.h"
 #include "ue_msgs/msg/rosidl_generator_c__visibility_control.h"
 
@@ -62,7 +53,7 @@ ue_msgs__msg__HitEvent__fini(ue_msgs__msg__HitEvent * msg);
  */
 ROSIDL_GENERATOR_C_PUBLIC_ue_msgs
 ue_msgs__msg__HitEvent *
-ue_msgs__msg__HitEvent__create(void);
+ue_msgs__msg__HitEvent__create();
 
 /// Destroy msg/HitEvent message.
 /**
@@ -101,30 +92,6 @@ bool
 ue_msgs__msg__HitEvent__copy(
   const ue_msgs__msg__HitEvent * input,
   ue_msgs__msg__HitEvent * output);
-
-/// Retrieve pointer to the hash of the description of this type.
-ROSIDL_GENERATOR_C_PUBLIC_ue_msgs
-const rosidl_type_hash_t *
-ue_msgs__msg__HitEvent__get_type_hash(
-  const rosidl_message_type_support_t * type_support);
-
-/// Retrieve pointer to the description of this type.
-ROSIDL_GENERATOR_C_PUBLIC_ue_msgs
-const rosidl_runtime_c__type_description__TypeDescription *
-ue_msgs__msg__HitEvent__get_type_description(
-  const rosidl_message_type_support_t * type_support);
-
-/// Retrieve pointer to the single raw source text that defined this type.
-ROSIDL_GENERATOR_C_PUBLIC_ue_msgs
-const rosidl_runtime_c__type_description__TypeSource *
-ue_msgs__msg__HitEvent__get_individual_type_description_source(
-  const rosidl_message_type_support_t * type_support);
-
-/// Retrieve pointer to the recursive raw sources that defined the description of this type.
-ROSIDL_GENERATOR_C_PUBLIC_ue_msgs
-const rosidl_runtime_c__type_description__TypeSource__Sequence *
-ue_msgs__msg__HitEvent__get_type_description_sources(
-  const rosidl_message_type_support_t * type_support);
 
 /// Initialize array of msg/HitEvent messages.
 /**

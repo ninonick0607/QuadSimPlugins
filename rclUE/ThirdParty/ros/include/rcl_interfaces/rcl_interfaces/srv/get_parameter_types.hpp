@@ -7,6 +7,5 @@
 #include "rcl_interfaces/srv/detail/get_parameter_types__struct.hpp"
 #include "rcl_interfaces/srv/detail/get_parameter_types__builder.hpp"
 #include "rcl_interfaces/srv/detail/get_parameter_types__traits.hpp"
-#include "rcl_interfaces/srv/detail/get_parameter_types__type_support.hpp"
 
 #endif  // RCL_INTERFACES__SRV__GET_PARAMETER_TYPES_HPP_

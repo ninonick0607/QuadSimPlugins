@@ -27,8 +27,6 @@
 
 #include "rmw_fastrtps_shared_cpp/visibility_control.h"
 
-#include "rosidl_runtime_c/type_hash.h"
-
 RMW_FASTRTPS_SHARED_CPP_PUBLIC
 bool
 is_valid_qos(const rmw_qos_profile_t & qos_policies);
@@ -37,14 +35,12 @@ RMW_FASTRTPS_SHARED_CPP_PUBLIC
 bool
 get_datareader_qos(
   const rmw_qos_profile_t & qos_policies,
-  const rosidl_type_hash_t & type_hash,
   eprosima::fastdds::dds::DataReaderQos & reader_qos);
 
 RMW_FASTRTPS_SHARED_CPP_PUBLIC
 bool
 get_datawriter_qos(
   const rmw_qos_profile_t & qos_policies,
-  const rosidl_type_hash_t & type_hash,
   eprosima::fastdds::dds::DataWriterQos & writer_qos);
 
 RMW_FASTRTPS_SHARED_CPP_PUBLIC

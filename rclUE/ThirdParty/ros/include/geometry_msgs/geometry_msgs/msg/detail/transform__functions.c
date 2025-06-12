@@ -93,7 +93,7 @@ geometry_msgs__msg__Transform__copy(
 }
 
 geometry_msgs__msg__Transform *
-geometry_msgs__msg__Transform__create(void)
+geometry_msgs__msg__Transform__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   geometry_msgs__msg__Transform * msg = (geometry_msgs__msg__Transform *)allocator.allocate(sizeof(geometry_msgs__msg__Transform), allocator.state);

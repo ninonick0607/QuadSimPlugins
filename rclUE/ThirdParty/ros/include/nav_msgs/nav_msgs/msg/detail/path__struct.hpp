@@ -2,9 +2,6 @@
 // with input from nav_msgs:msg/Path.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "nav_msgs/msg/path.hpp"
-
-
 #ifndef NAV_MSGS__MSG__DETAIL__PATH__STRUCT_HPP_
 #define NAV_MSGS__MSG__DETAIL__PATH__STRUCT_HPP_
 

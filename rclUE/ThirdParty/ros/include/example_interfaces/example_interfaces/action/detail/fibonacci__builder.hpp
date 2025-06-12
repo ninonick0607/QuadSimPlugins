@@ -2,9 +2,6 @@
 // with input from example_interfaces:action/Fibonacci.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "example_interfaces/action/fibonacci.hpp"
-
-
 #ifndef EXAMPLE_INTERFACES__ACTION__DETAIL__FIBONACCI__BUILDER_HPP_
 #define EXAMPLE_INTERFACES__ACTION__DETAIL__FIBONACCI__BUILDER_HPP_
 
@@ -266,80 +263,6 @@ namespace action
 namespace builder
 {
 
-class Init_Fibonacci_SendGoal_Event_response
-{
-public:
-  explicit Init_Fibonacci_SendGoal_Event_response(::example_interfaces::action::Fibonacci_SendGoal_Event & msg)
-  : msg_(msg)
-  {}
-  ::example_interfaces::action::Fibonacci_SendGoal_Event response(::example_interfaces::action::Fibonacci_SendGoal_Event::_response_type arg)
-  {
-    msg_.response = std::move(arg);
-    return std::move(msg_);
-  }
-
-private:
-  ::example_interfaces::action::Fibonacci_SendGoal_Event msg_;
-};
-
-class Init_Fibonacci_SendGoal_Event_request
-{
-public:
-  explicit Init_Fibonacci_SendGoal_Event_request(::example_interfaces::action::Fibonacci_SendGoal_Event & msg)
-  : msg_(msg)
-  {}
-  Init_Fibonacci_SendGoal_Event_response request(::example_interfaces::action::Fibonacci_SendGoal_Event::_request_type arg)
-  {
-    msg_.request = std::move(arg);
-    return Init_Fibonacci_SendGoal_Event_response(msg_);
-  }
-
-private:
-  ::example_interfaces::action::Fibonacci_SendGoal_Event msg_;
-};
-
-class Init_Fibonacci_SendGoal_Event_info
-{
-public:
-  Init_Fibonacci_SendGoal_Event_info()
-  : msg_(::rosidl_runtime_cpp::MessageInitialization::SKIP)
-  {}
-  Init_Fibonacci_SendGoal_Event_request info(::example_interfaces::action::Fibonacci_SendGoal_Event::_info_type arg)
-  {
-    msg_.info = std::move(arg);
-    return Init_Fibonacci_SendGoal_Event_request(msg_);
-  }
-
-private:
-  ::example_interfaces::action::Fibonacci_SendGoal_Event msg_;
-};
-
-}  // namespace builder
-
-}  // namespace action
-
-template<typename MessageType>
-auto build();
-
-template<>
-inline
-auto build<::example_interfaces::action::Fibonacci_SendGoal_Event>()
-{
-  return example_interfaces::action::builder::Init_Fibonacci_SendGoal_Event_info();
-}
-
-}  // namespace example_interfaces
-
-
-namespace example_interfaces
-{
-
-namespace action
-{
-
-namespace builder
-{
-
 class Init_Fibonacci_GetResult_Request_goal_id
 {
 public:
@@ -426,80 +349,6 @@ inline
 auto build<::example_interfaces::action::Fibonacci_GetResult_Response>()
 {
   return example_interfaces::action::builder::Init_Fibonacci_GetResult_Response_status();
-}
-
-}  // namespace example_interfaces
-
-
-namespace example_interfaces
-{
-
-namespace action
-{
-
-namespace builder
-{
-
-class Init_Fibonacci_GetResult_Event_response
-{
-public:
-  explicit Init_Fibonacci_GetResult_Event_response(::example_interfaces::action::Fibonacci_GetResult_Event & msg)
-  : msg_(msg)
-  {}
-  ::example_interfaces::action::Fibonacci_GetResult_Event response(::example_interfaces::action::Fibonacci_GetResult_Event::_response_type arg)
-  {
-    msg_.response = std::move(arg);
-    return std::move(msg_);
-  }
-
-private:
-  ::example_interfaces::action::Fibonacci_GetResult_Event msg_;
-};
-
-class Init_Fibonacci_GetResult_Event_request
-{
-public:
-  explicit Init_Fibonacci_GetResult_Event_request(::example_interfaces::action::Fibonacci_GetResult_Event & msg)
-  : msg_(msg)
-  {}
-  Init_Fibonacci_GetResult_Event_response request(::example_interfaces::action::Fibonacci_GetResult_Event::_request_type arg)
-  {
-    msg_.request = std::move(arg);
-    return Init_Fibonacci_GetResult_Event_response(msg_);
-  }
-
-private:
-  ::example_interfaces::action::Fibonacci_GetResult_Event msg_;
-};
-
-class Init_Fibonacci_GetResult_Event_info
-{
-public:
-  Init_Fibonacci_GetResult_Event_info()
-  : msg_(::rosidl_runtime_cpp::MessageInitialization::SKIP)
-  {}
-  Init_Fibonacci_GetResult_Event_request info(::example_interfaces::action::Fibonacci_GetResult_Event::_info_type arg)
-  {
-    msg_.info = std::move(arg);
-    return Init_Fibonacci_GetResult_Event_request(msg_);
-  }
-
-private:
-  ::example_interfaces::action::Fibonacci_GetResult_Event msg_;
-};
-
-}  // namespace builder
-
-}  // namespace action
-
-template<typename MessageType>
-auto build();
-
-template<>
-inline
-auto build<::example_interfaces::action::Fibonacci_GetResult_Event>()
-{
-  return example_interfaces::action::builder::Init_Fibonacci_GetResult_Event_info();
 }
 
 }  // namespace example_interfaces

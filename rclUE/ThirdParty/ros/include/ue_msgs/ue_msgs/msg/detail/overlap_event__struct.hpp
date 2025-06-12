@@ -2,9 +2,6 @@
 // with input from ue_msgs:msg/OverlapEvent.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "ue_msgs/msg/overlap_event.hpp"
-
-
 #ifndef UE_MSGS__MSG__DETAIL__OVERLAP_EVENT__STRUCT_HPP_
 #define UE_MSGS__MSG__DETAIL__OVERLAP_EVENT__STRUCT_HPP_
 

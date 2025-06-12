@@ -9,23 +9,11 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "rmw_dds_common/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-#include "rmw_dds_common/msg/detail/participant_entities_info__struct.h"
-#include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rmw_dds_common
-bool cdr_serialize_rmw_dds_common__msg__ParticipantEntitiesInfo(
-  const rmw_dds_common__msg__ParticipantEntitiesInfo * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rmw_dds_common
-bool cdr_deserialize_rmw_dds_common__msg__ParticipantEntitiesInfo(
-  eprosima::fastcdr::Cdr &,
-  rmw_dds_common__msg__ParticipantEntitiesInfo * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rmw_dds_common
 size_t get_serialized_size_rmw_dds_common__msg__ParticipantEntitiesInfo(
@@ -34,22 +22,6 @@ size_t get_serialized_size_rmw_dds_common__msg__ParticipantEntitiesInfo(
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rmw_dds_common
 size_t max_serialized_size_rmw_dds_common__msg__ParticipantEntitiesInfo(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rmw_dds_common
-bool cdr_serialize_key_rmw_dds_common__msg__ParticipantEntitiesInfo(
-  const rmw_dds_common__msg__ParticipantEntitiesInfo * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rmw_dds_common
-size_t get_serialized_size_key_rmw_dds_common__msg__ParticipantEntitiesInfo(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rmw_dds_common
-size_t max_serialized_size_key_rmw_dds_common__msg__ParticipantEntitiesInfo(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

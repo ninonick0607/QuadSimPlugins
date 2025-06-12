@@ -73,7 +73,7 @@ geometry_msgs__msg__Vector3__copy(
 }
 
 geometry_msgs__msg__Vector3 *
-geometry_msgs__msg__Vector3__create(void)
+geometry_msgs__msg__Vector3__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   geometry_msgs__msg__Vector3 * msg = (geometry_msgs__msg__Vector3 *)allocator.allocate(sizeof(geometry_msgs__msg__Vector3), allocator.state);

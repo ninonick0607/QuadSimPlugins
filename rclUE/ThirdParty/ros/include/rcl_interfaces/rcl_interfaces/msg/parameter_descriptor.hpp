@@ -7,6 +7,5 @@
 #include "rcl_interfaces/msg/detail/parameter_descriptor__struct.hpp"
 #include "rcl_interfaces/msg/detail/parameter_descriptor__builder.hpp"
 #include "rcl_interfaces/msg/detail/parameter_descriptor__traits.hpp"
-#include "rcl_interfaces/msg/detail/parameter_descriptor__type_support.hpp"
 
 #endif  // RCL_INTERFACES__MSG__PARAMETER_DESCRIPTOR_HPP_

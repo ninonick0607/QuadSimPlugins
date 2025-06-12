@@ -9,23 +9,11 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "tf2_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-#include "tf2_msgs/msg/detail/tf_message__struct.h"
-#include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_tf2_msgs
-bool cdr_serialize_tf2_msgs__msg__TFMessage(
-  const tf2_msgs__msg__TFMessage * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_tf2_msgs
-bool cdr_deserialize_tf2_msgs__msg__TFMessage(
-  eprosima::fastcdr::Cdr &,
-  tf2_msgs__msg__TFMessage * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_tf2_msgs
 size_t get_serialized_size_tf2_msgs__msg__TFMessage(
@@ -34,22 +22,6 @@ size_t get_serialized_size_tf2_msgs__msg__TFMessage(
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_tf2_msgs
 size_t max_serialized_size_tf2_msgs__msg__TFMessage(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_tf2_msgs
-bool cdr_serialize_key_tf2_msgs__msg__TFMessage(
-  const tf2_msgs__msg__TFMessage * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_tf2_msgs
-size_t get_serialized_size_key_tf2_msgs__msg__TFMessage(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_tf2_msgs
-size_t max_serialized_size_key_tf2_msgs__msg__TFMessage(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

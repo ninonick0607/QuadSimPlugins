@@ -9,23 +9,11 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "action_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-#include "action_msgs/msg/detail/goal_info__struct.h"
-#include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_action_msgs
-bool cdr_serialize_action_msgs__msg__GoalInfo(
-  const action_msgs__msg__GoalInfo * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_action_msgs
-bool cdr_deserialize_action_msgs__msg__GoalInfo(
-  eprosima::fastcdr::Cdr &,
-  action_msgs__msg__GoalInfo * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_action_msgs
 size_t get_serialized_size_action_msgs__msg__GoalInfo(
@@ -34,22 +22,6 @@ size_t get_serialized_size_action_msgs__msg__GoalInfo(
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_action_msgs
 size_t max_serialized_size_action_msgs__msg__GoalInfo(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_action_msgs
-bool cdr_serialize_key_action_msgs__msg__GoalInfo(
-  const action_msgs__msg__GoalInfo * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_action_msgs
-size_t get_serialized_size_key_action_msgs__msg__GoalInfo(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_action_msgs
-size_t max_serialized_size_key_action_msgs__msg__GoalInfo(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

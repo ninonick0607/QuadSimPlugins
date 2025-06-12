@@ -2,9 +2,6 @@
 // with input from pcl_msgs:msg/PointIndices.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "pcl_msgs/msg/point_indices.h"
-
-
 #ifndef PCL_MSGS__MSG__DETAIL__POINT_INDICES__FUNCTIONS_H_
 #define PCL_MSGS__MSG__DETAIL__POINT_INDICES__FUNCTIONS_H_
 
@@ -16,12 +13,6 @@ extern "C"
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "rosidl_runtime_c/action_type_support_struct.h"
-#include "rosidl_runtime_c/message_type_support_struct.h"
-#include "rosidl_runtime_c/service_type_support_struct.h"
-#include "rosidl_runtime_c/type_description/type_description__struct.h"
-#include "rosidl_runtime_c/type_description/type_source__struct.h"
-#include "rosidl_runtime_c/type_hash.h"
 #include "rosidl_runtime_c/visibility_control.h"
 #include "pcl_msgs/msg/rosidl_generator_c__visibility_control.h"
 
@@ -62,7 +53,7 @@ pcl_msgs__msg__PointIndices__fini(pcl_msgs__msg__PointIndices * msg);
  */
 ROSIDL_GENERATOR_C_PUBLIC_pcl_msgs
 pcl_msgs__msg__PointIndices *
-pcl_msgs__msg__PointIndices__create(void);
+pcl_msgs__msg__PointIndices__create();
 
 /// Destroy msg/PointIndices message.
 /**
@@ -101,30 +92,6 @@ bool
 pcl_msgs__msg__PointIndices__copy(
   const pcl_msgs__msg__PointIndices * input,
   pcl_msgs__msg__PointIndices * output);
-
-/// Retrieve pointer to the hash of the description of this type.
-ROSIDL_GENERATOR_C_PUBLIC_pcl_msgs
-const rosidl_type_hash_t *
-pcl_msgs__msg__PointIndices__get_type_hash(
-  const rosidl_message_type_support_t * type_support);
-
-/// Retrieve pointer to the description of this type.
-ROSIDL_GENERATOR_C_PUBLIC_pcl_msgs
-const rosidl_runtime_c__type_description__TypeDescription *
-pcl_msgs__msg__PointIndices__get_type_description(
-  const rosidl_message_type_support_t * type_support);
-
-/// Retrieve pointer to the single raw source text that defined this type.
-ROSIDL_GENERATOR_C_PUBLIC_pcl_msgs
-const rosidl_runtime_c__type_description__TypeSource *
-pcl_msgs__msg__PointIndices__get_individual_type_description_source(
-  const rosidl_message_type_support_t * type_support);
-
-/// Retrieve pointer to the recursive raw sources that defined the description of this type.
-ROSIDL_GENERATOR_C_PUBLIC_pcl_msgs
-const rosidl_runtime_c__type_description__TypeSource__Sequence *
-pcl_msgs__msg__PointIndices__get_type_description_sources(
-  const rosidl_message_type_support_t * type_support);
 
 /// Initialize array of msg/PointIndices messages.
 /**

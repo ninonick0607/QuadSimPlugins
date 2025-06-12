@@ -225,7 +225,7 @@ rcl_action_server_fini(rcl_action_server_t * action_server, rcl_node_t * node);
  * - feedback_topic_qos = rmw_qos_profile_default;
  * - status_topic_qos = rcl_action_qos_profile_status_default;
  * - allocator = rcl_get_default_allocator();
- * - result_timeout = RCUTILS_S_TO_NS(10);  // 10 seconds
+ * - result_timeout = RCUTILS_S_TO_NS(15 * 60);  // 15 minutes
  */
 RCL_ACTION_PUBLIC
 RCL_WARN_UNUSED
@@ -320,7 +320,6 @@ rcl_action_take_goal_request(
  * \return `RCL_RET_OK` if the response was sent successfully, or
  * \return `RCL_RET_INVALID_ARGUMENT` if any arguments are invalid, or
  * \return `RCL_RET_ACTION_SERVER_INVALID` if the action server is invalid, or
- * \return `RCL_RET_TIMEOUT` if a goal response reader is not ready yet, or
  * \return `RCL_RET_ERROR` if an unspecified error occurs.
  */
 RCL_ACTION_PUBLIC
@@ -565,7 +564,6 @@ rcl_action_take_result_request(
  * \return `RCL_RET_OK` if the response was sent successfully, or
  * \return `RCL_RET_INVALID_ARGUMENT` if any arguments are invalid, or
  * \return `RCL_RET_ACTION_SERVER_INVALID` if the action server is invalid, or
- * \return `RCL_RET_TIMEOUT` if a result response reader is not ready yet, or
  * \return `RCL_RET_ERROR` if an unspecified error occurs.
  */
 RCL_ACTION_PUBLIC
@@ -755,7 +753,6 @@ rcl_action_process_cancel_request(
  * \return `RCL_RET_OK` if the request was taken, or
  * \return `RCL_RET_INVALID_ARGUMENT` if any arguments are invalid, or
  * \return `RCL_RET_ACTION_SERVER_INVALID` if the action server is invalid, or
- * \return `RCL_RET_TIMEOUT` if a cancel response reader is not ready yet, or
  * \return `RCL_RET_ERROR` if an unspecified error occurs.
  */
 RCL_ACTION_PUBLIC

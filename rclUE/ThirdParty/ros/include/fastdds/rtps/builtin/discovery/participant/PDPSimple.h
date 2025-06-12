@@ -54,8 +54,7 @@ public:
      * @param part Pointer to the RTPSParticipant.
      * @return True on success
      */
-    bool init(
-            RTPSParticipantImpl* part) override;
+    bool init(RTPSParticipantImpl* part) override;
 
     /**
      * Creates an initializes a new participant proxy from a DATA(p) raw info
@@ -64,8 +63,8 @@ public:
      * @return new ParticipantProxyData * or nullptr on failure
      */
     ParticipantProxyData* createParticipantProxyData(
-            const ParticipantProxyData& p,
-            const GUID_t& writer_guid) override;
+        const ParticipantProxyData& p,
+        const GUID_t& writer_guid) override;
 
     /**
      * Some PDP classes require EDP matching with update PDP DATAs like EDPStatic
@@ -77,43 +76,31 @@ public:
      * Force the sending of our local DPD to all remote RTPSParticipants and multicast Locators.
      * @param new_change If true a new change (with new seqNum) is created and sent; if false the last change is re-sent
      * @param dispose Sets change kind to NOT_ALIVE_DISPOSED_UNREGISTERED
-     * @param[in, out] wparams  allows to identify the change
+     * @param wparams allows to identify the change
      */
     void announceParticipantState(
-            bool new_change,
-            bool dispose,
-            WriteParams& wparams) override;
-
-    /**
-     * \c announceParticipantState method without optional output parameter \c wparams .
-     */
-    void announceParticipantState(
-            bool new_change,
-            bool dispose = false) override;
+        bool new_change,
+        bool dispose = false,
+        WriteParams& wparams = WriteParams::WRITE_PARAM_DEFAULT) override;
 
     /**
      * This method assigns remote endpoints to the builtin endpoints defined in this protocol. It also calls
      * the corresponding methods in EDP and WLP.
      * @param pdata Pointer to the ParticipantProxyData object.
      */
-    void assignRemoteEndpoints(
-            ParticipantProxyData* pdata) override;
+    void assignRemoteEndpoints(ParticipantProxyData* pdata) override;
 
     /**
      * Remove remote endpoints from the participant discovery protocol
      * @param pdata Pointer to the ParticipantProxyData to remove
      */
-    void removeRemoteEndpoints(
-            ParticipantProxyData* pdata) override;
+    void removeRemoteEndpoints(ParticipantProxyData * pdata) override;
 
     /**
-     * Override to match additional endpoints to PDP. Like EDP or WLP.
-     * @param pdata Pointer to the ParticipantProxyData object.
-     * @param notify_secure_endpoints Whether to try notifying secure endpoints.
+     * This method notifies EDP and WLP of the existence of a new participant.
+     * @param pdata
      */
-    void notifyAboveRemoteEndpoints(
-            const ParticipantProxyData& pdata,
-            bool notify_secure_endpoints) override;
+    void notifyAboveRemoteEndpoints(const ParticipantProxyData& pdata) override;
 
     /**
      * Activate a new Remote Endpoint that has been statically discovered.
@@ -126,12 +113,10 @@ public:
             int16_t userDefinedId,
             EndpointKind_t kind);
 
-    void update_builtin_locators() override;
 
 private:
 
-    void initializeParticipantProxyData(
-            ParticipantProxyData* participant_data) override;
+    void initializeParticipantProxyData(ParticipantProxyData* participant_data) override;
 
     /**
      * Create the SPDP Writer and Reader
@@ -139,42 +124,11 @@ private:
      */
     bool createPDPEndpoints() override;
 
-    bool create_dcps_participant_endpoints();
-
-    void match_pdp_remote_endpoints(
-            const ParticipantProxyData& pdata,
-            bool notify_secure_endpoints,
-            bool writer_only);
-
-    /**
-     * @brief Unmatch PDP endpoints with a remote participant.
-     *
-     * @param participant_guid GUID of the remote participant.
-     */
-    void unmatch_pdp_remote_endpoints(
-            const GUID_t& participant_guid);
-
-    void assign_low_level_remote_endpoints(
-            const ParticipantProxyData& pdata,
-            bool notify_secure_endpoints);
-
-#if HAVE_SECURITY
-    bool create_dcps_participant_secure_endpoints();
-
-    bool pairing_remote_writer_with_local_reader_after_security(
-            const GUID_t& local_reader,
-            const WriterProxyData& remote_writer_data) override;
-
-    bool pairing_remote_reader_with_local_writer_after_security(
-            const GUID_t& local_reader,
-            const ReaderProxyData& remote_reader_data) override;
-#endif // HAVE_SECURITY
-
 };
 
 } /* namespace rtps */
 } /* namespace fastrtps */
 } /* namespace eprosima */
 
-#endif // ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
+#endif
 #endif //_FASTDDS_RTPS_BUILTIN_DISCOVERY_PARTICIPANT_PDPSIMPLE_H_

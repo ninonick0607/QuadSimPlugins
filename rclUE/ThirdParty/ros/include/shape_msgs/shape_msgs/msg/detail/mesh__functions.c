@@ -93,7 +93,7 @@ shape_msgs__msg__Mesh__copy(
 }
 
 shape_msgs__msg__Mesh *
-shape_msgs__msg__Mesh__create(void)
+shape_msgs__msg__Mesh__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   shape_msgs__msg__Mesh * msg = (shape_msgs__msg__Mesh *)allocator.allocate(sizeof(shape_msgs__msg__Mesh), allocator.state);

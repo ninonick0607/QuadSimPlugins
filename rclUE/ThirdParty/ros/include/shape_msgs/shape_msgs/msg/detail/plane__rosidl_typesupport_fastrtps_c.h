@@ -9,23 +9,11 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "shape_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-#include "shape_msgs/msg/detail/plane__struct.h"
-#include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_shape_msgs
-bool cdr_serialize_shape_msgs__msg__Plane(
-  const shape_msgs__msg__Plane * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_shape_msgs
-bool cdr_deserialize_shape_msgs__msg__Plane(
-  eprosima::fastcdr::Cdr &,
-  shape_msgs__msg__Plane * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_shape_msgs
 size_t get_serialized_size_shape_msgs__msg__Plane(
@@ -34,22 +22,6 @@ size_t get_serialized_size_shape_msgs__msg__Plane(
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_shape_msgs
 size_t max_serialized_size_shape_msgs__msg__Plane(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_shape_msgs
-bool cdr_serialize_key_shape_msgs__msg__Plane(
-  const shape_msgs__msg__Plane * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_shape_msgs
-size_t get_serialized_size_key_shape_msgs__msg__Plane(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_shape_msgs
-size_t max_serialized_size_key_shape_msgs__msg__Plane(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

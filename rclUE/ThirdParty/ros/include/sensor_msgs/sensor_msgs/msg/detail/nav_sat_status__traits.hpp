@@ -2,9 +2,6 @@
 // with input from sensor_msgs:msg/NavSatStatus.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "sensor_msgs/msg/nav_sat_status.hpp"
-
-
 #ifndef SENSOR_MSGS__MSG__DETAIL__NAV_SAT_STATUS__TRAITS_HPP_
 #define SENSOR_MSGS__MSG__DETAIL__NAV_SAT_STATUS__TRAITS_HPP_
 

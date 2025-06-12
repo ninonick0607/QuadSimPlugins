@@ -2,9 +2,6 @@
 // with input from action_msgs:msg/GoalInfo.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "action_msgs/msg/goal_info.hpp"
-
-
 #ifndef ACTION_MSGS__MSG__DETAIL__GOAL_INFO__STRUCT_HPP_
 #define ACTION_MSGS__MSG__DETAIL__GOAL_INFO__STRUCT_HPP_
 

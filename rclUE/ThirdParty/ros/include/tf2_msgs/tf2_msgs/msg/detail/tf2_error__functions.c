@@ -80,7 +80,7 @@ tf2_msgs__msg__TF2Error__copy(
 }
 
 tf2_msgs__msg__TF2Error *
-tf2_msgs__msg__TF2Error__create(void)
+tf2_msgs__msg__TF2Error__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   tf2_msgs__msg__TF2Error * msg = (tf2_msgs__msg__TF2Error *)allocator.allocate(sizeof(tf2_msgs__msg__TF2Error), allocator.state);

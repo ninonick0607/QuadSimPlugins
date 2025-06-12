@@ -19,8 +19,6 @@
 
 #include <string>
 
-#include "rcutils/macros.h"
-
 namespace rosidl_typesupport_fastrtps_cpp
 {
 
@@ -30,7 +28,6 @@ namespace rosidl_typesupport_fastrtps_cpp
  * \param[in,out] wstr The std::wstring to copy to.
  */
 ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC
-  RCUTILS_DEPRECATED_WITH_MSG("not used by core packages")
 void u16string_to_wstring(const std::u16string & u16str, std::wstring & wstr);
 
 /// Convert a std::wstring into a std::u16string.
@@ -40,7 +37,6 @@ void u16string_to_wstring(const std::u16string & u16str, std::wstring & wstr);
  * \return true if resizing u16str and assignment succeeded, otherwise false.
  */
 ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC
-  RCUTILS_DEPRECATED_WITH_MSG("not used by core packages")
 bool wstring_to_u16string(const std::wstring & wstr, std::u16string & u16str);
 
 }  // namespace rosidl_typesupport_fastrtps_cpp

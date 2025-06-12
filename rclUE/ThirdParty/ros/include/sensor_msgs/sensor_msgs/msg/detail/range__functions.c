@@ -31,7 +31,6 @@ sensor_msgs__msg__Range__init(sensor_msgs__msg__Range * msg)
   // min_range
   // max_range
   // range
-  // variance
   return true;
 }
 
@@ -48,7 +47,6 @@ sensor_msgs__msg__Range__fini(sensor_msgs__msg__Range * msg)
   // min_range
   // max_range
   // range
-  // variance
 }
 
 bool
@@ -83,10 +81,6 @@ sensor_msgs__msg__Range__are_equal(const sensor_msgs__msg__Range * lhs, const se
   if (lhs->range != rhs->range) {
     return false;
   }
-  // variance
-  if (lhs->variance != rhs->variance) {
-    return false;
-  }
   return true;
 }
 
@@ -114,13 +108,11 @@ sensor_msgs__msg__Range__copy(
   output->max_range = input->max_range;
   // range
   output->range = input->range;
-  // variance
-  output->variance = input->variance;
   return true;
 }
 
 sensor_msgs__msg__Range *
-sensor_msgs__msg__Range__create(void)
+sensor_msgs__msg__Range__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   sensor_msgs__msg__Range * msg = (sensor_msgs__msg__Range *)allocator.allocate(sizeof(sensor_msgs__msg__Range), allocator.state);

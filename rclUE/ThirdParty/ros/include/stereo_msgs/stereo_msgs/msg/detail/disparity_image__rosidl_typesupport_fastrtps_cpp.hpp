@@ -5,7 +5,6 @@
 #ifndef STEREO_MSGS__MSG__DETAIL__DISPARITY_IMAGE__ROSIDL_TYPESUPPORT_FASTRTPS_CPP_HPP_
 #define STEREO_MSGS__MSG__DETAIL__DISPARITY_IMAGE__ROSIDL_TYPESUPPORT_FASTRTPS_CPP_HPP_
 
-#include <cstddef>
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "stereo_msgs/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h"
@@ -55,25 +54,6 @@ get_serialized_size(
 size_t
 ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC_stereo_msgs
 max_serialized_size_DisparityImage(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-bool
-ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC_stereo_msgs
-cdr_serialize_key(
-  const stereo_msgs::msg::DisparityImage & ros_message,
-  eprosima::fastcdr::Cdr &);
-
-size_t
-ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC_stereo_msgs
-get_serialized_size_key(
-  const stereo_msgs::msg::DisparityImage & ros_message,
-  size_t current_alignment);
-
-size_t
-ROSIDL_TYPESUPPORT_FASTRTPS_CPP_PUBLIC_stereo_msgs
-max_serialized_size_key_DisparityImage(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

@@ -2,9 +2,6 @@
 // with input from std_msgs:msg/Float64.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "std_msgs/msg/float64.hpp"
-
-
 #ifndef STD_MSGS__MSG__DETAIL__FLOAT64__BUILDER_HPP_
 #define STD_MSGS__MSG__DETAIL__FLOAT64__BUILDER_HPP_
 

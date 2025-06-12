@@ -20,7 +20,6 @@
 #define RCPPUTILS__JOIN_HPP_
 
 #include <algorithm>
-#include <cstring>
 #include <iterator>
 #include <sstream>
 #include <string>

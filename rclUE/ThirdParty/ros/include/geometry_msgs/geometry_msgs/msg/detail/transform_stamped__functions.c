@@ -114,7 +114,7 @@ geometry_msgs__msg__TransformStamped__copy(
 }
 
 geometry_msgs__msg__TransformStamped *
-geometry_msgs__msg__TransformStamped__create(void)
+geometry_msgs__msg__TransformStamped__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   geometry_msgs__msg__TransformStamped * msg = (geometry_msgs__msg__TransformStamped *)allocator.allocate(sizeof(geometry_msgs__msg__TransformStamped), allocator.state);

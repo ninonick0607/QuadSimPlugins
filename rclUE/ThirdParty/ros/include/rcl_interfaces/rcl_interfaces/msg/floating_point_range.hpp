@@ -7,6 +7,5 @@
 #include "rcl_interfaces/msg/detail/floating_point_range__struct.hpp"
 #include "rcl_interfaces/msg/detail/floating_point_range__builder.hpp"
 #include "rcl_interfaces/msg/detail/floating_point_range__traits.hpp"
-#include "rcl_interfaces/msg/detail/floating_point_range__type_support.hpp"
 
 #endif  // RCL_INTERFACES__MSG__FLOATING_POINT_RANGE_HPP_

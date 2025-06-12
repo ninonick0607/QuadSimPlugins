@@ -9,7 +9,6 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_cpp/message_type_support.hpp"
 #include "rosidl_typesupport_interface/macros.h"
-#include "rcl_interfaces/msg/detail/set_parameters_result__functions.h"
 #include "rcl_interfaces/msg/detail/set_parameters_result__struct.hpp"
 #include "rosidl_typesupport_introspection_cpp/field_types.hpp"
 #include "rosidl_typesupport_introspection_cpp/identifier.hpp"
@@ -44,7 +43,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember SetParameters
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_BOOLEAN,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -62,7 +60,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember SetParameters
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_STRING,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -82,7 +79,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMembers SetParameter
   "SetParametersResult",  // message name
   2,  // number of fields
   sizeof(rcl_interfaces::msg::SetParametersResult),
-  false,  // has_any_key_member_
   SetParametersResult_message_member_array,  // message members
   SetParametersResult_init_function,  // function to initialize message memory (memory has to be allocated)
   SetParametersResult_fini_function  // function to terminate message instance (will not free memory)
@@ -92,9 +88,6 @@ static const rosidl_message_type_support_t SetParametersResult_message_type_supp
   ::rosidl_typesupport_introspection_cpp::typesupport_identifier,
   &SetParametersResult_message_members,
   get_message_typesupport_handle_function,
-  &rcl_interfaces__msg__SetParametersResult__get_type_hash,
-  &rcl_interfaces__msg__SetParametersResult__get_type_description,
-  &rcl_interfaces__msg__SetParametersResult__get_type_description_sources,
 };
 
 }  // namespace rosidl_typesupport_introspection_cpp

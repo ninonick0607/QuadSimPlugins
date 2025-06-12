@@ -2,9 +2,6 @@
 // with input from geometry_msgs:msg/PoseArray.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "geometry_msgs/msg/pose_array.hpp"
-
-
 #ifndef GEOMETRY_MSGS__MSG__DETAIL__POSE_ARRAY__TRAITS_HPP_
 #define GEOMETRY_MSGS__MSG__DETAIL__POSE_ARRAY__TRAITS_HPP_
 

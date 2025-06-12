@@ -2,9 +2,6 @@
 // with input from diagnostic_msgs:msg/DiagnosticArray.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "diagnostic_msgs/msg/diagnostic_array.hpp"
-
-
 #ifndef DIAGNOSTIC_MSGS__MSG__DETAIL__DIAGNOSTIC_ARRAY__BUILDER_HPP_
 #define DIAGNOSTIC_MSGS__MSG__DETAIL__DIAGNOSTIC_ARRAY__BUILDER_HPP_
 

@@ -7,6 +7,5 @@
 #include "rcl_interfaces/srv/detail/list_parameters__struct.hpp"
 #include "rcl_interfaces/srv/detail/list_parameters__builder.hpp"
 #include "rcl_interfaces/srv/detail/list_parameters__traits.hpp"
-#include "rcl_interfaces/srv/detail/list_parameters__type_support.hpp"
 
 #endif  // RCL_INTERFACES__SRV__LIST_PARAMETERS_HPP_

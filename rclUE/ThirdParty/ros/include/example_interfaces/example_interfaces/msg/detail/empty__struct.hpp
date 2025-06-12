@@ -2,9 +2,6 @@
 // with input from example_interfaces:msg/Empty.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "example_interfaces/msg/empty.hpp"
-
-
 #ifndef EXAMPLE_INTERFACES__MSG__DETAIL__EMPTY__STRUCT_HPP_
 #define EXAMPLE_INTERFACES__MSG__DETAIL__EMPTY__STRUCT_HPP_
 

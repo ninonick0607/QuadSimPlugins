@@ -9,23 +9,11 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "std_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-#include "std_msgs/msg/detail/byte__struct.h"
-#include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_std_msgs
-bool cdr_serialize_std_msgs__msg__Byte(
-  const std_msgs__msg__Byte * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_std_msgs
-bool cdr_deserialize_std_msgs__msg__Byte(
-  eprosima::fastcdr::Cdr &,
-  std_msgs__msg__Byte * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_std_msgs
 size_t get_serialized_size_std_msgs__msg__Byte(
@@ -34,22 +22,6 @@ size_t get_serialized_size_std_msgs__msg__Byte(
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_std_msgs
 size_t max_serialized_size_std_msgs__msg__Byte(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_std_msgs
-bool cdr_serialize_key_std_msgs__msg__Byte(
-  const std_msgs__msg__Byte * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_std_msgs
-size_t get_serialized_size_key_std_msgs__msg__Byte(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_std_msgs
-size_t max_serialized_size_key_std_msgs__msg__Byte(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

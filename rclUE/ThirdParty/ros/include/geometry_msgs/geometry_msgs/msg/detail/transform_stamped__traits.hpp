@@ -2,9 +2,6 @@
 // with input from geometry_msgs:msg/TransformStamped.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "geometry_msgs/msg/transform_stamped.hpp"
-
-
 #ifndef GEOMETRY_MSGS__MSG__DETAIL__TRANSFORM_STAMPED__TRAITS_HPP_
 #define GEOMETRY_MSGS__MSG__DETAIL__TRANSFORM_STAMPED__TRAITS_HPP_
 

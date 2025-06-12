@@ -9,7 +9,6 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_cpp/message_type_support.hpp"
 #include "rosidl_typesupport_interface/macros.h"
-#include "action_msgs/msg/detail/goal_status_array__functions.h"
 #include "action_msgs/msg/detail/goal_status_array__struct.hpp"
 #include "rosidl_typesupport_introspection_cpp/field_types.hpp"
 #include "rosidl_typesupport_introspection_cpp/identifier.hpp"
@@ -89,7 +88,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember GoalStatusArr
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<action_msgs::msg::GoalStatus>(),  // members of sub message
-    false,  // is key
     true,  // is array
     0,  // array size
     false,  // is upper bound
@@ -109,7 +107,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMembers GoalStatusAr
   "GoalStatusArray",  // message name
   1,  // number of fields
   sizeof(action_msgs::msg::GoalStatusArray),
-  false,  // has_any_key_member_
   GoalStatusArray_message_member_array,  // message members
   GoalStatusArray_init_function,  // function to initialize message memory (memory has to be allocated)
   GoalStatusArray_fini_function  // function to terminate message instance (will not free memory)
@@ -119,9 +116,6 @@ static const rosidl_message_type_support_t GoalStatusArray_message_type_support_
   ::rosidl_typesupport_introspection_cpp::typesupport_identifier,
   &GoalStatusArray_message_members,
   get_message_typesupport_handle_function,
-  &action_msgs__msg__GoalStatusArray__get_type_hash,
-  &action_msgs__msg__GoalStatusArray__get_type_description,
-  &action_msgs__msg__GoalStatusArray__get_type_description_sources,
 };
 
 }  // namespace rosidl_typesupport_introspection_cpp

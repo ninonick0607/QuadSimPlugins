@@ -47,7 +47,6 @@ static rosidl_typesupport_introspection_c__MessageMember nav_msgs__msg__MapMetaD
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -65,7 +64,6 @@ static rosidl_typesupport_introspection_c__MessageMember nav_msgs__msg__MapMetaD
     rosidl_typesupport_introspection_c__ROS_TYPE_FLOAT,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -83,7 +81,6 @@ static rosidl_typesupport_introspection_c__MessageMember nav_msgs__msg__MapMetaD
     rosidl_typesupport_introspection_c__ROS_TYPE_UINT32,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -101,7 +98,6 @@ static rosidl_typesupport_introspection_c__MessageMember nav_msgs__msg__MapMetaD
     rosidl_typesupport_introspection_c__ROS_TYPE_UINT32,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -119,7 +115,6 @@ static rosidl_typesupport_introspection_c__MessageMember nav_msgs__msg__MapMetaD
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -139,7 +134,6 @@ static const rosidl_typesupport_introspection_c__MessageMembers nav_msgs__msg__M
   "MapMetaData",  // message name
   5,  // number of fields
   sizeof(nav_msgs__msg__MapMetaData),
-  false,  // has_any_key_member_
   nav_msgs__msg__MapMetaData__rosidl_typesupport_introspection_c__MapMetaData_message_member_array,  // message members
   nav_msgs__msg__MapMetaData__rosidl_typesupport_introspection_c__MapMetaData_init_function,  // function to initialize message memory (memory has to be allocated)
   nav_msgs__msg__MapMetaData__rosidl_typesupport_introspection_c__MapMetaData_fini_function  // function to terminate message instance (will not free memory)
@@ -151,9 +145,6 @@ static rosidl_message_type_support_t nav_msgs__msg__MapMetaData__rosidl_typesupp
   0,
   &nav_msgs__msg__MapMetaData__rosidl_typesupport_introspection_c__MapMetaData_message_members,
   get_message_typesupport_handle_function,
-  &nav_msgs__msg__MapMetaData__get_type_hash,
-  &nav_msgs__msg__MapMetaData__get_type_description,
-  &nav_msgs__msg__MapMetaData__get_type_description_sources,
 };
 
 ROSIDL_TYPESUPPORT_INTROSPECTION_C_EXPORT_nav_msgs

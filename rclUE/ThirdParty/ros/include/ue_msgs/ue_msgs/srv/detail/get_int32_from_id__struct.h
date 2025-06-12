@@ -2,9 +2,6 @@
 // with input from ue_msgs:srv/GetInt32FromId.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "ue_msgs/srv/get_int32_from_id.h"
-
-
 #ifndef UE_MSGS__SRV__DETAIL__GET_INT32_FROM_ID__STRUCT_H_
 #define UE_MSGS__SRV__DETAIL__GET_INT32_FROM_ID__STRUCT_H_
 
@@ -36,6 +33,7 @@ typedef struct ue_msgs__srv__GetInt32FromId_Request__Sequence
   size_t capacity;
 } ue_msgs__srv__GetInt32FromId_Request__Sequence;
 
+
 // Constants defined in the message
 
 // Include directives for member types
@@ -59,42 +57,6 @@ typedef struct ue_msgs__srv__GetInt32FromId_Response__Sequence
   /// The number of allocated items in data
   size_t capacity;
 } ue_msgs__srv__GetInt32FromId_Response__Sequence;
-
-// Constants defined in the message
-
-// Include directives for member types
-// Member 'info'
-#include "service_msgs/msg/detail/service_event_info__struct.h"
-
-// constants for array fields with an upper bound
-// request
-enum
-{
-  ue_msgs__srv__GetInt32FromId_Event__request__MAX_SIZE = 1
-};
-// response
-enum
-{
-  ue_msgs__srv__GetInt32FromId_Event__response__MAX_SIZE = 1
-};
-
-/// Struct defined in srv/GetInt32FromId in the package ue_msgs.
-typedef struct ue_msgs__srv__GetInt32FromId_Event
-{
-  service_msgs__msg__ServiceEventInfo info;
-  ue_msgs__srv__GetInt32FromId_Request__Sequence request;
-  ue_msgs__srv__GetInt32FromId_Response__Sequence response;
-} ue_msgs__srv__GetInt32FromId_Event;
-
-// Struct for a sequence of ue_msgs__srv__GetInt32FromId_Event.
-typedef struct ue_msgs__srv__GetInt32FromId_Event__Sequence
-{
-  ue_msgs__srv__GetInt32FromId_Event * data;
-  /// The number of valid items in data
-  size_t size;
-  /// The number of allocated items in data
-  size_t capacity;
-} ue_msgs__srv__GetInt32FromId_Event__Sequence;
 
 #ifdef __cplusplus
 }

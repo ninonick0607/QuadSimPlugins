@@ -2,9 +2,6 @@
 // with input from rmw_dds_common:msg/Gid.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "rmw_dds_common/msg/gid.h"
-
-
 #ifndef RMW_DDS_COMMON__MSG__DETAIL__GID__TYPE_SUPPORT_H_
 #define RMW_DDS_COMMON__MSG__DETAIL__GID__TYPE_SUPPORT_H_
 
@@ -27,7 +24,7 @@ ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(
   rmw_dds_common,
   msg,
   Gid
-)(void);
+)();
 
 #ifdef __cplusplus
 }

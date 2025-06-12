@@ -2,9 +2,6 @@
 // with input from ue_msgs:msg/EntityState.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "ue_msgs/msg/entity_state.hpp"
-
-
 #ifndef UE_MSGS__MSG__DETAIL__ENTITY_STATE__STRUCT_HPP_
 #define UE_MSGS__MSG__DETAIL__ENTITY_STATE__STRUCT_HPP_
 

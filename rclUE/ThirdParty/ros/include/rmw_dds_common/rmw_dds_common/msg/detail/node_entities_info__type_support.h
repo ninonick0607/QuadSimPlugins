@@ -2,9 +2,6 @@
 // with input from rmw_dds_common:msg/NodeEntitiesInfo.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "rmw_dds_common/msg/node_entities_info.h"
-
-
 #ifndef RMW_DDS_COMMON__MSG__DETAIL__NODE_ENTITIES_INFO__TYPE_SUPPORT_H_
 #define RMW_DDS_COMMON__MSG__DETAIL__NODE_ENTITIES_INFO__TYPE_SUPPORT_H_
 
@@ -27,7 +24,7 @@ ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(
   rmw_dds_common,
   msg,
   NodeEntitiesInfo
-)(void);
+)();
 
 #ifdef __cplusplus
 }

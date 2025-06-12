@@ -45,7 +45,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogROS2, Log, All);
 
- inline TAutoConsoleVariable<int32> CVarRclUERcsSoftCheck(
+static TAutoConsoleVariable<int32> CVarRclUERcsSoftCheck(
     TEXT("RCLUE.RCSOFTCHECK"),
     0,
     TEXT("Exit UE with rcl function error or not.\n")
@@ -252,17 +252,16 @@ public:
         float wt = DesiredTime - now;
         if (wt <= 0)
         {
-            UE_LOG_THROTTLE(
-                30,
-                LogLastHit,
-                LogTemp,
-                Warning,
-                TEXT("[URRTimerManager::SetTimerImple][%s] Delegate function call take longer than Rate or StepSize is not "
-                     "small enough to meet target Rate=%f, "
-                     "StepSize=%f."),
-                *LogInfo,
-                Rate,
-                FApp::GetFixedDeltaTime());
+            UE_LOG_WITH_INFO_THROTTLE(5,
+                                      LogLastHit,
+                                      LogTemp,
+                                      Warning,
+                                      TEXT("[%s] Delegate function call take longer than Rate or StepSize is not "
+                                           "small enough to meet target Rate=%f, "
+                                           "StepSize=%f."),
+                                      *LogInfo,
+                                      Rate,
+                                      FApp::GetFixedDeltaTime());
             // Make sure that function call happens at next tick.
             wt = FApp::GetFixedDeltaTime() * 0.5;
             DesiredTime = now + wt;
@@ -278,6 +277,39 @@ class UROS2Utils : public UBlueprintFunctionLibrary
     GENERATED_BODY()
 
 public:
+    static bool IsEqualRWMRequestId(rmw_request_id_t service1, rmw_request_id_t service2)
+    {
+        if (service1.sequence_number != service2.sequence_number)
+        {
+            return false;
+        }
+        for (int i = 0; i < 16; i++)
+        {
+            if (service1.writer_guid[i] != service2.writer_guid[i])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static bool IsEqualWMSrvInfo(rmw_service_info_t service1, rmw_service_info_t service2, bool check_received_timestamp = true)
+    {
+        if (!UROS2Utils::IsEqualRWMRequestId(service1.request_id, service2.request_id))
+        {
+            return false;
+        }
+        if (service1.source_timestamp != service2.source_timestamp)
+        {
+            return false;
+        }
+        if (check_received_timestamp && service1.received_timestamp != service2.received_timestamp)
+        {
+            return false;
+        }
+        return true;
+    }
+
     static builtin_interfaces__msg__Time FloatToROSStamp(const float InTimeSec)
     {
         builtin_interfaces__msg__Time stamp;

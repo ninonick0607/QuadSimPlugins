@@ -2,9 +2,6 @@
 // with input from example_interfaces:msg/Byte.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "example_interfaces/msg/byte.hpp"
-
-
 #ifndef EXAMPLE_INTERFACES__MSG__DETAIL__BYTE__STRUCT_HPP_
 #define EXAMPLE_INTERFACES__MSG__DETAIL__BYTE__STRUCT_HPP_
 

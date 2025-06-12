@@ -9,23 +9,11 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "pcl_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-#include "pcl_msgs/msg/detail/model_coefficients__struct.h"
-#include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_pcl_msgs
-bool cdr_serialize_pcl_msgs__msg__ModelCoefficients(
-  const pcl_msgs__msg__ModelCoefficients * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_pcl_msgs
-bool cdr_deserialize_pcl_msgs__msg__ModelCoefficients(
-  eprosima::fastcdr::Cdr &,
-  pcl_msgs__msg__ModelCoefficients * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_pcl_msgs
 size_t get_serialized_size_pcl_msgs__msg__ModelCoefficients(
@@ -34,22 +22,6 @@ size_t get_serialized_size_pcl_msgs__msg__ModelCoefficients(
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_pcl_msgs
 size_t max_serialized_size_pcl_msgs__msg__ModelCoefficients(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_pcl_msgs
-bool cdr_serialize_key_pcl_msgs__msg__ModelCoefficients(
-  const pcl_msgs__msg__ModelCoefficients * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_pcl_msgs
-size_t get_serialized_size_key_pcl_msgs__msg__ModelCoefficients(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_pcl_msgs
-size_t max_serialized_size_key_pcl_msgs__msg__ModelCoefficients(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

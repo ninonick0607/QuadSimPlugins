@@ -2,9 +2,6 @@
 // with input from unique_identifier_msgs:msg/UUID.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "unique_identifier_msgs/msg/uuid.hpp"
-
-
 #ifndef UNIQUE_IDENTIFIER_MSGS__MSG__DETAIL__UUID__BUILDER_HPP_
 #define UNIQUE_IDENTIFIER_MSGS__MSG__DETAIL__UUID__BUILDER_HPP_
 

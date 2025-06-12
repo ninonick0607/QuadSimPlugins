@@ -9,7 +9,6 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_cpp/message_type_support.hpp"
 #include "rosidl_typesupport_interface/macros.h"
-#include "geometry_msgs/msg/detail/quaternion__functions.h"
 #include "geometry_msgs/msg/detail/quaternion__struct.hpp"
 #include "rosidl_typesupport_introspection_cpp/field_types.hpp"
 #include "rosidl_typesupport_introspection_cpp/identifier.hpp"
@@ -44,7 +43,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember Quaternion_me
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_DOUBLE,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -62,7 +60,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember Quaternion_me
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_DOUBLE,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -80,7 +77,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember Quaternion_me
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_DOUBLE,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -98,7 +94,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember Quaternion_me
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_DOUBLE,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -118,7 +113,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMembers Quaternion_m
   "Quaternion",  // message name
   4,  // number of fields
   sizeof(geometry_msgs::msg::Quaternion),
-  false,  // has_any_key_member_
   Quaternion_message_member_array,  // message members
   Quaternion_init_function,  // function to initialize message memory (memory has to be allocated)
   Quaternion_fini_function  // function to terminate message instance (will not free memory)
@@ -128,9 +122,6 @@ static const rosidl_message_type_support_t Quaternion_message_type_support_handl
   ::rosidl_typesupport_introspection_cpp::typesupport_identifier,
   &Quaternion_message_members,
   get_message_typesupport_handle_function,
-  &geometry_msgs__msg__Quaternion__get_type_hash,
-  &geometry_msgs__msg__Quaternion__get_type_description,
-  &geometry_msgs__msg__Quaternion__get_type_description_sources,
 };
 
 }  // namespace rosidl_typesupport_introspection_cpp

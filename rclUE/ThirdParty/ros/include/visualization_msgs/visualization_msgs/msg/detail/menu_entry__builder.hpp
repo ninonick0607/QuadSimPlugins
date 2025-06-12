@@ -2,9 +2,6 @@
 // with input from visualization_msgs:msg/MenuEntry.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "visualization_msgs/msg/menu_entry.hpp"
-
-
 #ifndef VISUALIZATION_MSGS__MSG__DETAIL__MENU_ENTRY__BUILDER_HPP_
 #define VISUALIZATION_MSGS__MSG__DETAIL__MENU_ENTRY__BUILDER_HPP_
 

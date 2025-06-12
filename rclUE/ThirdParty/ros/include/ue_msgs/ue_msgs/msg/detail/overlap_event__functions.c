@@ -157,7 +157,7 @@ ue_msgs__msg__OverlapEvent__copy(
 }
 
 ue_msgs__msg__OverlapEvent *
-ue_msgs__msg__OverlapEvent__create(void)
+ue_msgs__msg__OverlapEvent__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   ue_msgs__msg__OverlapEvent * msg = (ue_msgs__msg__OverlapEvent *)allocator.allocate(sizeof(ue_msgs__msg__OverlapEvent), allocator.state);

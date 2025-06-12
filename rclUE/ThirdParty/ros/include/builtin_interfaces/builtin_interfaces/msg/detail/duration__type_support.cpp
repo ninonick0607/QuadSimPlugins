@@ -9,7 +9,6 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_cpp/message_type_support.hpp"
 #include "rosidl_typesupport_interface/macros.h"
-#include "builtin_interfaces/msg/detail/duration__functions.h"
 #include "builtin_interfaces/msg/detail/duration__struct.hpp"
 #include "rosidl_typesupport_introspection_cpp/field_types.hpp"
 #include "rosidl_typesupport_introspection_cpp/identifier.hpp"
@@ -44,7 +43,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember Duration_mess
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_INT32,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -62,7 +60,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember Duration_mess
     ::rosidl_typesupport_introspection_cpp::ROS_TYPE_UINT32,  // type
     0,  // upper bound of string
     nullptr,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -82,7 +79,6 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMembers Duration_mes
   "Duration",  // message name
   2,  // number of fields
   sizeof(builtin_interfaces::msg::Duration),
-  false,  // has_any_key_member_
   Duration_message_member_array,  // message members
   Duration_init_function,  // function to initialize message memory (memory has to be allocated)
   Duration_fini_function  // function to terminate message instance (will not free memory)
@@ -92,9 +88,6 @@ static const rosidl_message_type_support_t Duration_message_type_support_handle 
   ::rosidl_typesupport_introspection_cpp::typesupport_identifier,
   &Duration_message_members,
   get_message_typesupport_handle_function,
-  &builtin_interfaces__msg__Duration__get_type_hash,
-  &builtin_interfaces__msg__Duration__get_type_description,
-  &builtin_interfaces__msg__Duration__get_type_description_sources,
 };
 
 }  // namespace rosidl_typesupport_introspection_cpp

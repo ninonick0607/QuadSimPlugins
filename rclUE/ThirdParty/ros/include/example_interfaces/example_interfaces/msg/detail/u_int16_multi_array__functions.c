@@ -93,7 +93,7 @@ example_interfaces__msg__UInt16MultiArray__copy(
 }
 
 example_interfaces__msg__UInt16MultiArray *
-example_interfaces__msg__UInt16MultiArray__create(void)
+example_interfaces__msg__UInt16MultiArray__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   example_interfaces__msg__UInt16MultiArray * msg = (example_interfaces__msg__UInt16MultiArray *)allocator.allocate(sizeof(example_interfaces__msg__UInt16MultiArray), allocator.state);

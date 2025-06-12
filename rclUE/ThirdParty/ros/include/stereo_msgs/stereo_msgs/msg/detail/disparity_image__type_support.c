@@ -51,7 +51,6 @@ static rosidl_typesupport_introspection_c__MessageMember stereo_msgs__msg__Dispa
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -69,7 +68,6 @@ static rosidl_typesupport_introspection_c__MessageMember stereo_msgs__msg__Dispa
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -87,7 +85,6 @@ static rosidl_typesupport_introspection_c__MessageMember stereo_msgs__msg__Dispa
     rosidl_typesupport_introspection_c__ROS_TYPE_FLOAT,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -105,7 +102,6 @@ static rosidl_typesupport_introspection_c__MessageMember stereo_msgs__msg__Dispa
     rosidl_typesupport_introspection_c__ROS_TYPE_FLOAT,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -123,7 +119,6 @@ static rosidl_typesupport_introspection_c__MessageMember stereo_msgs__msg__Dispa
     rosidl_typesupport_introspection_c__ROS_TYPE_MESSAGE,  // type
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -141,7 +136,6 @@ static rosidl_typesupport_introspection_c__MessageMember stereo_msgs__msg__Dispa
     rosidl_typesupport_introspection_c__ROS_TYPE_FLOAT,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -159,7 +153,6 @@ static rosidl_typesupport_introspection_c__MessageMember stereo_msgs__msg__Dispa
     rosidl_typesupport_introspection_c__ROS_TYPE_FLOAT,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -177,7 +170,6 @@ static rosidl_typesupport_introspection_c__MessageMember stereo_msgs__msg__Dispa
     rosidl_typesupport_introspection_c__ROS_TYPE_FLOAT,  // type
     0,  // upper bound of string
     NULL,  // members of sub message
-    false,  // is key
     false,  // is array
     0,  // array size
     false,  // is upper bound
@@ -197,7 +189,6 @@ static const rosidl_typesupport_introspection_c__MessageMembers stereo_msgs__msg
   "DisparityImage",  // message name
   8,  // number of fields
   sizeof(stereo_msgs__msg__DisparityImage),
-  false,  // has_any_key_member_
   stereo_msgs__msg__DisparityImage__rosidl_typesupport_introspection_c__DisparityImage_message_member_array,  // message members
   stereo_msgs__msg__DisparityImage__rosidl_typesupport_introspection_c__DisparityImage_init_function,  // function to initialize message memory (memory has to be allocated)
   stereo_msgs__msg__DisparityImage__rosidl_typesupport_introspection_c__DisparityImage_fini_function  // function to terminate message instance (will not free memory)
@@ -209,9 +200,6 @@ static rosidl_message_type_support_t stereo_msgs__msg__DisparityImage__rosidl_ty
   0,
   &stereo_msgs__msg__DisparityImage__rosidl_typesupport_introspection_c__DisparityImage_message_members,
   get_message_typesupport_handle_function,
-  &stereo_msgs__msg__DisparityImage__get_type_hash,
-  &stereo_msgs__msg__DisparityImage__get_type_description,
-  &stereo_msgs__msg__DisparityImage__get_type_description_sources,
 };
 
 ROSIDL_TYPESUPPORT_INTROSPECTION_C_EXPORT_stereo_msgs

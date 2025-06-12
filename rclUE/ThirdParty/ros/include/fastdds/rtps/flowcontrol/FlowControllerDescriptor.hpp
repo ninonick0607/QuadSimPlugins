@@ -15,8 +15,6 @@
 #ifndef FASTDDS_RTPS_FLOWCONTROL_FLOWCONTROLLERDESCRIPTOR_HPP
 #define FASTDDS_RTPS_FLOWCONTROL_FLOWCONTROLLERDESCRIPTOR_HPP
 
-#include <fastdds/rtps/attributes/ThreadSettings.hpp>
-
 #include "FlowControllerConsts.hpp"
 #include "FlowControllerSchedulerPolicy.hpp"
 
@@ -33,7 +31,7 @@ namespace rtps {
 struct FlowControllerDescriptor
 {
     //! Name of the flow controller.
-    const char* name = FASTDDS_FLOW_CONTROLLER_DEFAULT;
+    const char* name = nullptr;
 
     //! Scheduler policy used by the flow controller.
     //!
@@ -52,10 +50,6 @@ struct FlowControllerDescriptor
     //! Period of time on which the flow controller is allowed to send max_bytes_per_period.
     //! Default value: 100ms.
     uint64_t period_ms = 100;
-
-    //! Thread settings for the sender thread
-    ThreadSettings sender_thread;
-
 };
 
 } // namespace rtps

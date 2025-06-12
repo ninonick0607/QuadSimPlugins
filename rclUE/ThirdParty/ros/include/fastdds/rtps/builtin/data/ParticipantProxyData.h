@@ -21,23 +21,47 @@
 #define _FASTDDS_RTPS_BUILTIN_DATA_PARTICIPANTPROXYDATA_H_
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
-#include <fastdds/rtps/attributes/ReaderAttributes.h>
+#include <fastrtps/qos/QosPolicies.h>
+
 #include <fastdds/rtps/attributes/RTPSParticipantAllocationAttributes.hpp>
 #include <fastdds/rtps/attributes/WriterAttributes.h>
-#include <fastdds/rtps/builtin/data/BuiltinEndpoints.hpp>
-#include <fastdds/rtps/common/RemoteLocators.hpp>
+#include <fastdds/rtps/attributes/ReaderAttributes.h>
 #include <fastdds/rtps/common/Token.h>
-#include <fastdds/rtps/common/VendorId_t.hpp>
+#include <fastdds/rtps/common/RemoteLocators.hpp>
+
 #if HAVE_SECURITY
 #include <fastdds/rtps/security/accesscontrol/ParticipantSecurityAttributes.h>
 #endif // if HAVE_SECURITY
-#include <fastrtps/qos/QosPolicies.h>
-
 
 #include <chrono>
 
 #define BUILTIN_PARTICIPANT_DATA_MAX_SIZE 100
 #define TYPELOOKUP_DATA_MAX_SIZE 5000
+
+#define DISC_BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER              (0x00000001 << 0)
+#define DISC_BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR               (0x00000001 << 1)
+#define DISC_BUILTIN_ENDPOINT_PUBLICATION_ANNOUNCER              (0x00000001 << 2)
+#define DISC_BUILTIN_ENDPOINT_PUBLICATION_DETECTOR               (0x00000001 << 3)
+#define DISC_BUILTIN_ENDPOINT_SUBSCRIPTION_ANNOUNCER             (0x00000001 << 4)
+#define DISC_BUILTIN_ENDPOINT_SUBSCRIPTION_DETECTOR              (0x00000001 << 5)
+#define DISC_BUILTIN_ENDPOINT_PARTICIPANT_PROXY_ANNOUNCER        (0x00000001 << 6)
+#define DISC_BUILTIN_ENDPOINT_PARTICIPANT_PROXY_DETECTOR         (0x00000001 << 7)
+#define DISC_BUILTIN_ENDPOINT_PARTICIPANT_STATE_ANNOUNCER        (0x00000001 << 8)
+#define DISC_BUILTIN_ENDPOINT_PARTICIPANT_STATE_DETECTOR         (0x00000001 << 9)
+#define BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_DATA_WRITER         (0x00000001 << 10)
+#define BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_DATA_READER         (0x00000001 << 11)
+#define BUILTIN_ENDPOINT_TYPELOOKUP_SERVICE_REQUEST_DATA_WRITER  (0x00000001 << 12)
+#define BUILTIN_ENDPOINT_TYPELOOKUP_SERVICE_REQUEST_DATA_READER  (0x00000001 << 13)
+#define BUILTIN_ENDPOINT_TYPELOOKUP_SERVICE_REPLY_DATA_WRITER    (0x00000001 << 14)
+#define BUILTIN_ENDPOINT_TYPELOOKUP_SERVICE_REPLY_DATA_READER    (0x00000001 << 15)
+#define DISC_BUILTIN_ENDPOINT_PUBLICATION_SECURE_ANNOUNCER       (0x00000001 << 16)
+#define DISC_BUILTIN_ENDPOINT_PUBLICATION_SECURE_DETECTOR        (0x00000001 << 17)
+#define DISC_BUILTIN_ENDPOINT_SUBSCRIPTION_SECURE_ANNOUNCER      (0x00000001 << 18)
+#define DISC_BUILTIN_ENDPOINT_SUBSCRIPTION_SECURE_DETECTOR       (0x00000001 << 19)
+#define BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_SECURE_DATA_WRITER  (0x00000001 << 20)
+#define BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_SECURE_DATA_READER  (0x00000001 << 21)
+#define DISC_BUILTIN_ENDPOINT_PARTICIPANT_SECURE_ANNOUNCER       (0x00000001 << 26)
+#define DISC_BUILTIN_ENDPOINT_PARTICIPANT_SECURE_DETECTOR        (0x00000001 << 27)
 
 namespace eprosima {
 namespace fastrtps {
@@ -63,26 +87,24 @@ class ParticipantProxyData
 {
 public:
 
-    RTPS_DllAPI ParticipantProxyData(
+    ParticipantProxyData(
             const RTPSParticipantAllocationAttributes& allocation);
 
-    RTPS_DllAPI ParticipantProxyData(
+    ParticipantProxyData(
             const ParticipantProxyData& pdata);
 
-    RTPS_DllAPI virtual ~ParticipantProxyData();
+    virtual ~ParticipantProxyData();
 
     //!Protocol version
     ProtocolVersion_t m_protocolVersion;
     //!GUID
     GUID_t m_guid;
     //!Vendor ID
-    fastdds::rtps::VendorId_t m_VendorId;
+    VendorId_t m_VendorId;
     //!Expects Inline QOS.
     bool m_expectsInlineQos;
     //!Available builtin endpoints
     BuiltinEndpointSet_t m_availableBuiltinEndpoints;
-    //!Network configuration
-    NetworkConfigSet_t m_networkConfiguration;
     //!Metatraffic locators
     RemoteLocatorList metatraffic_locators;
     //!Default locators
@@ -120,14 +142,12 @@ public:
     //!
     ProxyHashTable<WriterProxyData>* m_writers = nullptr;
 
-    SampleIdentity m_sample_identity;
-
     /**
      * Update the data.
      * @param pdata Object to copy the data from
      * @return True on success
      */
-    RTPS_DllAPI bool updateData(
+    bool updateData(
             ParticipantProxyData& pdata);
 
     /**
@@ -135,14 +155,14 @@ public:
      * @param include_encapsulation Whether to include the size of the encapsulation info.
      * @return size in bytes of the CDR serialization.
      */
-    RTPS_DllAPI uint32_t get_serialized_size(
+    uint32_t get_serialized_size(
             bool include_encapsulation) const;
 
     /**
      * Write as a parameter list on a CDRMessage_t
      * @return True on success
      */
-    RTPS_DllAPI bool writeToCDRMessage(
+    bool writeToCDRMessage(
             CDRMessage_t* msg,
             bool write_encapsulation);
 
@@ -150,71 +170,69 @@ public:
      * Read the parameter list from a received CDRMessage_t
      * @return True on success
      */
-    RTPS_DllAPI bool readFromCDRMessage(
+    bool readFromCDRMessage(
             CDRMessage_t* msg,
             bool use_encapsulation,
             const NetworkFactory& network,
-            bool is_shm_transport_available,
-            bool should_filter_locators,
-            fastdds::rtps::VendorId_t source_vendor_id = c_VendorId_eProsima);
+            bool is_shm_transport_available);
 
     //! Clear the data (restore to default state).
-    RTPS_DllAPI void clear();
+    void clear();
 
     /**
      * Copy the data from another object.
      * @param pdata Object to copy the data from
      */
-    RTPS_DllAPI void copy(
+    void copy(
             const ParticipantProxyData& pdata);
 
     /**
      * Set participant persistent GUID_t
      * @param guid valid GUID_t
      */
-    RTPS_DllAPI void set_persistence_guid(
+    void set_persistence_guid(
             const GUID_t& guid);
 
     /**
      * Retrieve participant persistent GUID_t
      * @return guid persistent GUID_t or c_Guid_Unknown
      */
-    RTPS_DllAPI GUID_t get_persistence_guid() const;
+    GUID_t get_persistence_guid() const;
 
     /**
      * Set participant client server sample identity
      * @param sid valid SampleIdentity
      */
-    RTPS_DllAPI void set_sample_identity(
+    void set_sample_identity(
             const SampleIdentity& sid);
 
     /**
      * Retrieve participant SampleIdentity
      * @return SampleIdentity
      */
-    RTPS_DllAPI SampleIdentity get_sample_identity() const;
+    SampleIdentity get_sample_identity() const;
 
     /**
      * Identifies the participant as client of the given server
      * @param guid valid backup server GUID
      */
-    RTPS_DllAPI void set_backup_stamp(
+    void set_backup_stamp(
             const GUID_t& guid);
 
     /**
      * Retrieves BACKUP server stamp. On deserialization hints if lease duration must be enforced
      * @return GUID
      */
-    RTPS_DllAPI GUID_t get_backup_stamp() const;
+    GUID_t get_backup_stamp() const;
 
-    RTPS_DllAPI void assert_liveliness();
+    void assert_liveliness();
 
-    RTPS_DllAPI const std::chrono::steady_clock::time_point& last_received_message_tm() const
+    const std::chrono::steady_clock::time_point& last_received_message_tm() const
     {
         return last_received_message_tm_;
     }
 
-    RTPS_DllAPI const std::chrono::microseconds& lease_duration() const
+    const std::chrono::microseconds& lease_duration() const
     {
         return lease_duration_;
     }

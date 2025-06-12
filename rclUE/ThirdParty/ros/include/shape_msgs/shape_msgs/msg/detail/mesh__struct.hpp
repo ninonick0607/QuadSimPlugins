@@ -2,9 +2,6 @@
 // with input from shape_msgs:msg/Mesh.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "shape_msgs/msg/mesh.hpp"
-
-
 #ifndef SHAPE_MSGS__MSG__DETAIL__MESH__STRUCT_HPP_
 #define SHAPE_MSGS__MSG__DETAIL__MESH__STRUCT_HPP_
 

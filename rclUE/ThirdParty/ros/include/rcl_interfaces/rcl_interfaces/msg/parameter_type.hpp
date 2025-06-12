@@ -7,6 +7,5 @@
 #include "rcl_interfaces/msg/detail/parameter_type__struct.hpp"
 #include "rcl_interfaces/msg/detail/parameter_type__builder.hpp"
 #include "rcl_interfaces/msg/detail/parameter_type__traits.hpp"
-#include "rcl_interfaces/msg/detail/parameter_type__type_support.hpp"
 
 #endif  // RCL_INTERFACES__MSG__PARAMETER_TYPE_HPP_

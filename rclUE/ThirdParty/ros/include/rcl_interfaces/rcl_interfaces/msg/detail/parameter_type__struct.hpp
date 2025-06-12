@@ -2,9 +2,6 @@
 // with input from rcl_interfaces:msg/ParameterType.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "rcl_interfaces/msg/parameter_type.hpp"
-
-
 #ifndef RCL_INTERFACES__MSG__DETAIL__PARAMETER_TYPE__STRUCT_HPP_
 #define RCL_INTERFACES__MSG__DETAIL__PARAMETER_TYPE__STRUCT_HPP_
 
@@ -139,56 +136,26 @@ using ParameterType =
   rcl_interfaces::msg::ParameterType_<std::allocator<void>>;
 
 // constant definitions
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr uint8_t ParameterType_<ContainerAllocator>::PARAMETER_NOT_SET;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr uint8_t ParameterType_<ContainerAllocator>::PARAMETER_BOOL;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr uint8_t ParameterType_<ContainerAllocator>::PARAMETER_INTEGER;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr uint8_t ParameterType_<ContainerAllocator>::PARAMETER_DOUBLE;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr uint8_t ParameterType_<ContainerAllocator>::PARAMETER_STRING;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr uint8_t ParameterType_<ContainerAllocator>::PARAMETER_BYTE_ARRAY;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr uint8_t ParameterType_<ContainerAllocator>::PARAMETER_BOOL_ARRAY;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr uint8_t ParameterType_<ContainerAllocator>::PARAMETER_INTEGER_ARRAY;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr uint8_t ParameterType_<ContainerAllocator>::PARAMETER_DOUBLE_ARRAY;
-#endif  // __cplusplus < 201703L
-#if __cplusplus < 201703L
-// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
 constexpr uint8_t ParameterType_<ContainerAllocator>::PARAMETER_STRING_ARRAY;
-#endif  // __cplusplus < 201703L
 
 }  // namespace msg
 

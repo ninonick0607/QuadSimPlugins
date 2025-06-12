@@ -2,9 +2,6 @@
 // with input from tf2_msgs:msg/TF2Error.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "tf2_msgs/msg/tf2_error.hpp"
-
-
 #ifndef TF2_MSGS__MSG__DETAIL__TF2_ERROR__TRAITS_HPP_
 #define TF2_MSGS__MSG__DETAIL__TF2_ERROR__TRAITS_HPP_
 

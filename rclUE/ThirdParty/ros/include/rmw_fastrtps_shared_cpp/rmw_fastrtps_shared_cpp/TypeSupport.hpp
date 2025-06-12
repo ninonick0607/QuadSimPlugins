@@ -35,19 +35,12 @@
 namespace rmw_fastrtps_shared_cpp
 {
 
-enum SerializedDataType
-{
-  FASTRTPS_SERIALIZED_DATA_TYPE_CDR_BUFFER,
-  FASTRTPS_SERIALIZED_DATA_TYPE_DYNAMIC_MESSAGE,
-  FASTRTPS_SERIALIZED_DATA_TYPE_ROS_MESSAGE
-};
-
 // Publishers write method will receive a pointer to this struct
 struct SerializedData
 {
-  SerializedDataType type;  // The type of the next field
+  bool is_cdr_buffer;  // Whether next field is a pointer to a Cdr or to a plain ros message
   void * data;
-  const void * impl;  // RMW implementation specific data
+  const void * impl;   // RMW implementation specific data
 };
 
 class TypeSupport : public eprosima::fastdds::dds::TopicDataType
@@ -102,12 +95,6 @@ public:
 #endif
   {
     return is_plain_;
-  }
-
-  RMW_FASTRTPS_SHARED_CPP_PUBLIC
-  inline bool is_plain(eprosima::fastdds::dds::DataRepresentationId_t rep) const override
-  {
-    return is_plain_ && rep == eprosima::fastdds::dds::XCDR_DATA_REPRESENTATION;
   }
 
   RMW_FASTRTPS_SHARED_CPP_PUBLIC

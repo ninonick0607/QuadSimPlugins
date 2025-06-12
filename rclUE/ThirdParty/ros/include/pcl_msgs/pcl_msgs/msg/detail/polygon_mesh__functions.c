@@ -114,7 +114,7 @@ pcl_msgs__msg__PolygonMesh__copy(
 }
 
 pcl_msgs__msg__PolygonMesh *
-pcl_msgs__msg__PolygonMesh__create(void)
+pcl_msgs__msg__PolygonMesh__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   pcl_msgs__msg__PolygonMesh * msg = (pcl_msgs__msg__PolygonMesh *)allocator.allocate(sizeof(pcl_msgs__msg__PolygonMesh), allocator.state);

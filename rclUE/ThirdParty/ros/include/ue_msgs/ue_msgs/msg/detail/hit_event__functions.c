@@ -154,7 +154,7 @@ ue_msgs__msg__HitEvent__copy(
 }
 
 ue_msgs__msg__HitEvent *
-ue_msgs__msg__HitEvent__create(void)
+ue_msgs__msg__HitEvent__create()
 {
   rcutils_allocator_t allocator = rcutils_get_default_allocator();
   ue_msgs__msg__HitEvent * msg = (ue_msgs__msg__HitEvent *)allocator.allocate(sizeof(ue_msgs__msg__HitEvent), allocator.state);

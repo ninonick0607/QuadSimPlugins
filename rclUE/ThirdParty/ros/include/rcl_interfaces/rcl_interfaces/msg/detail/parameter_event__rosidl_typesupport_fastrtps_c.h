@@ -9,23 +9,11 @@
 #include "rosidl_runtime_c/message_type_support_struct.h"
 #include "rosidl_typesupport_interface/macros.h"
 #include "rcl_interfaces/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
-#include "rcl_interfaces/msg/detail/parameter_event__struct.h"
-#include "fastcdr/Cdr.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rcl_interfaces
-bool cdr_serialize_rcl_interfaces__msg__ParameterEvent(
-  const rcl_interfaces__msg__ParameterEvent * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rcl_interfaces
-bool cdr_deserialize_rcl_interfaces__msg__ParameterEvent(
-  eprosima::fastcdr::Cdr &,
-  rcl_interfaces__msg__ParameterEvent * ros_message);
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rcl_interfaces
 size_t get_serialized_size_rcl_interfaces__msg__ParameterEvent(
@@ -34,22 +22,6 @@ size_t get_serialized_size_rcl_interfaces__msg__ParameterEvent(
 
 ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rcl_interfaces
 size_t max_serialized_size_rcl_interfaces__msg__ParameterEvent(
-  bool & full_bounded,
-  bool & is_plain,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rcl_interfaces
-bool cdr_serialize_key_rcl_interfaces__msg__ParameterEvent(
-  const rcl_interfaces__msg__ParameterEvent * ros_message,
-  eprosima::fastcdr::Cdr & cdr);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rcl_interfaces
-size_t get_serialized_size_key_rcl_interfaces__msg__ParameterEvent(
-  const void * untyped_ros_message,
-  size_t current_alignment);
-
-ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_rcl_interfaces
-size_t max_serialized_size_key_rcl_interfaces__msg__ParameterEvent(
   bool & full_bounded,
   bool & is_plain,
   size_t current_alignment);

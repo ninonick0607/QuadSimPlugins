@@ -2,9 +2,6 @@
 // with input from sensor_msgs:msg/MultiDOFJointState.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "sensor_msgs/msg/multi_dof_joint_state.hpp"
-
-
 #ifndef SENSOR_MSGS__MSG__DETAIL__MULTI_DOF_JOINT_STATE__BUILDER_HPP_
 #define SENSOR_MSGS__MSG__DETAIL__MULTI_DOF_JOINT_STATE__BUILDER_HPP_
 

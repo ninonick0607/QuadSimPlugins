@@ -2,9 +2,6 @@
 // with input from sensor_msgs:msg/PointField.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "sensor_msgs/msg/point_field.hpp"
-
-
 #ifndef SENSOR_MSGS__MSG__DETAIL__POINT_FIELD__TRAITS_HPP_
 #define SENSOR_MSGS__MSG__DETAIL__POINT_FIELD__TRAITS_HPP_
 
