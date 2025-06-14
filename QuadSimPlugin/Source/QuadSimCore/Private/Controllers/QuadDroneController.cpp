@@ -411,7 +411,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	if (UNavigationComponent* Nav = dronePawn->FindComponentByClass<UNavigationComponent>())
 	{
 		Nav->UpdateNavigation(currPos);
-		setPoint = Nav->GetCurrentSetpoint();
+		setPoint = {500,500,500};//Nav->GetCurrentSetpoint();
 	}
 	
 	/*-------- Position P Control -------- */ 
@@ -421,8 +421,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 
 	float Kp = 1.f;
 
-	const FVector desiredLocalVelocity =
-	DroneMathUtils::CalculateDesiredVelocity(localPosErr, maxVelocity); // <-- use local error
+	const FVector desiredLocalVelocity = desiredNewVelocity;//DroneMathUtils::CalculateDesiredVelocity(localPosErr, maxVelocity); // <-- use local error	
 
 	//const FVector desiredLocalVelocity = localPosErr * Kp;
 	
@@ -440,24 +439,24 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	double pitchCmd = FMath::Clamp( xOut, -maxAngle,  maxAngle);
 
 	const double rollErr = rollCmd  - currRot.Roll;
-	const double pitchErr = pitchCmd - (currRot.Pitch); 
+	const double pitchErr = pitchCmd - (-currRot.Pitch); 
 
 	const double rollOut  = CurrentSet ->RollPID->Calculate(rollErr , DeltaTime);
 	const double pitchOut = CurrentSet ->PitchPID->Calculate(pitchErr, DeltaTime);
 
 	/*-------- Angle Rate PID Control -------- */ 
 
-	const double rateRollErr = rollOut-localAngularRateDeg.X;
-	const double ratePitchErr = pitchOut-(-localAngularRateDeg.Y);
-	
-	const double rollRateOut  = CurrentSet->RollRatePID->Calculate(rateRollErr,  DeltaTime);
-	const double pitchRateOut = CurrentSet->PitchRatePID->Calculate(ratePitchErr, DeltaTime);
+	// const double rateRollErr = rollOut-localAngularRateDeg.X;
+	// const double ratePitchErr = pitchOut-(-localAngularRateDeg.Y);
+	//
+	// const double rollRateOut  = CurrentSet->RollRatePID->Calculate(rateRollErr,  DeltaTime);
+	// const double pitchRateOut = CurrentSet->PitchRatePID->Calculate(ratePitchErr, DeltaTime);
 
 	//  Mix & apply motor thrusts / torques
-	ThrustMixer(xOut, yOut, zOut, rollRateOut, pitchRateOut);
+	ThrustMixer(rollCmd, pitchCmd, zOut, rollOut, pitchOut);
 
 	//  Yaw is controlled as a separate outer/inner loop elsewhere
-	YawRateControl(DeltaTime);
+	//YawRateControl(DeltaTime);
 
 	//  Debug drawing and on‑screen HUD (optional)
 	DrawDebugVisualsVel(FVector(desiredLocalVelocity.X, desiredLocalVelocity.Y, 0.f));
