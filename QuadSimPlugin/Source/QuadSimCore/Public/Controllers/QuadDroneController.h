@@ -26,15 +26,18 @@ struct FFullPIDSet
     QuadPIDController* ZPID;
     QuadPIDController* RollPID;
     QuadPIDController* PitchPID;
-    QuadPIDController* YawPID;
-
+    QuadPIDController* RollRatePID;
+    QuadPIDController* PitchRatePID;
+    QuadPIDController* YawRatePID;
     FFullPIDSet()
         : XPID(nullptr)
         , YPID(nullptr)
         , ZPID(nullptr)
         , RollPID(nullptr)
         , PitchPID(nullptr)
-        , YawPID(nullptr)
+        , PitchRatePID(nullptr)
+        , RollRatePID(nullptr)
+        , YawRatePID(nullptr)
     {
     }
 };
@@ -60,6 +63,7 @@ public:
     void VelocityControl(double a_deltaTime);
     //void ApplyControllerInput(double a_deltaTime);
     void AutoWaypointControl(double DeltaTime);
+    void FlightController(double DeltaTime);
     void dynamicController(double DeltaTime);
     void ThrustMixer(double currentRoll, double currentPitch, double zOutput, double rollOutput, double pitchOutput);
     void YawStabilization(double DeltaTime);

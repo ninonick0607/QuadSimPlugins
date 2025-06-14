@@ -180,7 +180,26 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
 	ImGui::Spacing();
 	ImGui::Text("==== Attitude ====");
 	ImGui::Text("Current: Roll: %.2f || Pitch: %.2f", currentRotation.Roll, currentRotation.Pitch);
-	ImGui::Text("Desired: Roll: %.2f || Pitch: %.2f ", desiredRollAngle, desiredPitchAngle);
+		ImGui::Text("Desired: Roll: %.2f || Pitch: %.2f ", desiredRollAngle, desiredPitchAngle);
+            // Angular Rate
+            if (DronePawn && DronePawn->DroneBody)
+            {
+                FVector worldAngVel = DronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
+                FVector localAngVel = currentRotation.UnrotateVector(worldAngVel);
+                ImGui::Text("==== Angular Rate ====");
+                ImGui::Text("Current Rate: Roll: %.2f deg/s || Pitch: %.2f deg/s", localAngVel.X, localAngVel.Y);
+                FFullPIDSet* PIDSet = Controller ? Controller->GetPIDSet(CurrentMode) : nullptr;
+                if (PIDSet && PIDSet->RollRatePID && PIDSet->PitchRatePID)
+                {
+                    float desiredRollRate = PIDSet->RollRatePID->lastOutput;
+                    float desiredPitchRate = PIDSet->PitchRatePID->lastOutput;
+                    ImGui::Text("Desired Rate: Roll: %.2f deg/s || Pitch: %.2f deg/s", desiredRollRate, desiredPitchRate);
+                }
+            }
+            else
+            {
+                ImGui::Text("Angular Rate data unavailable");
+            }
 	ImGui::Text("==== Position ====");
 	ImGui::Text("Current: %.1f, %.1f, %.1f ", currLoc.X, currLoc.Y, currLoc.Z);
 	ImGui::Text("==== Velocity ====");
@@ -578,7 +597,7 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 			}
 		}
 		else { ImGui::TextDisabled("Roll PID Unavailable"); }
-		ImGui::Unindent();
+            ImGui::Unindent();
 
 		// Pitch
 		ImGui::Text("Pitch");
@@ -604,18 +623,48 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 		else { ImGui::TextDisabled("Pitch PID Unavailable"); }
 		ImGui::Unindent();
 
-		// Yaw
-		ImGui::Text("Yaw");
-		ImGui::Indent();
-		if (PIDSet->YawPID)
-		{
-			// Using original range [0.0001, 2] for Yaw
-			DrawPIDGainControl("Yaw P", &PIDSet->YawPID->ProportionalGain, 0.0001f, 2.0f);
-			DrawPIDGainControl("Yaw I", &PIDSet->YawPID->IntegralGain, 0.0001f, 2.0f);
-			DrawPIDGainControl("Yaw D", &PIDSet->YawPID->DerivativeGain, 0.0001f, 2.0f);
-		}
-		else { ImGui::TextDisabled("Yaw PID Unavailable"); }
-		ImGui::Unindent();
+            // --- Angular Rate PID ---
+            ImGui::Separator();
+            ImGui::Text("Angular Rate PID Gains");
+            static bool syncRateGains = false;
+            ImGui::Checkbox("Synchronize Roll and Pitch Rate Gains", &syncRateGains);
+            ImGui::Indent();
+            // Roll Rate
+            ImGui::Text("Roll Rate");
+            ImGui::Indent();
+            if (PIDSet->RollRatePID)
+            {
+                bool changed = DrawPIDGainControl("Roll Rate P", &PIDSet->RollRatePID->ProportionalGain, 0.0001f, 5.0f);
+                if (syncRateGains && changed && PIDSet->PitchRatePID) PIDSet->PitchRatePID->ProportionalGain = PIDSet->RollRatePID->ProportionalGain;
+                changed = DrawPIDGainControl("Roll Rate I", &PIDSet->RollRatePID->IntegralGain, 0.0001f, 5.0f);
+                if (syncRateGains && changed && PIDSet->PitchRatePID) PIDSet->PitchRatePID->IntegralGain = PIDSet->RollRatePID->IntegralGain;
+                changed = DrawPIDGainControl("Roll Rate D", &PIDSet->RollRatePID->DerivativeGain, 0.0001f, 5.0f);
+                if (syncRateGains && changed && PIDSet->PitchRatePID) PIDSet->PitchRatePID->DerivativeGain = PIDSet->RollRatePID->DerivativeGain;
+            }
+            else { ImGui::TextDisabled("Roll Rate PID Unavailable"); }
+            ImGui::Unindent();
+            // Pitch Rate
+            ImGui::Text("Pitch Rate");
+            ImGui::Indent();
+            if (PIDSet->PitchRatePID)
+            {
+                DrawPIDGainControl("Pitch Rate P", &PIDSet->PitchRatePID->ProportionalGain, 0.0001f, 5.0f);
+                DrawPIDGainControl("Pitch Rate I", &PIDSet->PitchRatePID->IntegralGain, 0.0001f, 5.0f);
+                DrawPIDGainControl("Pitch Rate D", &PIDSet->PitchRatePID->DerivativeGain, 0.0001f, 5.0f);
+            }
+            else { ImGui::TextDisabled("Pitch Rate PID Unavailable"); }
+            ImGui::Unindent();
+            // Yaw Rate
+            ImGui::Text("Yaw Rate");
+            ImGui::Indent();
+            if (PIDSet->YawRatePID)
+            {
+                DrawPIDGainControl("Yaw Rate P", &PIDSet->YawRatePID->ProportionalGain, 0.0001f, 2.0f);
+                DrawPIDGainControl("Yaw Rate I", &PIDSet->YawRatePID->IntegralGain, 0.0001f, 2.0f);
+                DrawPIDGainControl("Yaw Rate D", &PIDSet->YawRatePID->DerivativeGain, 0.0001f, 2.0f);
+            }
+            else { ImGui::TextDisabled("Yaw Rate PID Unavailable"); }
+            ImGui::Unindent();
 
 		ImGui::Unindent(); // Unindent Attitude PID section
 		ImGui::Separator();
@@ -644,7 +693,7 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 			if (PIDSet->ZPID) GainData += FString::Printf(TEXT("%.4f,%.4f,%.4f,"), PIDSet->ZPID->ProportionalGain, PIDSet->ZPID->IntegralGain, PIDSet->ZPID->DerivativeGain); else GainData += TEXT("0,0,0,");
 			if (PIDSet->RollPID) GainData += FString::Printf(TEXT("%.4f,%.4f,%.4f,"), PIDSet->RollPID->ProportionalGain, PIDSet->RollPID->IntegralGain, PIDSet->RollPID->DerivativeGain); else GainData += TEXT("0,0,0,");
 			if (PIDSet->PitchPID) GainData += FString::Printf(TEXT("%.4f,%.4f,%.4f,"), PIDSet->PitchPID->ProportionalGain, PIDSet->PitchPID->IntegralGain, PIDSet->PitchPID->DerivativeGain); else GainData += TEXT("0,0,0,");
-			if (PIDSet->YawPID) GainData += FString::Printf(TEXT("%.4f,%.4f,%.4f"), PIDSet->YawPID->ProportionalGain, PIDSet->YawPID->IntegralGain, PIDSet->YawPID->DerivativeGain); else GainData += TEXT("0,0,0");
+			if (PIDSet->YawRatePID) GainData += FString::Printf(TEXT("%.4f,%.4f,%.4f"), PIDSet->YawRatePID->ProportionalGain, PIDSet->YawRatePID->IntegralGain, PIDSet->YawRatePID->DerivativeGain); else GainData += TEXT("0,0,0");
 
 			FFileHelper::SaveStringToFile(GainData + TEXT("\n"), *FilePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), EFileWrite::FILEWRITE_Append);
 		}
@@ -1195,11 +1244,11 @@ void UImGuiUtil::LoadPIDValues(EFlightMode Mode, const TArray<FString>& Values)
 	}
 
 	// Load Yaw PID
-	if (PIDSet->YawPID)
+	if (PIDSet->YawRatePID)
 	{
-		PIDSet->YawPID->ProportionalGain = FCString::Atof(*Values[16]);
-		PIDSet->YawPID->IntegralGain = FCString::Atof(*Values[17]);
-		PIDSet->YawPID->DerivativeGain = FCString::Atof(*Values[18]);
+		PIDSet->YawRatePID->ProportionalGain = FCString::Atof(*Values[16]);
+		PIDSet->YawRatePID->IntegralGain = FCString::Atof(*Values[17]);
+		PIDSet->YawRatePID->DerivativeGain = FCString::Atof(*Values[18]);
 	}
 
 	// Notify of successful load
