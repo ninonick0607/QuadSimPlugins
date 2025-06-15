@@ -60,13 +60,10 @@ public:
     void Initialize(AQuadPawn* InPawn);
     void Update(double DeltaTime);
 
-    void VelocityControl(double a_deltaTime);
     //void ApplyControllerInput(double a_deltaTime);
-    void AutoWaypointControl(double DeltaTime);
     void FlightController(double DeltaTime);
     void dynamicController(double DeltaTime);
     void ThrustMixer(double currentRoll, double currentPitch, double zOutput, double rollOutput, double pitchOutput);
-    void YawStabilization(double DeltaTime);
     void YawRateControl(double DeltaTime);
     
     void ResetPID();
@@ -84,12 +81,14 @@ public:
     void SafetyReset();
     void ApplyManualThrusts();
  
-    float GetDesiredYaw() const { return desiredYaw; }
     FVector GetDesiredVelocity() const { return desiredNewVelocity; }
     bool GetDebugVisualsEnabled() const { return bDebugVisualsEnabled; }
     FVector GetCurrentLocalVelocity() const { return currentLocalVelocity; }
     float GetDesiredYawRate() const { return desiredYawRate; }
+    double GetDesiredRoll() const {return desiredRoll;}
+    double GetDesiredPitch() const {return desiredPitch;}
     FVector GetCurrentSetPoint() const { return setPoint; }
+    const TArray<float>& GetThrusts() const { return Thrusts; }
 
     void SetDebugVisualsEnabled(bool bEnabled) { bDebugVisualsEnabled = bEnabled; }
     void SetDesiredYawRate(float NewYawRate) { desiredYawRate = NewYawRate; }
@@ -106,18 +105,17 @@ public:
     void SetFlightMode(EFlightMode NewMode);
     FFullPIDSet* GetPIDSet(EFlightMode Mode)
     {
-        return PIDMap.Find(Mode); 
+        return &PIDSet;
     }
     
 private:
 
     UPROPERTY()
-    TMap<EFlightMode, FFullPIDSet> PIDMap;
+    FFullPIDSet PIDSet;
     QuadPIDController* AltitudePID;
     EFlightMode currentFlightMode;
 
     //Global Drone Variables
-    float desiredYaw;
     FVector currentLocalVelocity;
     float maxVelocity;
     float maxAngle;
@@ -126,6 +124,8 @@ private:
     double YawTorqueForce;
     double LastYawTorqueApplied; // Maybe not needed, why global??
     float desiredYawRate;
+    double desiredRoll;
+    double desiredPitch;
     bool bDebugVisualsEnabled = false;
 
     // AutoWaypointControl variables

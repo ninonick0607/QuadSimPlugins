@@ -46,16 +46,21 @@ void UImGuiUtil::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompo
 }
 
 
-void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
-                          float desiredRollAngle, float desiredPitchAngle,
-                          const FRotator& currentRotation,
-                          const FVector& waypoint, const FVector& currLoc,
-                          const FVector& error,
-                          const FVector& currentVelocity,
-                          float maxVelocity,
-                          float maxAngle,
-                          float xOutput, float yOutput, float zOutput, float deltaTime)
+void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
 {
+
+	const auto& Config = UDroneJSONConfig::Get().Config;
+	float maxVelocity = Config.FlightParams.MaxVelocity;
+	float maxAngle = Config.FlightParams.MaxAngle;
+
+	TArray<float>& ThrustsVal = DronePawn->QuadController->Thrusts;
+	FVector currentVelocity = DronePawn->QuadController->GetCurrentLocalVelocity();
+	FVector currLoc = DronePawn->GetActorLocation();
+	FRotator currentRotation = DronePawn->GetActorRotation();
+	
+	double desiredRollAngle = DronePawn->QuadController->GetDesiredRoll();
+	double desiredPitchAngle = DronePawn->QuadController->GetDesiredPitch();
+
     // Window setup
     ImGui::SetNextWindowPos(ImVec2(420, 10), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(500, 600), ImGuiCond_FirstUseEver);
@@ -89,38 +94,33 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
         bShowSettingsUI = !bShowSettingsUI;
     }
     if (bShowSettingsUI) {
-        ImGui::End();
-        // Settings Window
-        if (ImGui::Begin("Settings", &bShowSettingsUI, ImGuiWindowFlags_AlwaysAutoResize)) {
-            auto& Cfg = UDroneJSONConfig::Get().Config;
-            // Flight Parameters
-            if (ImGui::CollapsingHeader("Flight Parameters")) {
-                ImGui::InputFloat("Max Velocity Bound", &Cfg.FlightParams.MaxVelocityBound);
-                ImGui::InputFloat("Max Velocity", &Cfg.FlightParams.MaxVelocity);
-                ImGui::InputFloat("Max Angle", &Cfg.FlightParams.MaxAngle);
-                ImGui::InputFloat("Max PID Output", &Cfg.FlightParams.MaxPIDOutput);
-                ImGui::InputFloat("Altitude Threshold", &Cfg.FlightParams.AltitudeThreshold);
-                ImGui::InputFloat("Min Altitude Local", &Cfg.FlightParams.MinAltitudeLocal);
-                ImGui::InputFloat("Acceptable Distance", &Cfg.FlightParams.AcceptableDistance);
-            }
-            // Controller Parameters
-            if (ImGui::CollapsingHeader("Controller Parameters")) {
-                ImGui::InputFloat("Altitude Rate", &Cfg.ControllerParams.AltitudeRate);
-                ImGui::InputFloat("Yaw Rate", &Cfg.ControllerParams.YawRate);
-                ImGui::InputFloat("Min Velocity For Yaw", &Cfg.ControllerParams.MinVelocityForYaw);
-            }
-            // Obstacle Parameters
-            if (ImGui::CollapsingHeader("Obstacle Parameters")) {
-                ImGui::InputFloat("Outer Boundary Size", &Cfg.ObstacleParams.OuterBoundarySize);
-                ImGui::InputFloat("Inner Boundary Size", &Cfg.ObstacleParams.InnerBoundarySize);
-                ImGui::InputFloat("Spawn Height", &Cfg.ObstacleParams.SpawnHeight);
-            }
-            if (ImGui::Button("Save Settings")) {
-                if (UDroneJSONConfig::Get().SaveConfig()) {
-                    UE_LOG(LogTemp, Log, TEXT("Config saved successfully."));
-                } else {
-                    UE_LOG(LogTemp, Error, TEXT("Failed to save config."));
-                }
+        auto& Cfg = UDroneJSONConfig::Get().Config;
+        ImGui::Separator();
+        ImGui::Text("Settings");
+        if (ImGui::CollapsingHeader("Flight Parameters")) {
+            ImGui::InputFloat("Max Velocity Bound", &Cfg.FlightParams.MaxVelocityBound);
+            ImGui::InputFloat("Max Velocity", &Cfg.FlightParams.MaxVelocity);
+            ImGui::InputFloat("Max Angle", &Cfg.FlightParams.MaxAngle);
+            ImGui::InputFloat("Max PID Output", &Cfg.FlightParams.MaxPIDOutput);
+            ImGui::InputFloat("Altitude Threshold", &Cfg.FlightParams.AltitudeThreshold);
+            ImGui::InputFloat("Min Altitude Local", &Cfg.FlightParams.MinAltitudeLocal);
+            ImGui::InputFloat("Acceptable Distance", &Cfg.FlightParams.AcceptableDistance);
+        }
+        if (ImGui::CollapsingHeader("Controller Parameters")) {
+            ImGui::InputFloat("Altitude Rate", &Cfg.ControllerParams.AltitudeRate);
+            ImGui::InputFloat("Yaw Rate", &Cfg.ControllerParams.YawRate);
+            ImGui::InputFloat("Min Velocity For Yaw", &Cfg.ControllerParams.MinVelocityForYaw);
+        }
+        if (ImGui::CollapsingHeader("Obstacle Parameters")) {
+            ImGui::InputFloat("Outer Boundary Size", &Cfg.ObstacleParams.OuterBoundarySize);
+            ImGui::InputFloat("Inner Boundary Size", &Cfg.ObstacleParams.InnerBoundarySize);
+            ImGui::InputFloat("Spawn Height", &Cfg.ObstacleParams.SpawnHeight);
+        }
+        if (ImGui::Button("Save Settings")) {
+            if (UDroneJSONConfig::Get().SaveConfig()) {
+                UE_LOG(LogTemp, Log, TEXT("Config saved successfully."));
+            } else {
+                UE_LOG(LogTemp, Error, TEXT("Failed to save config."));
             }
         }
         ImGui::End();

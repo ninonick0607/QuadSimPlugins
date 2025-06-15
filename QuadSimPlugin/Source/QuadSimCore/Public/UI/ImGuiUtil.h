@@ -21,15 +21,7 @@ public:
     void Initialize(AQuadPawn* InPawn, UQuadDroneController* InController);
 
     /** Main functions to draw the UI */
-    void ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
-        float rollError, float pitchError,
-        const FRotator& currentRotation,
-        const FVector& waypoint, const FVector& currLoc,
-        const FVector& error,
-        const FVector& currentVelocity,
-        float maxVelocity,
-        float maxAngle,
-        float xOutput, float yOutput, float zOutput, float deltaTime);
+    void ImGuiHud(EFlightMode CurrentMode, float deltaTime);
     
     void RenderControlPlots(float deltaTime, const FRotator& currentRotation, float desiredRoll, float desiredPitch,float maxAngle);
     void DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, bool& synchronizeXYGains, bool& synchronizeGains);
@@ -55,6 +47,11 @@ private:
     float maxVelocityBound;
     bool plotSwitch;
     float maxThrust;
+    // Persistent slider values for runtime adjustments
+    UPROPERTY()
+    float SliderMaxVelocity;
+    UPROPERTY()
+    float SliderMaxAngle;
     // Data for plotting
     TArray<float> TimeData;
     TArray<float> Thrust0Data;
