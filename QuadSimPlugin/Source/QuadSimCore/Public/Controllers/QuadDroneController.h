@@ -122,23 +122,30 @@ private:
     float maxPIDOutput;
     FVector desiredForwardVector;
     double YawTorqueForce;
-    double LastYawTorqueApplied; // Maybe not needed, why global??
-    float desiredYawRate;
-    double desiredRoll;
-    double desiredPitch;
     bool bDebugVisualsEnabled = false;
 
-    // AutoWaypointControl variables
+    // Position Control
     FVector setPoint;
     float minAltitudeLocal;
     float acceptableDistance;
+    
+    // Velocity Control
+    
+    FVector desiredNewVelocity;
+    
+    // Angle Control
+    double desiredRoll;
+    double desiredPitch;
+
+    // Angle Rate Control
+    double desiredRollRate;
+    double desiredPitchRate;
+    float desiredYawRate;
+    
     // Cascaded yaw control parameters
     float maxYawRate;
     float minVelocityForYaw;
-
-    // VelocityControl
-    FVector desiredNewVelocity;
-
+    
     // Hover Mode
     float hoverTargetAltitude;
     bool bHoverModeActive;

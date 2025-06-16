@@ -7,6 +7,7 @@ class AQuadPawn;
 class QuadPIDController;
 class UQuadDroneController;
 
+
 enum class EFlightMode : uint8;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -43,6 +44,8 @@ private:
 
     UPROPERTY()
     UQuadDroneController* Controller;
+
+
 
     float maxVelocityBound;
     bool plotSwitch;

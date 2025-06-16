@@ -31,8 +31,10 @@ UImGuiUtil::UImGuiUtil()
 
 void UImGuiUtil::Initialize(AQuadPawn* InPawn, UQuadDroneController* InController)
 { 
-	DronePawn = InPawn;
-	Controller = InController;
+    DronePawn = InPawn;
+    Controller = InController;
+
+
 }
 
 void UImGuiUtil::BeginPlay()
@@ -44,6 +46,7 @@ void UImGuiUtil::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompo
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
+
 
 
 void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
@@ -222,7 +225,6 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
 
     if (plotSwitch)
         RenderControlPlots(deltaTime, currentRotation, desiredRollAngle, desiredPitchAngle, maxAngle);
-
     DisplayPIDHistoryWindow();
 }
 

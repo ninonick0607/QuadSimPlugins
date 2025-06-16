@@ -47,10 +47,19 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	UPROPERTY()
+	class USceneCaptureComponent2D* CaptureFPV;
+	UPROPERTY()
+	class USceneCaptureComponent2D* CaptureThird;
 
+	/** Render targets (we’ll create them at runtime) */
+	UPROPERTY()
+	class UTextureRenderTarget2D* RT_FPV;
+	UPROPERTY()
+	class UTextureRenderTarget2D* RT_Third;
 	// --- Drone Components ---
-   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-   UStaticMeshComponent* DroneBody;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UStaticMeshComponent* DroneBody;
 
 	// --- Camera Components ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -70,12 +79,12 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TArray<UStaticMeshComponent*> Propellers;
 
-   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-   TArray<UThrusterComponent*> Thrusters;
-	
-   // ZMQ Controller as a child actor component
-   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-   UChildActorComponent* ZMQControllerComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TArray<UThrusterComponent*> Thrusters;
+ 	
+    // ZMQ Controller as a child actor component
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UChildActorComponent* ZMQControllerComponent;
 
 	// --- Drone Configuration ---
 	UPROPERTY(EditDefaultsOnly, Category = "Drone Configuration")

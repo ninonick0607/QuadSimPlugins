@@ -120,6 +120,7 @@ private:
     UPROPERTY()
     UTextureRenderTarget2D* RenderTarget;
 
+
     FVector CurrentGoalPosition;
 
 };
