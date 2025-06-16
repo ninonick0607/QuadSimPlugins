@@ -3,96 +3,30 @@
 #include "Math/UnrealMathUtility.h"
 
 QuadPIDController::QuadPIDController()
-    : ProportionalGain(0.0f)
+    : lastOutput(0.0f)
+    , ProportionalGain(0.0f)
     , IntegralGain(0.0f)
     , DerivativeGain(0.0f)
+    , absoluteTime(0.0f)
+    , currentBufferSum(0.0f)
     , minOutput(0.0f)
     , maxOutput(1.0f)
     , prevError(0.0f)
-    , lastOutput(0.0f)
-    , absoluteTime(0.0f)
-    , currentBufferSum(0.0f)
+    , lastState(0.0f)
     , filteredDerivative(0.0f)
-    , derivativeFilterAlpha(1.f)
+    , tau(0.1f)
 {
     // Pre-allocate buffer to avoid reallocations
     integralBuffer.Reserve(ESTIMATED_BUFFER_SIZE);
 }
 
-void QuadPIDController::SetGains(float pGain, float iGain, float dGain, float filterAlpha)
+void QuadPIDController::SetGains(float pGain, float iGain, float dGain, float newTau)
 {
     ProportionalGain = pGain;
     IntegralGain = iGain;
     DerivativeGain = dGain;
     
-    // Set the derivative filter alpha when gains are set
-    SetDerivativeFilterAlpha(filterAlpha);
-}
-
-void QuadPIDController::RemoveExpiredPoints()
-{
-    const float windowStart = absoluteTime - INTEGRAL_WINDOW_DURATION;
-    
-    // Remove points older than the window duration
-    while (!integralBuffer.IsEmpty() && integralBuffer[0].timestamp < windowStart)
-    {
-        currentBufferSum -= integralBuffer[0].value;
-        integralBuffer.RemoveAt(0, 1, EAllowShrinking::No);
-    }
-}
-
-double QuadPIDController::Calculate(float error, float dt)
-{
-    if (dt <= KINDA_SMALL_NUMBER)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("QuadPIDController::Calculate called with dt <= KINDA_SMALL_NUMBER"));
-        return 0.0f;
-    }
-
-    absoluteTime += dt;
-
-    // Remove expired points from the sliding window
-    RemoveExpiredPoints();
-
-    // Proportional term
-    double p_term = ProportionalGain * error;
-
-    // Add new integral point
-    IntegralPoint newPoint;
-    newPoint.timestamp = absoluteTime;
-    newPoint.value = error * dt;
-    
-    integralBuffer.Add(newPoint);
-    currentBufferSum += newPoint.value;
-
-    // Integral term with sliding window
-    double i_term = IntegralGain * currentBufferSum;
-
-    // Calculate raw derivative
-    double rawDerivative = (error - prevError) / dt;
-    
-    // Apply low-pass filter to derivative term
-    filteredDerivative = derivativeFilterAlpha * rawDerivative + (1.0f - derivativeFilterAlpha) * filteredDerivative;
-    
-    // Derivative term using filtered derivative
-    double d_term = DerivativeGain * filteredDerivative;
-
-    // Combine terms and clamp output
-    double output = p_term + i_term + d_term;
-    output = FMath::Clamp(output, minOutput, maxOutput);
-    
-    prevError = error;
-    lastOutput = output;
-
-    // Debug logging
-    UE_LOG(LogTemp, VeryVerbose, TEXT("Time: %.3f, Buffer Size: %d, Sum: %.4f, Raw D: %.4f, Filtered D: %.4f"), 
-           absoluteTime,
-           integralBuffer.Num(), 
-           currentBufferSum,
-           rawDerivative,
-           filteredDerivative);
-
-    return output;
+    tau = FMath::Max(KINDA_SMALL_NUMBER, newTau);  
 }
 
 void QuadPIDController::SetLimits(float min_output, float max_output)
@@ -116,9 +50,64 @@ void QuadPIDController::ResetIntegral()
     currentBufferSum = 0.0f;
 }
 
-// New method to set the derivative filter coefficient
-void QuadPIDController::SetDerivativeFilterAlpha(float alpha)
+void QuadPIDController::RemoveExpiredPoints()
 {
-    // Keep alpha in valid range [0.0, 1.0]
-    derivativeFilterAlpha = FMath::Clamp(alpha, 0.0f, 1.0f);
+    const float windowStart = absoluteTime - INTEGRAL_WINDOW_DURATION;
+    
+    // Remove points older than the window duration
+    while (!integralBuffer.IsEmpty() && integralBuffer[0].timestamp < windowStart)
+    {
+        currentBufferSum -= integralBuffer[0].value;
+        integralBuffer.RemoveAt(0, 1, EAllowShrinking::No);
+    }
 }
+
+
+double QuadPIDController::Calculate(float desiredState,float measuredState, float dt)
+{
+    if (dt <= KINDA_SMALL_NUMBER)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("QuadPIDController::Calculate called with dt <= KINDA_SMALL_NUMBER"));
+        return 0.0f;
+    }
+
+    absoluteTime += dt;
+    RemoveExpiredPoints();
+
+    /* ---------- Error & proportional ---------- */
+    float error = desiredState - measuredState;
+    double p_term = ProportionalGain * error;
+
+    /* ---------- Integral  ---------- */
+    IntegralPoint newPoint{absoluteTime,error*dt};
+    integralBuffer.Add(newPoint);
+    currentBufferSum += newPoint.value;
+    double i_term = IntegralGain * currentBufferSum;
+    
+    /* ---------- Derivative (bilinear filtered on measurement) ---------- */
+    
+    float dx = error - lastState;
+    filteredDerivative = ((2 * tau - dt) / (2 * tau + dt)) * filteredDerivative + (2 / (2 * tau + dt)) * dx;
+    lastState = error;
+    double d_term = DerivativeGain * filteredDerivative;
+    
+    /* ---------- Combine & clamp ---------- */
+    double unclamped_output = p_term + i_term + d_term;
+    double output = FMath::Clamp(unclamped_output, minOutput, maxOutput);
+
+    if (output != unclamped_output && FMath::Abs(i_term) > FMath::Abs(output - p_term - d_term) && IntegralGain > 0.0f)
+    {
+        currentBufferSum = (output - p_term - d_term) / IntegralGain;
+    }
+    
+    UE_LOG(LogTemp, VeryVerbose, TEXT("Time: %.3f | BufferSize: %d | Sum: %.4f | dRaw: %.4f | dFiltered: %.4f"),
+           absoluteTime, integralBuffer.Num(), currentBufferSum, dx / dt, filteredDerivative);
+
+
+        
+    prevError   = error;
+    lastOutput = output;
+    return output;
+}
+
+

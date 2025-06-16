@@ -220,7 +220,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	if (bHoverModeActive && currentFlightMode == EFlightMode::VelocityControl)
 	{
 		const float altitudeError   = hoverTargetAltitude - currPos.Z;      //cm
-		desiredLocalVelocity.Z = AltitudePID->Calculate(altitudeError, DeltaTime); // cm/s
+		desiredLocalVelocity.Z = AltitudePID->Calculate(hoverTargetAltitude,currPos.Z, DeltaTime); // cm/s
 		desiredLocalVelocity.Z = FMath::Clamp(desiredLocalVelocity.Z, -100.f, 100.f);
 	}
 	
@@ -228,9 +228,9 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	currentLocalVelocity = yawOnlyRot.UnrotateVector(currVel);
 	const FVector localVelErr =  desiredLocalVelocity - currentLocalVelocity;
 
-	const double xOut = CurrentSet->XPID ->Calculate(localVelErr.X, DeltaTime);
-	const double yOut = CurrentSet->YPID ->Calculate(localVelErr.Y, DeltaTime);
-	const double zOut = CurrentSet->ZPID ->Calculate(localVelErr.Z, DeltaTime);
+	const double xOut = CurrentSet->XPID ->Calculate(desiredLocalVelocity.X,currentLocalVelocity.X, DeltaTime);
+	const double yOut = CurrentSet->YPID ->Calculate(desiredLocalVelocity.Y,currentLocalVelocity.Y, DeltaTime);
+	const double zOut = CurrentSet->ZPID ->Calculate(desiredLocalVelocity.Z,currentLocalVelocity.Z, DeltaTime);
 
 	/*-------- Angle P Control -------- */ 
 
@@ -240,8 +240,8 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	const double rollErr = desiredRoll  - currRot.Roll;
 	const double pitchErr = desiredPitch - (-currRot.Pitch); 
 
-	const double rollOut  = CurrentSet ->RollPID->Calculate(rollErr , DeltaTime);
-	const double pitchOut = CurrentSet ->PitchPID->Calculate(pitchErr, DeltaTime);
+	const double rollOut  = CurrentSet ->RollPID->Calculate(desiredRoll,currRot.Roll , DeltaTime);
+	const double pitchOut = CurrentSet ->PitchPID->Calculate(desiredPitch,-currRot.Pitch, DeltaTime);
 
 	/*-------- Angle Rate PID Control -------- */ 
 
@@ -438,7 +438,7 @@ void UQuadDroneController::YawRateControl(double DeltaTime)
 	FFullPIDSet* CurrentSet = &PIDSet;
 	if (!CurrentSet) return;
 
-	float yawTorqueFeedback = CurrentSet->YawRatePID->Calculate(yawRateError, DeltaTime);
+	float yawTorqueFeedback = CurrentSet->YawRatePID->Calculate(desiredYawRate,currentYawRate, DeltaTime);
 
 	float finalYawTorque = yawTorqueFeedback;
 

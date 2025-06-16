@@ -8,27 +8,23 @@ class QUADSIMCORE_API QuadPIDController
 public:
 	QuadPIDController();
 
-	void SetGains(float pGain, float iGain, float dGain, float filterAlpha = 0.2f);
+	void SetGains(float pGain, float iGain, float dGain, float tau = 0.1f);
 	void SetLimits(float min_output, float max_output);
+	
 	void Reset();
 	void ResetIntegral();
 
-	double Calculate(float error, float dt);
-    
+	double Calculate(float desiredState, float measuredState, float dt);
+	
 	// Getters for buffer info
 	int32 GetBufferSize() const { return integralBuffer.Num(); }
 	float GetCurrentBufferSum() const { return currentBufferSum; }
-
-	// New method to set the derivative filter coefficient
-	void SetDerivativeFilterAlpha(float alpha);
-
+	float lastOutput;
+	
 	// PID Gains
 	float ProportionalGain;
 	float IntegralGain;
 	float DerivativeGain;
-
-	// Last output for debugging or logging
-	float lastOutput;
 
 private:
 	// Integral window duration in seconds
@@ -54,8 +50,8 @@ private:
     
 	// Previous error for derivative calculation
 	float prevError;
-
-	// For derivative low-pass filter
+	
+	float lastState; 
 	float filteredDerivative;
-	float derivativeFilterAlpha;
+	float tau; 
 };
