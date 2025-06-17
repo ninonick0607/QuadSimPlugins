@@ -2,14 +2,11 @@
 
 #pragma once
 
-#include "Engine/TextureRenderTarget2D.h"
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
+#include "Engine/TextureRenderTarget2D.h" // Good practice to include here
 #include "CameraHUD.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class QUADSIMCORE_API ACameraHUD : public AHUD
 {
@@ -18,6 +15,7 @@ public:
 	virtual void DrawHUD() override;
 
 private:
-	/** Cache pointer after first Draw */
-	UTextureRenderTarget2D* CachedFPVRT = nullptr;
+	/** Cache pointer after first Draw, now safe for Garbage Collection */
+	UPROPERTY()
+	TObjectPtr<UTextureRenderTarget2D> CachedFPVRT = nullptr;
 };

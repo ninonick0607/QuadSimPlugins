@@ -22,8 +22,11 @@ UImGuiUtil::UImGuiUtil()
 {
 	const auto& Config = UDroneJSONConfig::Get().Config;
 	PrimaryComponentTick.bCanEverTick = true;
+	
 	maxVelocityBound = Config.FlightParams.MaxVelocityBound;
-	maxThrust = Config.FlightParams.MaxThrust;
+	
+	SliderMaxVelocity = Config.FlightParams.MaxVelocity;
+	SliderMaxAngle    = Config.FlightParams.MaxAngle;
 	plotSwitch = false;
 	MaxDataPoints = 100;
 
@@ -51,11 +54,7 @@ void UImGuiUtil::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompo
 
 void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
 {
-
-	const auto& Config = UDroneJSONConfig::Get().Config;
-	float maxVelocity = Config.FlightParams.MaxVelocity;
-	float maxAngle = Config.FlightParams.MaxAngle;
-
+	
 	TArray<float>& ThrustsVal = DronePawn->QuadController->Thrusts;
 	FVector currentVelocity = DronePawn->QuadController->GetCurrentLocalVelocity();
 	FVector currLoc = DronePawn->GetActorLocation();
@@ -144,11 +143,21 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
     ImGui::Separator();
 
     // Global sliders
-    ImGui::SliderFloat("Max velocity", &maxVelocity, 0.0f, maxVelocityBound);
-    ImGui::SliderFloat("Max tilt angle", &maxAngle, 0.0f, 45.0f);
-    applyToControllers([&](UQuadDroneController* C){ C->SetMaxVelocity(maxVelocity); });
-    applyToControllers([&](UQuadDroneController* C){ C->SetDesiredAngle(maxAngle); });
-    ImGui::Separator();
+	bool velChanged = ImGui::SliderFloat("Max velocity",   &SliderMaxVelocity, 0.0f, maxVelocityBound);
+	bool angChanged = ImGui::SliderFloat("Max tilt angle", &SliderMaxAngle,    0.0f, 45.0f);
+	
+	// Push any change to the active controller(s)
+	if (velChanged || angChanged)
+	{
+		applyToControllers([&](UQuadDroneController* C)
+		{
+			C->SetMaxVelocity(SliderMaxVelocity);
+			C->SetDesiredAngle (SliderMaxAngle);
+		});
+	}
+
+	
+	ImGui::Separator();
 
     // Main content depending on mode
     switch (CurrentMode)
@@ -158,7 +167,7 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
         DisplayDesiredPositions();
         break;
     case EFlightMode::VelocityControl:
-        DisplayDesiredVelocities(maxVelocity);
+        DisplayDesiredVelocities(SliderMaxVelocity);
         break;
     case EFlightMode::JoyStickControl:
         // joy-stick UI if needed
@@ -224,7 +233,7 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
     ImGui::End();
 
     if (plotSwitch)
-        RenderControlPlots(deltaTime, currentRotation, desiredRollAngle, desiredPitchAngle, maxAngle);
+        RenderControlPlots(deltaTime, currentRotation, desiredRollAngle, desiredPitchAngle, SliderMaxAngle);
     DisplayPIDHistoryWindow();
 }
 
@@ -760,7 +769,7 @@ void UImGuiUtil::DisplayButtons()
 	
 }
 
-void UImGuiUtil::DisplayDesiredVelocities(float maxVelocity)
+void UImGuiUtil::DisplayDesiredVelocities(float velocityLimit)
 {
 	ImGui::Text("Desired Velocities");
 
@@ -841,19 +850,19 @@ void UImGuiUtil::DisplayDesiredVelocities(float maxVelocity)
     ImGui::Text("Desired Velocities & Yaw Rate");
     ImGui::Spacing();
 
-    ImGui::SliderFloat("Desired Velocity X", &tempVx, -maxVelocity, maxVelocity, "%.1f cm/s");
-    ImGui::SliderFloat("Desired Velocity Y", &tempVy, -maxVelocity, maxVelocity, "%.1f cm/s");
+    ImGui::SliderFloat("Desired Velocity X", &tempVx, -velocityLimit, velocityLimit, "%.1f cm/s");
+    ImGui::SliderFloat("Desired Velocity Y", &tempVy, -velocityLimit, velocityLimit, "%.1f cm/s");
 
     if (hoverModeActive)
     {
         tempVz = 0.0f; // Explicitly keep desired Z velocity at 0 when hover is active
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); // Dim the slider
-        ImGui::SliderFloat("Desired Velocity Z (Hover)", &tempVz, -maxVelocity, maxVelocity, "%.1f cm/s");
+        ImGui::SliderFloat("Desired Velocity Z (Hover)", &tempVz, -velocityLimit, velocityLimit, "%.1f cm/s");
         ImGui::PopStyleVar();
     }
     else
     {
-        ImGui::SliderFloat("Desired Velocity Z", &tempVz, -maxVelocity, maxVelocity, "%.1f cm/s");
+        ImGui::SliderFloat("Desired Velocity Z", &tempVz, -velocityLimit, velocityLimit, "%.1f cm/s");
     }
 
     ImGui::SliderFloat("Desired Yaw Rate", &tempYr, -50.f, 50.f, "%.1f deg/s");

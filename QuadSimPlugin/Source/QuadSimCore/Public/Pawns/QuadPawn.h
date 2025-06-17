@@ -11,6 +11,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h" // For visual skeletal mesh
+#include "Engine/TextureRenderTarget2D.h" // Ensure this is included
 #include "QuadPawn.generated.h"
 
 // Forward Declarations
@@ -47,16 +48,7 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
-	UPROPERTY()
-	class USceneCaptureComponent2D* CaptureFPV;
-	UPROPERTY()
-	class USceneCaptureComponent2D* CaptureThird;
 
-	/** Render targets (we’ll create them at runtime) */
-	UPROPERTY()
-	class UTextureRenderTarget2D* RT_FPV;
-	UPROPERTY()
-	class UTextureRenderTarget2D* RT_Third;
 	// --- Drone Components ---
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UStaticMeshComponent* DroneBody;
@@ -74,6 +66,19 @@ public:
 	// Ground tracking camera
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	UCameraComponent* CameraGroundTrack;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	USceneCaptureComponent2D* CaptureFPV;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	USceneCaptureComponent2D* CaptureThird;
+
+	// Render targets to be assigned in the Blueprint Editor
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Setup")
+	UTextureRenderTarget2D* RT_FPV;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Setup")
+	UTextureRenderTarget2D* RT_Third;
 
 	// --- Thruster Components ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

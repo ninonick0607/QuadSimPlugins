@@ -117,25 +117,17 @@ AQuadPawn::AQuadPawn()
 	CameraGroundTrack = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraGroundTrack"));
 	CameraGroundTrack->bAutoActivate = false;
 
-	// 1) Create render targets
-	RT_FPV = CreateDefaultSubobject<UTextureRenderTarget2D>(TEXT("RT_FPV"));
-	RT_Third = CreateDefaultSubobject<UTextureRenderTarget2D>(TEXT("RT_Third"));
-	RT_FPV->InitAutoFormat(512, 512);
-	RT_Third->InitAutoFormat(512, 512);
-
-	// 2) Attach scene captures
 	CaptureFPV = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureFPV"));
 	CaptureFPV->SetupAttachment(CameraFPV);
 	CaptureFPV->bCaptureEveryFrame = true;
 	CaptureFPV->bCaptureOnMovement = false;
-	CaptureFPV->TextureTarget      = RT_FPV;
+	CaptureFPV->TextureTarget       = RT_FPV; 
 
 	CaptureThird = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureThird"));
 	CaptureThird->SetupAttachment(Camera);
 	CaptureThird->bCaptureEveryFrame = true;
 	CaptureThird->bCaptureOnMovement = false;
-	CaptureThird->TextureTarget      = RT_Third;
-
+	CaptureThird->TextureTarget       = RT_Third; 
 	
 	const FString propellerNames[] = { TEXT("MotorFL"), TEXT("MotorFR"), TEXT("MotorBL"), TEXT("MotorBR") };
 	const FString socketNames[] = { TEXT("MotorSocketFL"), TEXT("MotorSocketFR"), TEXT("MotorSocketBL"), TEXT("MotorSocketBR") };
