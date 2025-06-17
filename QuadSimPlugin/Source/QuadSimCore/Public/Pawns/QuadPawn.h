@@ -10,7 +10,7 @@
 #include "Components/ChildActorComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Components/SkeletalMeshComponent.h" // For visual skeletal mesh
+#include "Components/SceneCaptureComponent2D.h" // Add this include
 #include "Engine/TextureRenderTarget2D.h" // Ensure this is included
 #include "QuadPawn.generated.h"
 
@@ -18,6 +18,7 @@
 class UQuadDroneController;
 class UImGuiUtil;
 class UThrusterComponent;
+class UQuadHUDWidget;
 
 // Enum to track camera state
 UENUM(BlueprintType)
@@ -67,18 +68,20 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	UCameraComponent* CameraGroundTrack;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	USceneCaptureComponent2D* CaptureFPV;
+	// --- HUD Scene Capture Components ---
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "HUD")
+	USceneCaptureComponent2D* TPCaptureComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	USceneCaptureComponent2D* CaptureThird;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "HUD")
+	USceneCaptureComponent2D* FPVCaptureComponent;
 
-	// Render targets to be assigned in the Blueprint Editor
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Setup")
-	UTextureRenderTarget2D* RT_FPV;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Setup")
-	UTextureRenderTarget2D* RT_Third;
+	// --- HUD Render Targets ---
+	// Assign these in the Blueprint editor for this Pawn
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD")
+	UTextureRenderTarget2D* TPCaptureRenderTarget;
+    
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD")
+	UTextureRenderTarget2D* FPVCaptureRenderTarget;
 
 	// --- Thruster Components ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -140,11 +143,18 @@ public:
    TArray<FVector> GenerateFigureEightWaypoints() const;
 
 protected:
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> HUDWidgetClass;
+
+	UPROPERTY()
+	UQuadHUDWidget* HUDWidgetInstance;
+	
+	void UpdateHUD();
 	virtual void BeginPlay() override;
 
-   // Collision hit event
-   UFUNCTION()
-   void OnDroneHit(
+    UFUNCTION()
+    void OnDroneHit(
        UPrimitiveComponent* HitComponent,
        AActor* OtherActor,
        UPrimitiveComponent* OtherComp,

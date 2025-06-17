@@ -5,6 +5,8 @@
 #include "Math/UnrealMathUtility.h"
 #include "Core/DroneJSONConfig.h"
 #include "EngineUtils.h"
+#include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/Engine.h"
@@ -14,6 +16,7 @@
 #include "GameFramework/Actor.h"        
 #include "Core/ThrusterComponent.h"       
 #include "UI/ImGuiUtil.h"
+#include "UI/QuadHUDWidget.h"
 #include "Components/ChildActorComponent.h"
 
 #include "Controllers/ZMQController.h"
@@ -79,7 +82,7 @@ AQuadPawn::AQuadPawn()
 	, Camera(nullptr)
 	, CameraFPV(nullptr)
 	, CameraGroundTrack(nullptr)
-	, QuadController(nullptr)
+	, QuadController(nullptr)	
 	, ImGuiUtil(nullptr)
 	, WaypointMode(EWaypointMode::WaitingForModeSelection)
 	, NewWaypoint(FVector::ZeroVector)
@@ -99,7 +102,6 @@ AQuadPawn::AQuadPawn()
 	
 	CameraFPV = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraFPV"));
 	CameraFPV->SetupAttachment(DroneBody,TEXT("FPVCam"));
-	CameraFPV->SetRelativeScale3D(FVector(0.1f));
 	CameraFPV->bAutoActivate = true; 
 
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -117,17 +119,17 @@ AQuadPawn::AQuadPawn()
 	CameraGroundTrack = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraGroundTrack"));
 	CameraGroundTrack->bAutoActivate = false;
 
-	CaptureFPV = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureFPV"));
-	CaptureFPV->SetupAttachment(CameraFPV);
-	CaptureFPV->bCaptureEveryFrame = true;
-	CaptureFPV->bCaptureOnMovement = false;
-	CaptureFPV->TextureTarget       = RT_FPV; 
 
-	CaptureThird = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureThird"));
-	CaptureThird->SetupAttachment(Camera);
-	CaptureThird->bCaptureEveryFrame = true;
-	CaptureThird->bCaptureOnMovement = false;
-	CaptureThird->TextureTarget       = RT_Third; 
+	// Third-Person Capture (attaches to the spring arm like the main TP camera)
+	TPCaptureComponent = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("TPCaptureComponent"));
+	TPCaptureComponent->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
+	TPCaptureComponent->bCaptureEveryFrame = false; // IMPORTANT! For performance. We'll trigger captures manually.
+
+	// FPV Capture (attaches to the body like the main FPV camera)
+	FPVCaptureComponent = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("FPVCaptureComponent"));
+	FPVCaptureComponent->SetupAttachment(DroneBody, TEXT("FPVCam"));
+	FPVCaptureComponent->bCaptureEveryFrame = false; // IMPORTANT!
+
 	
 	const FString propellerNames[] = { TEXT("MotorFL"), TEXT("MotorFR"), TEXT("MotorBL"), TEXT("MotorBR") };
 	const FString socketNames[] = { TEXT("MotorSocketFL"), TEXT("MotorSocketFR"), TEXT("MotorSocketBL"), TEXT("MotorSocketBR") };
@@ -166,6 +168,35 @@ AQuadPawn::AQuadPawn()
 void AQuadPawn::BeginPlay()
 {
 	Super::BeginPlay();
+
+
+	// Assign the render target assets to the capture components
+	if (TPCaptureRenderTarget)
+	{
+		TPCaptureComponent->TextureTarget = TPCaptureRenderTarget;
+	}
+	if (FPVCaptureRenderTarget)
+	{
+		FPVCaptureComponent->TextureTarget = FPVCaptureRenderTarget;
+	}
+
+	// --- Create and add HUD to viewport ---
+	// You might want to create a C++ property for the HUD class to use
+	// For now, we assume you have a Blueprint of WBP_DroneHUD
+	if (IsLocallyControlled() && HUDWidgetClass) // Check if player controlled AND if a widget class was set in the editor
+	{
+		APlayerController* PC = GetController<APlayerController>();
+		if (PC)
+		{
+			// Use the correct CreateWidget function
+			// This uses the HUDWidgetClass property you set in the editor.
+			HUDWidgetInstance = CreateWidget<UQuadHUDWidget>(PC, HUDWidgetClass);
+			if (HUDWidgetInstance)
+			{
+				HUDWidgetInstance->AddToViewport();
+			}
+		}
+	}
 	
 	DroneID = GetName();
 	UE_LOG(LogTemp, Display, TEXT("QuadPawn BeginPlay: DroneID set to %s"), *DroneID);
@@ -204,6 +235,9 @@ void AQuadPawn::BeginPlay()
 	CameraFPV->SetActive(true);
 	CameraGroundTrack->SetActive(false);
 	CurrentCameraMode = ECameraMode::FPV;
+
+	UpdateHUD();
+
 }
 
 void AQuadPawn::Tick(float DeltaTime)
@@ -285,12 +319,19 @@ void AQuadPawn::SwitchCamera()
 		UE_LOG(LogTemp, Log, TEXT("Camera Mode: Ground Track"));
 		break;
 
-	case ECameraMode::GroundTrack:
+	// case ECameraMode::GroundTrack:
+	// 	CurrentCameraMode = ECameraMode::ThirdPerson;
+	// 	Camera->SetActive(true);
+	// 	UE_LOG(LogTemp, Log, TEXT("Camera Mode: Third Person"));
+	// 	break;
+	default:
 		CurrentCameraMode = ECameraMode::ThirdPerson;
 		Camera->SetActive(true);
-		UE_LOG(LogTemp, Log, TEXT("Camera Mode: Third Person"));
 		break;
+
 	}
+	UpdateHUD();
+
 }
 
 
@@ -378,4 +419,37 @@ void AQuadPawn::ResetCollisionStatus()
 float AQuadPawn::GetMass()
 {
 	return DroneBody ? DroneBody->GetMass() : 0.0f;
+}
+
+void AQuadPawn::UpdateHUD()
+{
+	USceneCaptureComponent2D* captureComponentToUse = nullptr;
+	UTextureRenderTarget2D* renderTargetToDisplay = nullptr;
+
+	if (CurrentCameraMode == ECameraMode::FPV)
+	{
+		captureComponentToUse = TPCaptureComponent;
+		renderTargetToDisplay = TPCaptureRenderTarget;
+	}
+	else if (CurrentCameraMode == ECameraMode::ThirdPerson)
+	{
+		captureComponentToUse = FPVCaptureComponent;
+		renderTargetToDisplay = FPVCaptureRenderTarget;
+	}
+	// Optional: Handle GroundTrack mode here too
+	else if (CurrentCameraMode == ECameraMode::GroundTrack)
+	{
+		captureComponentToUse = FPVCaptureComponent;
+		renderTargetToDisplay = FPVCaptureRenderTarget;
+	}
+    
+	if (captureComponentToUse && renderTargetToDisplay)
+	{
+		captureComponentToUse->CaptureScene();
+
+		if (HUDWidgetInstance)
+		{
+			HUDWidgetInstance->UpdateHUDTexture(renderTargetToDisplay);
+		}
+	}
 }
