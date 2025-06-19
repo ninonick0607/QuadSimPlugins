@@ -23,11 +23,13 @@ UQuadDroneController::UQuadDroneController(const FObjectInitializer& ObjectIniti
 	, currentLocalVelocity(FVector::ZeroVector)
 	, desiredForwardVector(FVector(1.0f, 0.0f, 0.0f))
 	, YawTorqueForce(2.0)
-	, desiredRollRate(0.0f)
-	, desiredPitchRate(0.0f)
+	, desiredNewRollRate(0.0f)
+	, desiredNewPitchRate(0.0f)
 	, desiredYawRate(0.0f)
 	, desiredRoll(0.0f)
 	, desiredPitch(0.0f)
+	, desiredNewRoll(0.0f)
+	, desiredNewPitch(0.0f)
 	, bDebugVisualsEnabled(false)
 	, setPoint(FVector::ZeroVector)
 	, desiredNewVelocity(FVector::ZeroVector)
@@ -38,9 +40,11 @@ UQuadDroneController::UQuadDroneController(const FObjectInitializer& ObjectIniti
 	const auto& Config = UDroneJSONConfig::Get().Config;
 	maxVelocity = Config.FlightParams.MaxVelocity;
 	maxAngle = Config.FlightParams.MaxAngle;
+	maxAngleRate = Config.FlightParams.MaxAngleRate;
 	maxPIDOutput = Config.FlightParams.MaxPIDOutput;
 	minAltitudeLocal = Config.FlightParams.MinAltitudeLocal;
     acceptableDistance = Config.FlightParams.AcceptableDistance;
+	
     // Yaw control parameters from config
     maxYawRate = Config.ControllerParams.YawRate;
     minVelocityForYaw = Config.ControllerParams.MinVelocityForYaw;
@@ -173,6 +177,20 @@ void UQuadDroneController::Update(double a_deltaTime)
             if (Manager && Manager->IsSwarmMode())
                 Manager->OnGlobalFlightModeChanged.Broadcast(currentFlightMode);
         }
+		if (ImGui::Button("Angle Control", ImVec2(200, 50)))
+		{
+			// Switch to joystick control mode
+			SetFlightMode(EFlightMode::AngleControl);
+			if (Manager && Manager->IsSwarmMode())
+				Manager->OnGlobalFlightModeChanged.Broadcast(currentFlightMode);
+		}
+		if (ImGui::Button("Rate Control", ImVec2(200, 50)))
+		{
+			// Switch to velocity control mode
+			SetFlightMode(EFlightMode::RateControl);
+			if (Manager && Manager->IsSwarmMode())
+				Manager->OnGlobalFlightModeChanged.Broadcast(currentFlightMode);
+		}
 		ImGui::End();
 	}
 
@@ -188,7 +206,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	
 	/* ───── World-space state ───── */
 	const FVector  currPos = dronePawn->GetActorLocation();     // cm
-	const FVector  currVel = dronePawn->GetVelocity();          // cm/s
+	const FVector  currVel =	 dronePawn->GetVelocity();          // cm/s
 	const FRotator currRot = dronePawn->GetActorRotation();     // deg   (Unreal FRU)
 	const FRotator yawOnlyRot(0.f, currRot.Yaw, 0.f);  // inverse yaw helper
 
@@ -203,16 +221,35 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	}
 	/*-------- Position P Control -------- */
 
-	const FVector posErr = setPoint - currPos;
-	const FVector localPosErr = yawOnlyRot.UnrotateVector(posErr);
-
-	float Kp = 1.f;
-	FVector desiredLocalVelocity = (currentFlightMode == EFlightMode::VelocityControl) ? desiredNewVelocity: DroneMathUtils::CalculateDesiredVelocity(localPosErr, maxVelocity);
-
-	/*-------- Hover Move -------- */
-	if (bHoverModeActive && currentFlightMode == EFlightMode::VelocityControl)
+	FVector desiredLocalVelocity;
+	switch (currentFlightMode)
 	{
-		desiredLocalVelocity.Z = AltitudePID->Calculate(hoverTargetAltitude,currPos.Z, DeltaTime); // cm/s
+	case EFlightMode::AutoWaypoint:
+		{
+			const FVector posErr = setPoint - currPos;
+			const FVector localPosErr = yawOnlyRot.UnrotateVector(posErr);
+			desiredLocalVelocity = DroneMathUtils::CalculateDesiredVelocity(localPosErr, maxVelocity);
+			break;
+		}
+	case EFlightMode::VelocityControl:
+		{
+			desiredLocalVelocity = desiredNewVelocity;
+			break;
+		}
+	case EFlightMode::AngleControl:
+	case EFlightMode::RateControl:
+		{
+			desiredLocalVelocity = FVector(0.0f, 0.0f, desiredNewVelocity.Z);
+			break;
+		}
+	default:
+		desiredLocalVelocity = FVector::ZeroVector;
+		break;
+	}
+	/*-------- Hover Move -------- */
+	if (bHoverModeActive)
+	{
+		desiredLocalVelocity.Z = AltitudePID->Calculate(hoverTargetAltitude,currPos.Z, DeltaTime);
 		desiredLocalVelocity.Z = FMath::Clamp(desiredLocalVelocity.Z, -100.f, 100.f);
 	}
 	
@@ -224,23 +261,32 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	const double zOut = CurrentSet->ZPID -> Calculate(desiredLocalVelocity.Z,currentLocalVelocity.Z, DeltaTime);
 
 	/*-------- Angle P Control -------- */ 
-
-	desiredRoll  = FMath::Clamp( yOut, -maxAngle,  maxAngle);
-	desiredPitch = FMath::Clamp( xOut, -maxAngle,  maxAngle);
+	
+	desiredRoll  = (currentFlightMode == EFlightMode::AngleControl) ? desiredNewRoll: FMath::Clamp( yOut, -maxAngle,  maxAngle); // Implement switch here for angle control using DesirednewRoll
+	desiredPitch = (currentFlightMode == EFlightMode::AngleControl) ? desiredNewPitch: FMath::Clamp( xOut, -maxAngle,  maxAngle); // Implement switch here
 	
 	const double rollOut  = CurrentSet ->RollPID->Calculate(desiredRoll,currRot.Roll , DeltaTime);
 	const double pitchOut = CurrentSet ->PitchPID->Calculate(desiredPitch,-currRot.Pitch, DeltaTime);
+	// UE_LOG(LogTemp, Warning, TEXT("Roll Output: %f deg/s"), rollOut);
+	// UE_LOG(LogTemp, Warning, TEXT("Pitch Output: %f deg/s"), pitchOut);
 
 	/*-------- Angle Rate PID Control -------- */ 
 
-	const double rollRateOut  = CurrentSet->RollRatePID->Calculate(rollOut,localAngularRateDeg.X,  DeltaTime);
-	const double pitchRateOut = CurrentSet->PitchRatePID->Calculate(pitchOut,-localAngularRateDeg.Y, DeltaTime);
+	float desiredPitchRate = (currentFlightMode == EFlightMode::RateControl) ? desiredNewPitchRate: FMath::Clamp(pitchOut, -maxAngleRate, maxAngleRate); // Implement switch here for angle control using DesiredNewPitchRate
+	float desiredRollRate = (currentFlightMode == EFlightMode::RateControl) ? desiredNewRollRate: FMath::Clamp(rollOut, -maxAngleRate,  maxAngleRate); // Implement switch here for angle control 
+
+	UE_LOG(LogTemp, Warning, TEXT("Desired Pitch Rate: %f deg/s"), desiredPitchRate);
+	UE_LOG(LogTemp, Warning, TEXT("Desired Roll Rate: %f deg/s"), desiredRollRate);
+	UE_LOG(LogTemp, Warning, TEXT("Current Pitch Angular Rate: %f deg/s"), localAngularRateDeg.Y);
+	UE_LOG(LogTemp, Warning, TEXT("Current Roll Angular Rate: %f deg/s"), localAngularRateDeg.X);
+
+	const double pitchRateOut = CurrentSet->PitchRatePID->Calculate(desiredPitchRate,-localAngularRateDeg.Y, DeltaTime);
+	const double rollRateOut  = CurrentSet->RollRatePID->Calculate(desiredRollRate,localAngularRateDeg.X,  DeltaTime);
+
+	const float yawOutput = YawRateControl(DeltaTime);
 
 	//  Mix & apply motor thrusts / torques
-	ThrustMixer(desiredRoll, desiredPitch, zOut, rollOut, pitchOut);
-
-	//  Yaw is controlled as a separate outer/inner loop elsewhere
-	YawRateControl(DeltaTime);
+	ThrustMixer(desiredRoll, desiredPitch, zOut, rollOut, pitchOut, yawOutput);
 
 	//  Debug drawing and on‑screen HUD (optional)
 	DrawDebugVisualsVel(FVector(desiredLocalVelocity.X, desiredLocalVelocity.Y, 0.f));
@@ -385,7 +431,7 @@ void UQuadDroneController::dynamicController(double DeltaTime)
 }
 // ---------------------- Thrust Functions ------------------------
 
-void UQuadDroneController::ThrustMixer(double xOut, double yOut, double zOut, double rollOutput, double pitchOutput)
+void UQuadDroneController::ThrustMixer(double xOut, double yOut, double zOut, double rollOutput, double pitchOutput, double yawOutput)
 {
 	float droneMass = dronePawn->DroneBody->GetMass();
 	const float gravity = 980.0f;
@@ -394,10 +440,10 @@ void UQuadDroneController::ThrustMixer(double xOut, double yOut, double zOut, do
 	float baseThrust = hoverThrust + zOut / 4.0f;
 	baseThrust /= FMath::Cos(FMath::DegreesToRadians(FMath::Sqrt(FMath::Pow(xOut, 2) + FMath::Pow(yOut, 2))));
  
-	Thrusts[0] = baseThrust - pitchOutput + rollOutput; //FL
-	Thrusts[1] = baseThrust - pitchOutput - rollOutput; //FR
-	Thrusts[2] = baseThrust + pitchOutput + rollOutput; //BL
-	Thrusts[3] = baseThrust + pitchOutput - rollOutput; //BR
+	Thrusts[0] = baseThrust - pitchOutput + rollOutput - yawOutput; //FL
+	Thrusts[1] = baseThrust - pitchOutput - rollOutput + yawOutput; //FR
+	Thrusts[2] = baseThrust + pitchOutput + rollOutput + yawOutput; //BL
+	Thrusts[3] = baseThrust + pitchOutput - rollOutput - yawOutput; //BR
 	
 	// Paper is FR, BL, FL, BR
 	for (int i = 0; i < Thrusts.Num(); i++)
@@ -412,32 +458,43 @@ void UQuadDroneController::ThrustMixer(double xOut, double yOut, double zOut, do
 		double force = Thrusts[i];
 		dronePawn->Thrusters[i]->ApplyForce(force);
 	}
+	
+	FVector upVector = dronePawn->GetActorUpVector();
+	FVector virtualTorque = upVector * yawOutput * YawTorqueForce;
+	for (UThrusterComponent* Thruster : dronePawn->Thrusters)
+	{
+		if (Thruster)
+		{
+			Thruster->ApplyTorque(virtualTorque, true);
+		}
+	}
+
 }
 
-void UQuadDroneController::YawRateControl(double DeltaTime)
+float  UQuadDroneController::YawRateControl(double DeltaTime)
 {
-	if (!dronePawn || !dronePawn->DroneBody) return;
+	if (!dronePawn || !dronePawn->DroneBody) return 0.0f;
 	
 	FFullPIDSet* CurrentSet = &PIDSet;
-	if (!CurrentSet) return;
+	if (!CurrentSet) return 0.0f;
 	
 	FVector currentAngularVelocity = dronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
 	float currentYawRate = currentAngularVelocity.Z;
 
 	float yawTorqueFeedback = CurrentSet->YawRatePID->Calculate(desiredYawRate,currentYawRate, DeltaTime);
-
-	float finalYawTorque = yawTorqueFeedback;
-
-	FVector upVector = dronePawn->DroneBody->GetUpVector();
-	FVector torqueVector = upVector * finalYawTorque * YawTorqueForce;
-
-	for (UThrusterComponent* Thruster : dronePawn->Thrusters)
-	{
-		if (Thruster)
-		{
-			Thruster->ApplyTorque(torqueVector, true);
-		}
-	}
+	return yawTorqueFeedback;
+	// float finalYawTorque = yawTorqueFeedback;
+	//
+	// FVector upVector = dronePawn->DroneBody->GetUpVector();
+	// FVector torqueVector = upVector * finalYawTorque * YawTorqueForce;
+	//
+	// for (UThrusterComponent* Thruster : dronePawn->Thrusters)
+	// {
+	// 	if (Thruster)
+	// 	{
+	// 		Thruster->ApplyTorque(torqueVector, true);
+	// 	}
+	// }
 }
 
 // ------ Reset Functions ------------------------
@@ -527,16 +584,11 @@ void UQuadDroneController::ResetDroneOrigin()
 // ------------ Setter and Getter -------------------
 
 
-void UQuadDroneController::SetDesiredVelocity(const FVector& NewVelocity)
-{
-	desiredNewVelocity = NewVelocity;
-}
-
 void UQuadDroneController::SetManualThrustMode(bool bEnable)
 {
 	bManualThrustMode = bEnable;
 	if (bManualThrustMode)
-	{
+	{	
 		UE_LOG(LogTemp, Display, TEXT("Manual Thrust Mode ENABLED"));
 	}
 	else

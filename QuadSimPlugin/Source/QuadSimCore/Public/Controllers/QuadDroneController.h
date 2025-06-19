@@ -13,7 +13,9 @@ enum class EFlightMode : uint8
     None UMETA(DisplayName = "None"),
     AutoWaypoint UMETA(DisplayName = "AutoWaypoint"),
     JoyStickControl UMETA(DisplayName = "JoyStickControl"),
-    VelocityControl UMETA(DisplayName = "VelocityControl")
+    VelocityControl UMETA(DisplayName = "VelocityControl"),
+    AngleControl UMETA(DisplayName = "AngleControl"),
+    RateControl UMETA(DisplayName = "RateControl")
 };
 
 USTRUCT()
@@ -63,15 +65,15 @@ public:
     //void ApplyControllerInput(double a_deltaTime);
     void FlightController(double DeltaTime);
     void dynamicController(double DeltaTime);
-    void ThrustMixer(double currentRoll, double currentPitch, double zOutput, double rollOutput, double pitchOutput);
-    void YawRateControl(double DeltaTime);
+    void ThrustMixer(double currentRoll, double currentPitch, double zOutput, double rollOutput, double pitchOutput, double yawOutput);
+    float YawRateControl(double DeltaTime);
     
     void ResetPID();
     void ResetDroneIntegral();
     void ResetDroneHigh();
     void ResetDroneOrigin();
 
-    void SetDesiredVelocity(const FVector& NewVelocity);
+
     void SetManualThrustMode(bool bEnable);
     void SetHoverMode(bool bActive, float TargetAltitude = 250.0f);
     void SetDestination(FVector desiredSetPoints);
@@ -91,11 +93,19 @@ public:
     const TArray<float>& GetThrusts() const { return Thrusts; }
 
     void SetDebugVisualsEnabled(bool bEnabled) { bDebugVisualsEnabled = bEnabled; }
-    void SetDesiredYawRate(float NewYawRate) { desiredYawRate = NewYawRate; }
     void SetDesiredAngle(float newAngle) { maxAngle = newAngle; }
     void SetMaxVelocity(float newMaxVelocity) { maxVelocity = newMaxVelocity;}
     void SetMaxAngle(float newMaxAngle) { maxAngle = newMaxAngle;}
     bool IsHoverModeActive() const { return bHoverModeActive; }
+
+    void SetDesiredVelocity(const FVector& NewVelocity){desiredNewVelocity = NewVelocity;};
+    
+    void SetDesiredPitchAngle(const float& NewPitch){desiredNewPitch=NewPitch;};
+    void SetDesiredRollAngle(const float& NewRoll){desiredNewRoll=NewRoll;};
+
+    void SetDesiredPitchRate(const float& NewPitchRate){desiredNewPitchRate = NewPitchRate;};
+    void SetDesiredRollRate(const float& NewRollRate){desiredNewRollRate = NewRollRate;};
+    void SetDesiredYawRate(float NewYawRate) { desiredYawRate = NewYawRate; }
 
     float GetCurrentThrustOutput(int32 ThrusterIndex) const;
     UFUNCTION(BlueprintPure, Category = "Drone State")
@@ -119,6 +129,7 @@ private:
     FVector currentLocalVelocity;
     float maxVelocity;
     float maxAngle;
+    float maxAngleRate;
     float maxPIDOutput;
     FVector desiredForwardVector;
     double YawTorqueForce;
@@ -130,16 +141,17 @@ private:
     float acceptableDistance;
     
     // Velocity Control
-    
     FVector desiredNewVelocity;
-    
-    // Angle Control
+
+    // Angle Controlv
     double desiredRoll;
     double desiredPitch;
+    double desiredNewRoll;
+    double desiredNewPitch;
 
     // Angle Rate Control
-    double desiredRollRate;
-    double desiredPitchRate;
+    double desiredNewRollRate;
+    double desiredNewPitchRate;
     float desiredYawRate;
     
     // Cascaded yaw control parameters

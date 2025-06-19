@@ -27,6 +27,7 @@ UImGuiUtil::UImGuiUtil()
 	
 	SliderMaxVelocity = Config.FlightParams.MaxVelocity;
 	SliderMaxAngle    = Config.FlightParams.MaxAngle;
+	SliderMaxAngleRate = Config.FlightParams.MaxAngleRate;
 	plotSwitch = false;
 	MaxDataPoints = 100;
 
@@ -103,6 +104,7 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
             ImGui::InputFloat("Max Velocity Bound", &Cfg.FlightParams.MaxVelocityBound);
             ImGui::InputFloat("Max Velocity", &Cfg.FlightParams.MaxVelocity);
             ImGui::InputFloat("Max Angle", &Cfg.FlightParams.MaxAngle);
+        	ImGui::InputFloat("Max Angle Rate", &Cfg.FlightParams.MaxAngleRate);
             ImGui::InputFloat("Max PID Output", &Cfg.FlightParams.MaxPIDOutput);
             ImGui::InputFloat("Altitude Threshold", &Cfg.FlightParams.AltitudeThreshold);
             ImGui::InputFloat("Min Altitude Local", &Cfg.FlightParams.MinAltitudeLocal);
@@ -172,6 +174,12 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
     case EFlightMode::JoyStickControl:
         // joy-stick UI if needed
         break;
+    case EFlightMode::AngleControl:
+		DisplayDesiredAngles(SliderMaxAngle);
+    	break;
+    case EFlightMode::RateControl:
+        DisplayDesiredAngleRates(SliderMaxAngleRate);
+    	break;
     }
 
     // Thruster & state info
@@ -954,8 +962,6 @@ void UImGuiUtil::DisplayDesiredVelocities(float velocityLimit)
         prevYr = tempYr;
     }
 }
-
-
 void UImGuiUtil::DisplayDesiredPositions()
 {
 	if (!Controller)
@@ -1086,7 +1092,333 @@ void UImGuiUtil::DisplayDesiredPositions()
 
 	ImGui::Separator();
 }
+void UImGuiUtil::DisplayDesiredAngles(float maxAngle)
+{
+	ImGui::Text("Desired Angles & Altitude Control");
 
+	// Static variables to hold the state of the sliders and hover mode
+	static float desiredRoll = 0.0f;
+	static float desiredPitch = 0.0f;
+	static float desiredZVelocity = 0.0f;
+	static float desiredYawRate = 0.0f;
+	static float desiredHoverAltitude = 250.0f; // Default hover altitude
+	static bool firstRun = true;
+
+	if (!Controller)
+	{
+		ImGui::Text("Controller not available.");
+		return;
+	}
+
+	// Get current state from the controller
+	bool hoverModeActive = Controller->IsHoverModeActive();
+
+	// On the first run, initialize static variables with the controller's current state
+	if (firstRun)
+	{
+		desiredRoll = Controller->GetDesiredRoll();
+		desiredPitch = Controller->GetDesiredPitch();
+		desiredYawRate = Controller->GetDesiredYawRate();
+		// We use a local static for desired Z velocity, initializing to the controller's current.
+		desiredZVelocity = Controller->GetDesiredVelocity().Z;
+		firstRun = false;
+	}
+
+	// A flag to indicate if any value has changed and needs to be sent to the controller
+	bool valueChanged = false;
+
+	// --- Hover Mode Control (Identical to DisplayDesiredVelocities) ---
+	ImGui::PushStyleColor(ImGuiCol_Button, hoverModeActive ? ImVec4(0.1f, 0.8f, 0.6f, 1.0f) : ImVec4(0.1f, 0.6f, 0.8f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hoverModeActive ? ImVec4(0.2f, 0.9f, 0.7f, 1.0f) : ImVec4(0.2f, 0.7f, 0.9f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, hoverModeActive ? ImVec4(0.0f, 0.7f, 0.5f, 1.0f) : ImVec4(0.0f, 0.5f, 0.7f, 1.0f));
+
+	if (ImGui::Button(hoverModeActive ? "HOVER MODE ACTIVE" : "ACTIVATE HOVER MODE", ImVec2(200, 35)))
+	{
+		bool activateHover = !hoverModeActive;
+		ADroneManager* Manager = ADroneManager::Get(GetWorld());
+		if (Manager && Manager->IsSwarmMode())
+		{
+			for (AQuadPawn* pawn : Manager->GetDroneList())
+			{
+				if (pawn && pawn->QuadController)
+				{
+					pawn->QuadController->SetHoverMode(activateHover, activateHover ? desiredHoverAltitude : 0.0f);
+				}
+			}
+		}
+		else if (Controller)
+		{
+			Controller->SetHoverMode(activateHover, activateHover ? desiredHoverAltitude : 0.0f);
+		}
+		hoverModeActive = activateHover; // Update local state immediately
+		if (hoverModeActive) desiredZVelocity = 0.0f; // Zero out Z-velocity when activating hover
+		valueChanged = true;
+	}
+	ImGui::PopStyleColor(3);
+
+	// Hover Altitude Slider
+	if (ImGui::SliderFloat("Desired Hover Altitude (cm)", &desiredHoverAltitude, 50.0f, 1000.0f, "%.0f cm"))
+	{
+		valueChanged = true; // Mark as changed to update hover altitude if active
+	}
+
+	// If hover is active, continuously update the target altitude
+	if (hoverModeActive)
+	{
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0.1f, 0.8f, 0.6f, 1.0f), "Target Altitude: %.0f cm", desiredHoverAltitude);
+		static float lastSentAltitude = -1.0f;
+		if (fabs(desiredHoverAltitude - lastSentAltitude) > 1.0f) // Deadzone to prevent spamming
+		{
+			ADroneManager* Manager = ADroneManager::Get(GetWorld());
+			if (Manager && Manager->IsSwarmMode()) {
+				for (AQuadPawn* pawn : Manager->GetDroneList()) {
+					if (pawn && pawn->QuadController) pawn->QuadController->SetHoverMode(true, desiredHoverAltitude);
+				}
+			}
+			else if (Controller) {
+				Controller->SetHoverMode(true, desiredHoverAltitude);
+			}
+			lastSentAltitude = desiredHoverAltitude;
+		}
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Text("Desired Angles & Yaw Rate");
+	ImGui::Spacing();
+
+	// --- Main Angle & Yaw Sliders ---
+	if (ImGui::SliderFloat("Desired Roll", &desiredRoll, -maxAngle, maxAngle, "%.1f deg")) valueChanged = true;
+	if (ImGui::SliderFloat("Desired Pitch", &desiredPitch, -maxAngle, maxAngle, "%.1f deg")) valueChanged = true;
+
+	// --- Z-Velocity Control (identical logic to DisplayDesiredVelocities) ---
+	if (hoverModeActive)
+	{
+		desiredZVelocity = 0.0f; // Explicitly keep desired Z velocity at 0 when hover is active
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		ImGui::SliderFloat("Desired Velocity Z (Hover)", &desiredZVelocity, -SliderMaxVelocity, SliderMaxVelocity, "%.1f cm/s");
+		ImGui::PopStyleVar();
+	}
+	else
+	{
+		if (ImGui::SliderFloat("Desired Velocity Z", &desiredZVelocity, -SliderMaxVelocity, SliderMaxVelocity, "%.1f cm/s")) valueChanged = true;
+	}
+
+	if (ImGui::SliderFloat("Desired Yaw Rate", &desiredYawRate, -50.f, 50.f, "%.1f deg/s")) valueChanged = true;
+
+	ImGui::Separator();
+
+	// --- Reset Buttons ---
+	ImGui::Text("Reset to 0:");
+	ImGui::SameLine();
+	if (ImGui::Button("Roll")) { desiredRoll = 0.0f; valueChanged = true; }
+	ImGui::SameLine();
+	if (ImGui::Button("Pitch")) { desiredPitch = 0.0f; valueChanged = true; }
+	ImGui::SameLine();
+	if (!hoverModeActive)
+	{
+		if (ImGui::Button("Z")) { desiredZVelocity = 0.0f; valueChanged = true; }
+	}
+	else {
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		ImGui::Button("Z"); // Disabled button
+		ImGui::PopStyleVar();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Yaw")) { desiredYawRate = 0.0f; valueChanged = true; }
+
+	ImGui::Separator();
+
+	// --- Apply Changes to Controller(s) ---
+	if (valueChanged)
+	{
+		auto applyToController = [&](UQuadDroneController* C)
+		{
+			if (C)
+			{
+				C->SetDesiredRollAngle(desiredRoll);
+				C->SetDesiredPitchAngle(desiredPitch);
+				C->SetDesiredYawRate(desiredYawRate);
+
+				// In AngleControl mode, the drone primarily responds to roll/pitch commands.
+				// We also need to control the vertical speed.
+				// If not hovering, we directly set the Z component of the desired velocity.
+				if (!C->IsHoverModeActive()) {
+					FVector currentDesiredVel = C->GetDesiredVelocity();
+					FVector newDesiredVel(currentDesiredVel.X, currentDesiredVel.Y, desiredZVelocity);
+					C->SetDesiredVelocity(newDesiredVel);
+				}
+			}
+		};
+
+		// Apply to swarm or single controller
+		ADroneManager* Manager = ADroneManager::Get(GetWorld());
+		if (Manager && Manager->IsSwarmMode())
+		{
+			for (AQuadPawn* pawn : Manager->GetDroneList())
+			{
+				applyToController(pawn->QuadController);
+			}
+		}
+		else
+		{
+			applyToController(Controller);
+		}
+	}
+}
+void UImGuiUtil::DisplayDesiredAngleRates(float maxRate)
+{
+	ImGui::Text("Desired Angle Rates & Altitude Control");
+
+	// Static variables to hold the state of the sliders and hover mode
+	static float desiredRollRate = 0.0f;
+	static float desiredPitchRate = 0.0f;
+	static float desiredZVelocity = 0.0f;
+	static float desiredYawRate_persistent = 0.0f; // Use a different name to avoid confusion
+	static float desiredHoverAltitude = 250.0f;
+	static bool firstRun = true;
+
+	if (!Controller)
+	{
+		ImGui::Text("Controller not available.");
+		return;
+	}
+
+	bool hoverModeActive = Controller->IsHoverModeActive();
+
+	if (firstRun)
+	{
+		// On first run, initialize persistent values
+		desiredYawRate_persistent = Controller->GetDesiredYawRate();
+		desiredZVelocity = Controller->GetDesiredVelocity().Z;
+		firstRun = false;
+	}
+
+	// Helper lambda for broadcasting commands to single or swarm drones
+	auto applyToControllers = [&](auto&& Func) {
+		ADroneManager* Manager = ADroneManager::Get(GetWorld());
+		if (Manager && Manager->IsSwarmMode()) {
+			for (AQuadPawn* pawn : Manager->GetDroneList()) {
+				if (pawn && pawn->QuadController) {
+					Func(pawn->QuadController);
+				}
+			}
+		}
+		else if (Controller) {
+			Func(Controller);
+		}
+	};
+
+	// --- Hover Mode Control (Identical to previous modes) ---
+	ImGui::PushStyleColor(ImGuiCol_Button, hoverModeActive ? ImVec4(0.1f, 0.8f, 0.6f, 1.0f) : ImVec4(0.1f, 0.6f, 0.8f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hoverModeActive ? ImVec4(0.2f, 0.9f, 0.7f, 1.0f) : ImVec4(0.2f, 0.7f, 0.9f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, hoverModeActive ? ImVec4(0.0f, 0.7f, 0.5f, 1.0f) : ImVec4(0.0f, 0.5f, 0.7f, 1.0f));
+
+	if (ImGui::Button(hoverModeActive ? "HOVER MODE ACTIVE" : "ACTIVATE HOVER MODE", ImVec2(200, 35)))
+	{
+		bool activateHover = !hoverModeActive;
+		applyToControllers([&](UQuadDroneController* C) {
+			C->SetHoverMode(activateHover, activateHover ? desiredHoverAltitude : 0.0f);
+		});
+		hoverModeActive = activateHover;
+		if (hoverModeActive) desiredZVelocity = 0.0f;
+	}
+	ImGui::PopStyleColor(3);
+
+	bool hoverAltitudeChanged = ImGui::SliderFloat("Desired Hover Altitude (cm)", &desiredHoverAltitude, 50.0f, 1000.0f, "%.0f cm");
+	if (hoverModeActive)
+	{
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0.1f, 0.8f, 0.6f, 1.0f), "Target Altitude: %.0f cm", desiredHoverAltitude);
+		if (hoverAltitudeChanged)
+		{
+			applyToControllers([&](UQuadDroneController* C) { C->SetHoverMode(true, desiredHoverAltitude); });
+		}
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Text("Desired Angle Rates (Momentary)");
+	ImGui::Spacing();
+
+	// --- Momentary Angle Rate Sliders ---
+	// Roll Rate
+	if (ImGui::SliderFloat("Desired Roll Rate", &desiredRollRate, -maxRate, maxRate, "%.1f deg/s"))
+	{
+		applyToControllers([&](UQuadDroneController* C) { C->SetDesiredRollRate(desiredRollRate); });
+	}
+	if (ImGui::IsItemDeactivatedAfterEdit()) // This is true on mouse release
+	{
+		applyToControllers([&](UQuadDroneController* C) { C->SetDesiredRollRate(0.0f); });
+		desiredRollRate = 0.0f;
+	}
+
+	// Pitch Rate
+	if (ImGui::SliderFloat("Desired Pitch Rate", &desiredPitchRate, -maxRate, maxRate, "%.1f deg/s"))
+	{
+		applyToControllers([&](UQuadDroneController* C) { C->SetDesiredPitchRate(desiredPitchRate); });
+	}
+	if (ImGui::IsItemDeactivatedAfterEdit()) // This is true on mouse release
+	{
+		applyToControllers([&](UQuadDroneController* C) { C->SetDesiredPitchRate(0.0f); });
+		desiredPitchRate = 0.0f;
+	}
+
+	ImGui::Separator();
+	ImGui::Text("Desired Vertical Velocity & Yaw Rate (Persistent)");
+	
+	bool zVelChanged = false;
+	bool yawRateChanged = false;
+
+	// --- Persistent Z-Velocity and Yaw Rate Sliders ---
+	if (hoverModeActive)
+	{
+		desiredZVelocity = 0.0f;
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		ImGui::SliderFloat("Desired Velocity Z (Hover)", &desiredZVelocity, -SliderMaxVelocity, SliderMaxVelocity, "%.1f cm/s");
+		ImGui::PopStyleVar();
+	}
+	else
+	{
+		if (ImGui::SliderFloat("Desired Velocity Z", &desiredZVelocity, -SliderMaxVelocity, SliderMaxVelocity, "%.1f cm/s")) zVelChanged = true;
+	}
+
+	if (ImGui::SliderFloat("Desired Yaw Rate", &desiredYawRate_persistent, -50.f, 50.f, "%.1f deg/s")) yawRateChanged = true;
+
+	ImGui::Separator();
+
+	// --- Reset Buttons for Persistent Controls ---
+	ImGui::Text("Reset to 0:");
+	ImGui::SameLine();
+	if (!hoverModeActive)
+	{
+		if (ImGui::Button("Z")) { desiredZVelocity = 0.0f; zVelChanged = true; }
+	}
+	else {
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		ImGui::Button("Z"); // Disabled button
+		ImGui::PopStyleVar();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Yaw")) { desiredYawRate_persistent = 0.0f; yawRateChanged = true; }
+
+	// --- Apply Changes for Persistent Controls ---
+	if (zVelChanged)
+	{
+		applyToControllers([&](UQuadDroneController* C) {
+			if (!C->IsHoverModeActive()) {
+				FVector currentDesiredVel = C->GetDesiredVelocity();
+				FVector newDesiredVel(currentDesiredVel.X, currentDesiredVel.Y, desiredZVelocity);
+				C->SetDesiredVelocity(newDesiredVel);
+			}
+		});
+	}
+	if (yawRateChanged)
+	{
+		applyToControllers([&](UQuadDroneController* C) { C->SetDesiredYawRate(desiredYawRate_persistent); });
+	}
+}
 void UImGuiUtil::DisplayPIDHistoryWindow()
 {
 	ImGui::SetNextWindowPos(ImVec2(420, 520), ImGuiCond_FirstUseEver);

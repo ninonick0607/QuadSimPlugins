@@ -13,6 +13,7 @@ struct FDroneConfigData
 		float MaxVelocityBound;
 		float MaxVelocity;
 		float MaxAngle;
+		float MaxAngleRate;
 		float MaxPIDOutput;
 		float MaxThrust;
 		float AltitudeThreshold;

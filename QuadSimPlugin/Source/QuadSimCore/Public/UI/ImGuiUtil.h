@@ -29,6 +29,9 @@ public:
     void DisplayButtons();
     void DisplayThrust(TArray<float>& ThrustsNum);
     void DisplayDesiredVelocities(float maxVelocity);
+    void DisplayDesiredAngles(float maxAngle);
+    void DisplayDesiredAngleRates(float maxRate);
+
     void DisplayDesiredPositions();
     void DisplayPIDHistoryWindow();
 
@@ -55,6 +58,8 @@ private:
     float SliderMaxVelocity;
     UPROPERTY()
     float SliderMaxAngle;
+    UPROPERTY()
+    float SliderMaxAngleRate;
     // Data for plotting
     TArray<float> TimeData;
     TArray<float> Thrust0Data;

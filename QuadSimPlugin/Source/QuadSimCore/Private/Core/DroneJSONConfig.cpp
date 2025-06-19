@@ -61,6 +61,7 @@ bool UDroneJSONConfig::LoadConfig()
         (*FlightParams)->TryGetNumberField(TEXT("max_velocity_bound"), Config.FlightParams.MaxVelocityBound); 
         (*FlightParams)->TryGetNumberField(TEXT("max_velocity"), Config.FlightParams.MaxVelocity); 
         (*FlightParams)->TryGetNumberField(TEXT("max_angle"), Config.FlightParams.MaxAngle);
+        (*FlightParams)->TryGetNumberField(TEXT("max_angle_rate"), Config.FlightParams.MaxAngleRate);
         (*FlightParams)->TryGetNumberField(TEXT("max_pid_output"), Config.FlightParams.MaxPIDOutput);
         (*FlightParams)->TryGetNumberField(TEXT("max_thrust"), Config.FlightParams.MaxThrust);
         (*FlightParams)->TryGetNumberField(TEXT("altitude_threshold"), Config.FlightParams.AltitudeThreshold);
