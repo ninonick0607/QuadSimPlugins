@@ -5,7 +5,6 @@
 #include "DroneManager.generated.h"
 
 class AQuadPawn;
-//class AROS2Controller; // Removed; ROS2Controller is now embedded within QuadPawn
 // Forward declaration for flight modes
 enum class EFlightMode : uint8;
 

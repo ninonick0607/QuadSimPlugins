@@ -4,16 +4,14 @@
 #include "Pawns/QuadPawn.h"
 #include "string"
 #include "Controllers/QuadDroneController.h"
-#include "Controllers/ROS2Controller.h"
 #include "Kismet/GameplayStatics.h"
 #include "Core/DroneJSONConfig.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
-// Include plugin manager to locate plugin directory for PIDGains.csv
-#include "Interfaces/IPluginManager.h"
 #include <string>
 #include "Misc/DateTime.h"
 #include "Core/DroneManager.h"
+#include "Interfaces/IPluginManager.h"
 
 UImGuiUtil::UImGuiUtil()
 	: DronePawn(nullptr)
@@ -24,16 +22,23 @@ UImGuiUtil::UImGuiUtil()
 {
 	const auto& Config = UDroneJSONConfig::Get().Config;
 	PrimaryComponentTick.bCanEverTick = true;
+	
 	maxVelocityBound = Config.FlightParams.MaxVelocityBound;
-	maxThrust = Config.FlightParams.MaxThrust;
+	
+	SliderMaxVelocity = Config.FlightParams.MaxVelocity;
+	SliderMaxAngle    = Config.FlightParams.MaxAngle;
+	SliderMaxAngleRate = Config.FlightParams.MaxAngleRate;
 	plotSwitch = false;
+	MaxDataPoints = 100;
 
 }
 
 void UImGuiUtil::Initialize(AQuadPawn* InPawn, UQuadDroneController* InController)
 { 
-	DronePawn = InPawn;
-	Controller = InController;
+    DronePawn = InPawn;
+    Controller = InController;
+
+
 }
 
 void UImGuiUtil::BeginPlay()
@@ -47,16 +52,22 @@ void UImGuiUtil::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompo
 }
 
 
-void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
-                          float desiredRollAngle, float desiredPitchAngle,
-                          const FRotator& currentRotation,
-                          const FVector& waypoint, const FVector& currLoc,
-                          const FVector& error,
-                          const FVector& currentVelocity,
-                          float maxVelocity,
-                          float maxAngle,
-                          float xOutput, float yOutput, float zOutput, float deltaTime)
+
+void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
 {
+	
+	TArray<float>& ThrustsVal = DronePawn->QuadController->Thrusts;
+	FVector currentVelocity = DronePawn->QuadController->GetCurrentLocalVelocity();
+	FVector currentAngularVelocity = DronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();//DronePawn->QuadController->GetCurrentAngularVelocity();
+	FVector currLoc = DronePawn->GetActorLocation();
+	FRotator currentRotation = DronePawn->GetActorRotation();
+	
+	double desiredRollAngle = DronePawn->QuadController->GetDesiredRoll();
+	double desiredPitchAngle = DronePawn->QuadController->GetDesiredPitch();
+
+	double desiredRollAngleRate = DronePawn->QuadController->GetDesiredRollRate();
+	double desiredPitchAngleRate = DronePawn->QuadController->GetDesiredPitchRate();
+	
     // Window setup
     ImGui::SetNextWindowPos(ImVec2(420, 10), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(500, 600), ImGuiCond_FirstUseEver);
@@ -64,28 +75,8 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
 	ImGui::SetNextWindowPos(ImVec2(420, 10), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(500, 500), ImGuiCond_FirstUseEver);
  
-    // Get the ROS2Controller attached to this Pawn to query goal state
-    AROS2Controller* ros2ControllerCurrent = nullptr;
-    if (DronePawn)
-    {
-        TArray<AActor*> AttachedActors;
-        DronePawn->GetAttachedActors(AttachedActors);
-        for (AActor* Actor : AttachedActors)
-        {
-            ros2ControllerCurrent = Cast<AROS2Controller>(Actor);
-            if (ros2ControllerCurrent)
-            {
-                break;
-            }
-        }
-    }
-    FVector currentGoalState = FVector::ZeroVector;
     // Use Pawn's DroneID as identifier
     FString droneID = DronePawn ? DronePawn->DroneID : FString(TEXT("Unknown"));
-    if (ros2ControllerCurrent)
-    {
-        currentGoalState = ros2ControllerCurrent->GetCurrentGoalPosition();
-    }
  
 	FString WindowName = FString::Printf(TEXT("Drone Controller##%s"), *droneID);
     ImGui::Begin(TCHAR_TO_UTF8(*WindowName), nullptr, ImGuiWindowFlags_AlwaysVerticalScrollbar);
@@ -110,38 +101,34 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
         bShowSettingsUI = !bShowSettingsUI;
     }
     if (bShowSettingsUI) {
-        ImGui::End();
-        // Settings Window
-        if (ImGui::Begin("Settings", &bShowSettingsUI, ImGuiWindowFlags_AlwaysAutoResize)) {
-            auto& Cfg = UDroneJSONConfig::Get().Config;
-            // Flight Parameters
-            if (ImGui::CollapsingHeader("Flight Parameters")) {
-                ImGui::InputFloat("Max Velocity Bound", &Cfg.FlightParams.MaxVelocityBound);
-                ImGui::InputFloat("Max Velocity", &Cfg.FlightParams.MaxVelocity);
-                ImGui::InputFloat("Max Angle", &Cfg.FlightParams.MaxAngle);
-                ImGui::InputFloat("Max PID Output", &Cfg.FlightParams.MaxPIDOutput);
-                ImGui::InputFloat("Altitude Threshold", &Cfg.FlightParams.AltitudeThreshold);
-                ImGui::InputFloat("Min Altitude Local", &Cfg.FlightParams.MinAltitudeLocal);
-                ImGui::InputFloat("Acceptable Distance", &Cfg.FlightParams.AcceptableDistance);
-            }
-            // Controller Parameters
-            if (ImGui::CollapsingHeader("Controller Parameters")) {
-                ImGui::InputFloat("Altitude Rate", &Cfg.ControllerParams.AltitudeRate);
-                ImGui::InputFloat("Yaw Rate", &Cfg.ControllerParams.YawRate);
-                ImGui::InputFloat("Min Velocity For Yaw", &Cfg.ControllerParams.MinVelocityForYaw);
-            }
-            // Obstacle Parameters
-            if (ImGui::CollapsingHeader("Obstacle Parameters")) {
-                ImGui::InputFloat("Outer Boundary Size", &Cfg.ObstacleParams.OuterBoundarySize);
-                ImGui::InputFloat("Inner Boundary Size", &Cfg.ObstacleParams.InnerBoundarySize);
-                ImGui::InputFloat("Spawn Height", &Cfg.ObstacleParams.SpawnHeight);
-            }
-            if (ImGui::Button("Save Settings")) {
-                if (UDroneJSONConfig::Get().SaveConfig()) {
-                    UE_LOG(LogTemp, Log, TEXT("Config saved successfully."));
-                } else {
-                    UE_LOG(LogTemp, Error, TEXT("Failed to save config."));
-                }
+        auto& Cfg = UDroneJSONConfig::Get().Config;
+        ImGui::Separator();
+        ImGui::Text("Settings");
+        if (ImGui::CollapsingHeader("Flight Parameters")) {
+            ImGui::InputFloat("Max Velocity Bound", &Cfg.FlightParams.MaxVelocityBound);
+            ImGui::InputFloat("Max Velocity", &Cfg.FlightParams.MaxVelocity);
+            ImGui::InputFloat("Max Angle", &Cfg.FlightParams.MaxAngle);
+        	ImGui::InputFloat("Max Angle Rate", &Cfg.FlightParams.MaxAngleRate);
+            ImGui::InputFloat("Max PID Output", &Cfg.FlightParams.MaxPIDOutput);
+            ImGui::InputFloat("Altitude Threshold", &Cfg.FlightParams.AltitudeThreshold);
+            ImGui::InputFloat("Min Altitude Local", &Cfg.FlightParams.MinAltitudeLocal);
+            ImGui::InputFloat("Acceptable Distance", &Cfg.FlightParams.AcceptableDistance);
+        }
+        if (ImGui::CollapsingHeader("Controller Parameters")) {
+            ImGui::InputFloat("Altitude Rate", &Cfg.ControllerParams.AltitudeRate);
+            ImGui::InputFloat("Yaw Rate", &Cfg.ControllerParams.YawRate);
+            ImGui::InputFloat("Min Velocity For Yaw", &Cfg.ControllerParams.MinVelocityForYaw);
+        }
+        if (ImGui::CollapsingHeader("Obstacle Parameters")) {
+            ImGui::InputFloat("Outer Boundary Size", &Cfg.ObstacleParams.OuterBoundarySize);
+            ImGui::InputFloat("Inner Boundary Size", &Cfg.ObstacleParams.InnerBoundarySize);
+            ImGui::InputFloat("Spawn Height", &Cfg.ObstacleParams.SpawnHeight);
+        }
+        if (ImGui::Button("Save Settings")) {
+            if (UDroneJSONConfig::Get().SaveConfig()) {
+                UE_LOG(LogTemp, Log, TEXT("Config saved successfully."));
+            } else {
+                UE_LOG(LogTemp, Error, TEXT("Failed to save config."));
             }
         }
         ImGui::End();
@@ -162,11 +149,21 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
     ImGui::Separator();
 
     // Global sliders
-    ImGui::SliderFloat("Max velocity", &maxVelocity, 0.0f, maxVelocityBound);
-    ImGui::SliderFloat("Max tilt angle", &maxAngle, 0.0f, 45.0f);
-    applyToControllers([&](UQuadDroneController* C){ C->SetMaxVelocity(maxVelocity); });
-    applyToControllers([&](UQuadDroneController* C){ C->SetDesiredAngle(maxAngle); });
-    ImGui::Separator();
+	bool velChanged = ImGui::SliderFloat("Max velocity",   &SliderMaxVelocity, 0.0f, maxVelocityBound);
+	bool angChanged = ImGui::SliderFloat("Max tilt angle", &SliderMaxAngle,    0.0f, 45.0f);
+	
+	// Push any change to the active controller(s)
+	if (velChanged || angChanged)
+	{
+		applyToControllers([&](UQuadDroneController* C)
+		{
+			C->SetMaxVelocity(SliderMaxVelocity);
+			C->SetDesiredAngle (SliderMaxAngle);
+		});
+	}
+
+	
+	ImGui::Separator();
 
     // Main content depending on mode
     switch (CurrentMode)
@@ -176,11 +173,17 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
         DisplayDesiredPositions();
         break;
     case EFlightMode::VelocityControl:
-        DisplayDesiredVelocities(maxVelocity);
+        DisplayDesiredVelocities(SliderMaxVelocity);
         break;
     case EFlightMode::JoyStickControl:
         // joy-stick UI if needed
         break;
+    case EFlightMode::AngleControl:
+		DisplayDesiredAngles(SliderMaxAngle);
+    	break;
+    case EFlightMode::RateControl:
+        DisplayDesiredAngleRates(SliderMaxAngleRate);
+    	break;
     }
 
     // Thruster & state info
@@ -201,7 +204,26 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
 	ImGui::Spacing();
 	ImGui::Text("==== Attitude ====");
 	ImGui::Text("Current: Roll: %.2f || Pitch: %.2f", currentRotation.Roll, currentRotation.Pitch);
-	ImGui::Text("Desired: Roll: %.2f || Pitch: %.2f ", desiredRollAngle, desiredPitchAngle);
+		ImGui::Text("Desired: Roll: %.2f || Pitch: %.2f ", desiredRollAngle, desiredPitchAngle);
+            // Angular Rate
+            if (DronePawn && DronePawn->DroneBody)
+            {
+                FVector worldAngVel = DronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
+                FVector localAngVel = currentRotation.UnrotateVector(worldAngVel);
+                ImGui::Text("==== Angular Rate ====");
+                ImGui::Text("Current Rate: Roll: %.2f deg/s || Pitch: %.2f deg/s", localAngVel.X, localAngVel.Y);
+                FFullPIDSet* PIDSet = Controller ? Controller->GetPIDSet(CurrentMode) : nullptr;
+                if (PIDSet && PIDSet->RollRatePID && PIDSet->PitchRatePID)
+                {
+                    float desiredRollRate = PIDSet->RollRatePID->lastOutput;
+                    float desiredPitchRate = PIDSet->PitchRatePID->lastOutput;
+                    ImGui::Text("Desired Rate: Roll: %.2f deg/s || Pitch: %.2f deg/s", desiredRollRate, desiredPitchRate);
+                }
+            }
+            else
+            {
+                ImGui::Text("Angular Rate data unavailable");
+            }
 	ImGui::Text("==== Position ====");
 	ImGui::Text("Current: %.1f, %.1f, %.1f ", currLoc.X, currLoc.Y, currLoc.Z);
 	ImGui::Text("==== Velocity ====");
@@ -223,172 +245,150 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, TArray<float>& ThrustsVal,
     ImGui::End();
 
     if (plotSwitch)
-        RenderControlPlots(deltaTime, currentRotation, desiredRollAngle, desiredPitchAngle, maxAngle);
-
+        RenderControlPlots(deltaTime, currentRotation, currentAngularVelocity, desiredRollAngle, desiredPitchAngle, desiredPitchAngleRate, desiredRollAngleRate, SliderMaxAngle,SliderMaxAngleRate);
     DisplayPIDHistoryWindow();
 }
 
-void UImGuiUtil::RenderControlPlots(float deltaTime, const FRotator& currentRotation, float desiredRoll, float desiredPitch,float maxAngle)
+void UImGuiUtil::RenderControlPlots(float deltaTime, const FRotator& currentRotation, FVector currentAngularRate, float desiredRoll, float desiredPitch, double desiredPitchRate, double desiredRollRate, float maxAngle, float maxRate)
 {
     if (!Controller) return;
 
-    // Get velocities using getters
-    FVector currentLocalVelocity = Controller->GetCurrentLocalVelocity();
-    FVector desiredVelocity = Controller->GetDesiredVelocity();
-
+    // Use a single, robust method for managing data points to prevent memory leaks.
+    
+    // 1. Add new data
     CumulativeTime += deltaTime;
     TimeData.Add(CumulativeTime);
 
-    // Add velocity data
+    FVector currentLocalVelocity = Controller->GetCurrentLocalVelocity();
+    FVector desiredVelocity = Controller->GetDesiredVelocity();
+
+    // Add all relevant data points for this frame
     CurrentVelocityXData.Add(currentLocalVelocity.X);
     CurrentVelocityYData.Add(currentLocalVelocity.Y);
+    CurrentVelocityZData.Add(currentLocalVelocity.Z); // Make sure to add Z data if you plot it
     DesiredVelocityXData.Add(desiredVelocity.X);
     DesiredVelocityYData.Add(desiredVelocity.Y);
+    DesiredVelocityZData.Add(desiredVelocity.Z); // Make sure to add Z data if you plot it
 
-    // Add angle data
     CurrentRollData.Add(currentRotation.Roll);
-    DesiredRollData.Add(desiredRoll); // Use the passed desired angle
     CurrentPitchData.Add(currentRotation.Pitch);
-    DesiredPitchData.Add(desiredPitch); // Use the passed desired angle
+    DesiredRollData.Add(desiredRoll);
+    DesiredPitchData.Add(desiredPitch);
 
-
-    // Pruning logic for ALL history arrays
-    while (TimeData.Num() > 0 && (CumulativeTime - TimeData[0] > MaxPlotTime))
-    {
-        TimeData.RemoveAt(0);
-        // Prune existing plots' data if RenderImPlot is still used elsewhere
-        if (Thrust0Data.Num() > 0) Thrust0Data.RemoveAt(0);
-        if (Thrust1Data.Num() > 0) Thrust1Data.RemoveAt(0);
-        if (Thrust2Data.Num() > 0) Thrust2Data.RemoveAt(0);
-        if (Thrust3Data.Num() > 0) Thrust3Data.RemoveAt(0);
-        if (DesiredHeadingData.Num() > 0) DesiredHeadingData.RemoveAt(0);
-        if (CurrentHeadingData.Num() > 0) CurrentHeadingData.RemoveAt(0);
-        if (VectorErrorData.Num() > 0) VectorErrorData.RemoveAt(0);
-        // Prune new plots' data
-        if (CurrentVelocityXData.Num() > 0) CurrentVelocityXData.RemoveAt(0);
-        if (CurrentVelocityYData.Num() > 0) CurrentVelocityYData.RemoveAt(0);
-        if (CurrentVelocityZData.Num() > 0) CurrentVelocityZData.RemoveAt(0);
-        if (DesiredVelocityXData.Num() > 0) DesiredVelocityXData.RemoveAt(0);
-        if (DesiredVelocityYData.Num() > 0) DesiredVelocityYData.RemoveAt(0);
-        if (DesiredVelocityZData.Num() > 0) DesiredVelocityZData.RemoveAt(0);
-        if (CurrentRollData.Num() > 0) CurrentRollData.RemoveAt(0);
-        if (DesiredRollData.Num() > 0) DesiredRollData.RemoveAt(0);
-        if (CurrentPitchData.Num() > 0) CurrentPitchData.RemoveAt(0);
-        if (DesiredPitchData.Num() > 0) DesiredPitchData.RemoveAt(0);
-    }
-
-     // Limit max data points (simpler than time-based for consistent array sizes)
+	CurrentRollRateData.Add(currentAngularRate.X);
+	CurrentPitchRateData.Add(currentAngularRate.Y);
+	DesiredRollRateData.Add(desiredRollRate);
+	DesiredPitchRateData.Add(desiredPitchRate);
+	
+    // 2. Prune old data if we exceed the maximum number of points
     while (TimeData.Num() > MaxDataPoints)
     {
         TimeData.RemoveAt(0);
-        if (Thrust0Data.Num() > 0) Thrust0Data.RemoveAt(0);
-        if (Thrust1Data.Num() > 0) Thrust1Data.RemoveAt(0);
-        if (Thrust2Data.Num() > 0) Thrust2Data.RemoveAt(0);
-        if (Thrust3Data.Num() > 0) Thrust3Data.RemoveAt(0);
-        if (DesiredHeadingData.Num() > 0) DesiredHeadingData.RemoveAt(0);
-        if (CurrentHeadingData.Num() > 0) CurrentHeadingData.RemoveAt(0);
-        if (VectorErrorData.Num() > 0) VectorErrorData.RemoveAt(0);
-        if (CurrentVelocityXData.Num() > 0) CurrentVelocityXData.RemoveAt(0);
-        if (CurrentVelocityYData.Num() > 0) CurrentVelocityYData.RemoveAt(0);
-        if (DesiredVelocityXData.Num() > 0) DesiredVelocityXData.RemoveAt(0);
-        if (DesiredVelocityYData.Num() > 0) DesiredVelocityYData.RemoveAt(0);
-        if (CurrentRollData.Num() > 0) CurrentRollData.RemoveAt(0);
-        if (DesiredRollData.Num() > 0) DesiredRollData.RemoveAt(0);
-        if (CurrentPitchData.Num() > 0) CurrentPitchData.RemoveAt(0);
-        if (DesiredPitchData.Num() > 0) DesiredPitchData.RemoveAt(0);
+        CurrentVelocityXData.RemoveAt(0);
+        CurrentVelocityYData.RemoveAt(0);
+        CurrentVelocityZData.RemoveAt(0);
+        DesiredVelocityXData.RemoveAt(0);
+        DesiredVelocityYData.RemoveAt(0);
+        DesiredVelocityZData.RemoveAt(0);
+        CurrentRollData.RemoveAt(0);
+        DesiredRollData.RemoveAt(0);
+        CurrentPitchData.RemoveAt(0);
+        DesiredPitchData.RemoveAt(0);
+    	CurrentRollRateData.RemoveAt(0);
+    	CurrentPitchRateData.RemoveAt(0);
+    	DesiredRollRateData.RemoveAt(0);
+    	DesiredPitchRateData.RemoveAt(0);
+
     }
-
-
-    // Start a new ImGui window for these plots
-    ImGui::SetNextWindowSize(ImVec2(600, 700), ImGuiCond_FirstUseEver); // Adjusted size for 3 plots
-    ImGui::SetNextWindowPos(ImVec2(950, 10), ImGuiCond_FirstUseEver); // Position next to controller window
-
+    
+    // 3. Render the plots
+    ImGui::SetNextWindowSize(ImVec2(600, 700), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(950, 10), ImGuiCond_FirstUseEver);
     ImGui::Begin("Control Plots");
 
     ImVec2 windowSize = ImGui::GetContentRegionAvail();
-    // Allocate roughly equal height for three plots
-    float plotHeight = (windowSize.y / 3.0f) - (ImGui::GetStyle().ItemSpacing.y * 2); // Account for spacing
+    float plotHeight = (windowSize.y / 3.0f) - (ImGui::GetStyle().ItemSpacing.y * 2);
     ImVec2 plotSize(windowSize.x, plotHeight);
-    ImPlotFlags plotFlags = ImPlotFlags_None; // Or ImPlotFlags_NoLegend if preferred
-    ImPlotAxisFlags axisFlags = ImPlotAxisFlags_None; // Or customize as needed
 
-    int dataCount = TimeData.Num(); // Use the count from TimeData
-
-
-    // Velocity Plot
-    if (ImPlot::BeginPlot("Velocity (Local Frame)", plotSize, plotFlags))
+    if (TimeData.Num() > 0)
     {
-        ImPlot::SetupAxes("Time (s)", "Velocity (cm/s)", axisFlags, axisFlags);
-        ImPlot::SetupAxisLimits(ImAxis_X1, CumulativeTime - MaxPlotTime, CumulativeTime, ImGuiCond_Always); // Keep X axis scrolling
-
-        if (dataCount > 0)
+        // Velocity Plot
+        if (ImPlot::BeginPlot("Velocity (Local Frame)", plotSize))
         {
-            // Current Velocities
-            ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.f, 0.f, 1.f), 1.5f); // Red
-            ImPlot::PlotLine("Current Vel X", TimeData.GetData(), CurrentVelocityXData.GetData(), dataCount);
-            ImPlot::SetNextLineStyle(ImVec4(0.f, 1.0f, 0.f, 1.f), 1.5f); // Green
-            ImPlot::PlotLine("Current Vel Y", TimeData.GetData(), CurrentVelocityYData.GetData(), dataCount);
+            ImPlot::SetupAxes("Time (s)", "Velocity (cm/s)");
+            ImPlot::SetupAxisLimits(ImAxis_X1, TimeData[0], TimeData.Last(), ImGuiCond_Always);
 
-            // Desired Velocities (dashed or different color)
-             ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 1.0f); // Thinner lines for desired
-            // ImPlot::PushStyleVar(ImPlotStyleVar_DashPatterns, { 10.f, 5.f }); // Example dash pattern
-
-            ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.6f, 0.6f, 1.f)); // Light Red
-            ImPlot::PlotLine("Desired Vel X", TimeData.GetData(), DesiredVelocityXData.GetData(), dataCount);
-            ImPlot::SetNextLineStyle(ImVec4(0.6f, 1.0f, 0.6f, 1.f)); // Light Green
-            ImPlot::PlotLine("Desired Vel Y", TimeData.GetData(), DesiredVelocityYData.GetData(), dataCount);
-
-            //ImPlot::PopStyleVar(); // Pop dash pattern if used
-             ImPlot::PopStyleVar(); // Pop line weight
+            ImPlot::PlotLine("Current Vel X", TimeData.GetData(), CurrentVelocityXData.GetData(), TimeData.Num());
+            ImPlot::PlotLine("Current Vel Y", TimeData.GetData(), CurrentVelocityYData.GetData(), TimeData.Num());
+            ImPlot::PlotLine("Desired Vel X", TimeData.GetData(), DesiredVelocityXData.GetData(), TimeData.Num());
+            ImPlot::PlotLine("Desired Vel Y", TimeData.GetData(), DesiredVelocityYData.GetData(), TimeData.Num());
+            
+            ImPlot::EndPlot();
         }
 
-        ImPlot::EndPlot();
-    }
+        ImGui::Spacing();
 
-    ImGui::Spacing(); // Add space between plots
-
-    // Roll Plot
-    if (ImPlot::BeginPlot("Roll Angle", plotSize, plotFlags))
-    {
-        ImPlot::SetupAxes("Time (s)", "Angle (degrees)", axisFlags, axisFlags);
-        ImPlot::SetupAxisLimits(ImAxis_X1, CumulativeTime - MaxPlotTime, CumulativeTime, ImGuiCond_Always);
-        ImPlot::SetupAxisLimits(ImAxis_Y1, -maxAngle-10, maxAngle+10, ImPlotCond_Once); // Set Y limits based on maxAngle
-
-        if (dataCount > 0)
+        // Roll Plot
+        if (ImPlot::BeginPlot("Roll Angle", plotSize))
         {
-            ImPlot::SetNextLineStyle(ImVec4(1.f, 0.f, 0.f, 1.f), 1.5f); // Red for current
-            ImPlot::PlotLine("Current Roll", TimeData.GetData(), CurrentRollData.GetData(), dataCount);
+            ImPlot::SetupAxes("Time (s)", "Angle (degrees)");
+            ImPlot::SetupAxisLimits(ImAxis_X1, TimeData[0], TimeData.Last(), ImGuiCond_Always);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, -maxAngle - 10, maxAngle + 10, ImPlotCond_Once);
 
-            ImPlot::SetNextLineStyle(ImVec4(1.f, 0.6f, 0.6f, 1.f), 1.0f); // Lighter Red for desired
-            ImPlot::PlotLine("Desired Roll", TimeData.GetData(), DesiredRollData.GetData(), dataCount);
+            ImPlot::PlotLine("Current Roll", TimeData.GetData(), CurrentRollData.GetData(), TimeData.Num());
+            ImPlot::PlotLine("Desired Roll", TimeData.GetData(), DesiredRollData.GetData(), TimeData.Num());
+            
+            ImPlot::EndPlot();
         }
-        ImPlot::EndPlot();
-    }
 
-    ImGui::Spacing();
+        ImGui::Spacing();
 
-    // Pitch Plot
-    if (ImPlot::BeginPlot("Pitch Angle", plotSize, plotFlags))
-    {
-        ImPlot::SetupAxes("Time (s)", "Angle (degrees)", axisFlags, axisFlags);
-        ImPlot::SetupAxisLimits(ImAxis_X1, CumulativeTime - MaxPlotTime, CumulativeTime, ImGuiCond_Always);
-        ImPlot::SetupAxisLimits(ImAxis_Y1, -maxAngle-10, maxAngle+10, ImPlotCond_Once);
-
-        if (dataCount > 0)
+        // Pitch Plot
+        if (ImPlot::BeginPlot("Pitch Angle", plotSize))
         {
-            ImPlot::SetNextLineStyle(ImVec4(0.f, 1.f, 0.f, 1.f), 1.5f); // Green for current
-            ImPlot::PlotLine("Current Pitch", TimeData.GetData(), CurrentPitchData.GetData(), dataCount);
+            ImPlot::SetupAxes("Time (s)", "Angle (degrees)");
+            ImPlot::SetupAxisLimits(ImAxis_X1, TimeData[0], TimeData.Last(), ImGuiCond_Always);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, -maxAngle - 10, maxAngle + 10, ImPlotCond_Once);
 
-            ImPlot::SetNextLineStyle(ImVec4(0.6f, 1.f, 0.6f, 1.f), 1.0f); // Lighter Green for desired
-            ImPlot::PlotLine("Desired Pitch", TimeData.GetData(), DesiredPitchData.GetData(), dataCount);
+            ImPlot::PlotLine("Current Pitch", TimeData.GetData(), CurrentPitchData.GetData(), TimeData.Num());
+            ImPlot::PlotLine("Desired Pitch", TimeData.GetData(), DesiredPitchData.GetData(), TimeData.Num());
+            
+            ImPlot::EndPlot();
         }
-        ImPlot::EndPlot();
+
+    	ImGui::Spacing();
+		
+    	// Pitch Rate Plot
+    	if (ImPlot::BeginPlot("Pitch Rate", plotSize))
+    	{
+    		ImPlot::SetupAxes("Time (s)", "Angle deg/s");
+    		ImPlot::SetupAxisLimits(ImAxis_X1, TimeData[0], TimeData.Last(), ImGuiCond_Always);
+    		ImPlot::SetupAxisLimits(ImAxis_Y1, -maxAngle - 10, maxAngle + 10, ImPlotCond_Once);
+
+    		ImPlot::PlotLine("Current Pitch", TimeData.GetData(), CurrentPitchRateData.GetData(), TimeData.Num());
+    		ImPlot::PlotLine("Desired Pitch", TimeData.GetData(), DesiredPitchRateData.GetData(), TimeData.Num());
+            
+    		ImPlot::EndPlot();
+    	}
+
+    	// Roll Rate Plot
+    	if (ImPlot::BeginPlot("Roll Rate", plotSize))
+    	{
+    		ImPlot::SetupAxes("Time (s)", "Angle deg/s");
+    		ImPlot::SetupAxisLimits(ImAxis_X1, TimeData[0], TimeData.Last(), ImGuiCond_Always);
+    		ImPlot::SetupAxisLimits(ImAxis_Y1, -maxAngle - 10, maxAngle + 10, ImPlotCond_Once);
+
+    		ImPlot::PlotLine("Current Pitch", TimeData.GetData(), CurrentRollRateData.GetData(), TimeData.Num());
+    		ImPlot::PlotLine("Desired Pitch", TimeData.GetData(), DesiredRollRateData.GetData(), TimeData.Num());
+            
+    		ImPlot::EndPlot();
+    	}
+	
+		
     }
 
-
-    ImGui::End(); // End Control Plots window
+    ImGui::End();
 }
-
 void UImGuiUtil::DisplayThrust(TArray<float>& ThrustsNum) {
 
 	ImGui::Separator();
@@ -470,12 +470,11 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 		return;
 	}
 
-	// Helper lambda remains the same - used for non-synced controls and other axes
+	// Helper lambda for creating a slider with a text input box
 	auto DrawPIDGainControl = [](const char* label, float* value, float minValue, float maxValue)
 		{
 			float totalWidth = ImGui::GetContentRegionAvail().x;
 			float inputWidth = 80.0f;
-			// Adjust slider width calculation slightly if necessary
 			float sliderWidth = totalWidth > (inputWidth + 20.0f) ? totalWidth - inputWidth - 20.0f : 100.0f;
 
 			ImGui::PushItemWidth(sliderWidth);
@@ -488,7 +487,7 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0, 0, 0, 1));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
 			std::string inputLabel = std::string("##Input_") + label; // Use unique ID prefix
-			changed |= ImGui::InputFloat(inputLabel.c_str(), value, 0.0f, 0.0f, "%.3f");
+			changed |= ImGui::InputFloat(inputLabel.c_str(), value, 0.0f, 0.0f, "%.4f"); // Use .4f for precision
 			ImGui::PopStyleColor(2);
 			ImGui::PopItemWidth();
 			return changed; // Return true if value was changed by either widget
@@ -507,11 +506,9 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 		float inputWidth = 80.0f;
 		float sliderWidth = totalWidth > (inputWidth + 20.0f) ? totalWidth - inputWidth - 20.0f : 100.0f;
 
-		// Define gain limits based on request
-		const float minXGain = 0.00001f;
-		const float maxXGain = -0.8f;
-		const float minYGain = 0.00001f;
-		const float maxYGain = 0.8f;
+		// Define gain limits for X and Y axes
+		const float minXYGain = 0.0001f;
+		const float maxXYGain = 0.8f;
 
 		// --- X Axis ---
 		ImGui::Text("X Axis");
@@ -526,41 +523,40 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 
 			// X Proportional
 			ImGui::PushItemWidth(sliderWidth);
-			if (ImGui::SliderFloat("X P", &xP, minXGain, maxXGain)) x_changed = true;
+			if (ImGui::SliderFloat("X P", &xP, minXYGain, maxXYGain, "%.4f")) x_changed = true;
 			ImGui::PopItemWidth(); ImGui::SameLine(); ImGui::PushItemWidth(inputWidth);
-			if (ImGui::InputFloat("##XP_Input", &xP, 0.0f, 0.0f, "%.3f")) x_changed = true;
+			if (ImGui::InputFloat("##XP_Input", &xP, 0.0f, 0.0f, "%.4f")) x_changed = true;
 			ImGui::PopItemWidth();
 			if (x_changed)
 			{
 				PIDSet->XPID->ProportionalGain = xP;
-				if (synchronizeXYGains && PIDSet->YPID) { PIDSet->YPID->ProportionalGain = -xP; } // Mirror Y = -X
+				if (synchronizeXYGains && PIDSet->YPID) { PIDSet->YPID->ProportionalGain = xP; } // Sync Y = X
 				x_changed = false; // Reset flag for next control
 			}
 
 			// X Integral
 			ImGui::PushItemWidth(sliderWidth);
-			if (ImGui::SliderFloat("X I", &xI, minXGain, maxXGain)) x_changed = true;
+			if (ImGui::SliderFloat("X I", &xI, minXYGain, maxXYGain, "%.4f")) x_changed = true;
 			ImGui::PopItemWidth(); ImGui::SameLine(); ImGui::PushItemWidth(inputWidth);
-			if (ImGui::InputFloat("##XI_Input", &xI, 0.0f, 0.0f, "%.3f")) x_changed = true;
+			if (ImGui::InputFloat("##XI_Input", &xI, 0.0f, 0.0f, "%.4f")) x_changed = true;
 			ImGui::PopItemWidth();
 			if (x_changed)
 			{
 				PIDSet->XPID->IntegralGain = xI;
-				if (synchronizeXYGains && PIDSet->YPID) { PIDSet->YPID->IntegralGain = -xI; } // Mirror Y = -X
+				if (synchronizeXYGains && PIDSet->YPID) { PIDSet->YPID->IntegralGain = xI; } // Sync Y = X
 				x_changed = false;
 			}
 
 			// X Derivative
 			ImGui::PushItemWidth(sliderWidth);
-			if (ImGui::SliderFloat("X D", &xD, minXGain, maxXGain)) x_changed = true;
+			if (ImGui::SliderFloat("X D", &xD, minXYGain, maxXYGain, "%.4f")) x_changed = true;
 			ImGui::PopItemWidth(); ImGui::SameLine(); ImGui::PushItemWidth(inputWidth);
-			if (ImGui::InputFloat("##XD_Input", &xD, 0.0f, 0.0f, "%.3f")) x_changed = true;
+			if (ImGui::InputFloat("##XD_Input", &xD, 0.0f, 0.0f, "%.4f")) x_changed = true;
 			ImGui::PopItemWidth();
 			if (x_changed)
 			{
 				PIDSet->XPID->DerivativeGain = xD;
-				if (synchronizeXYGains && PIDSet->YPID) { PIDSet->YPID->DerivativeGain = -xD; } // Mirror Y = -X
-				// No need to reset x_changed here
+				if (synchronizeXYGains && PIDSet->YPID) { PIDSet->YPID->DerivativeGain = xD; } // Sync Y = X
 			}
 		}
 		else { ImGui::TextDisabled("X PID Controller Unavailable"); }
@@ -580,41 +576,40 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 
 			// Y Proportional
 			ImGui::PushItemWidth(sliderWidth);
-			if (ImGui::SliderFloat("Y P", &yP, minYGain, maxYGain)) y_changed = true;
+			if (ImGui::SliderFloat("Y P", &yP, minXYGain, maxXYGain, "%.4f")) y_changed = true;
 			ImGui::PopItemWidth(); ImGui::SameLine(); ImGui::PushItemWidth(inputWidth);
-			if (ImGui::InputFloat("##YP_Input", &yP, 0.0f, 0.0f, "%.3f")) y_changed = true;
+			if (ImGui::InputFloat("##YP_Input", &yP, 0.0f, 0.0f, "%.4f")) y_changed = true;
 			ImGui::PopItemWidth();
 			if (y_changed)
 			{
 				PIDSet->YPID->ProportionalGain = yP;
-				if (synchronizeXYGains && PIDSet->XPID) { PIDSet->XPID->ProportionalGain = -yP; } // Mirror X = -Y
+				if (synchronizeXYGains && PIDSet->XPID) { PIDSet->XPID->ProportionalGain = yP; } // Sync X = Y
 				y_changed = false; // Reset flag
 			}
 
 			// Y Integral
 			ImGui::PushItemWidth(sliderWidth);
-			if (ImGui::SliderFloat("Y I", &yI, minYGain, maxYGain)) y_changed = true;
+			if (ImGui::SliderFloat("Y I", &yI, minXYGain, maxXYGain, "%.4f")) y_changed = true;
 			ImGui::PopItemWidth(); ImGui::SameLine(); ImGui::PushItemWidth(inputWidth);
-			if (ImGui::InputFloat("##YI_Input", &yI, 0.0f, 0.0f, "%.3f")) y_changed = true;
+			if (ImGui::InputFloat("##YI_Input", &yI, 0.0f, 0.0f, "%.4f")) y_changed = true;
 			ImGui::PopItemWidth();
 			if (y_changed)
 			{
 				PIDSet->YPID->IntegralGain = yI;
-				if (synchronizeXYGains && PIDSet->XPID) { PIDSet->XPID->IntegralGain = -yI; } // Mirror X = -Y
+				if (synchronizeXYGains && PIDSet->XPID) { PIDSet->XPID->IntegralGain = yI; } // Sync X = Y
 				y_changed = false;
 			}
 
 			// Y Derivative
 			ImGui::PushItemWidth(sliderWidth);
-			if (ImGui::SliderFloat("Y D", &yD, minYGain, maxYGain)) y_changed = true;
+			if (ImGui::SliderFloat("Y D", &yD, minXYGain, maxXYGain, "%.4f")) y_changed = true;
 			ImGui::PopItemWidth(); ImGui::SameLine(); ImGui::PushItemWidth(inputWidth);
-			if (ImGui::InputFloat("##YD_Input", &yD, 0.0f, 0.0f, "%.3f")) y_changed = true;
+			if (ImGui::InputFloat("##YD_Input", &yD, 0.0f, 0.0f, "%.4f")) y_changed = true;
 			ImGui::PopItemWidth();
 			if (y_changed)
 			{
 				PIDSet->YPID->DerivativeGain = yD;
-				if (synchronizeXYGains && PIDSet->XPID) { PIDSet->XPID->DerivativeGain = -yD; } // Mirror X = -Y
-				// No need to reset y_changed here
+				if (synchronizeXYGains && PIDSet->XPID) { PIDSet->XPID->DerivativeGain = yD; } // Sync X = Y
 			}
 		}
 		else { ImGui::TextDisabled("Y PID Controller Unavailable"); }
@@ -622,15 +617,14 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 
 
 		// --- Z Axis ---
-		// Z axis uses the helper function as it's not synchronized with X/Y mirror logic
 		ImGui::Text("Z Axis");
 		ImGui::Indent(); // Indent Z controls
 		if (PIDSet->ZPID)
 		{
-			// Using the original range [0, 10] for Z, adjust if needed
-			DrawPIDGainControl("Z P", &PIDSet->ZPID->ProportionalGain, 0.0f, 10.0f);
-			DrawPIDGainControl("Z I", &PIDSet->ZPID->IntegralGain, 0.0f, 10.0f);
-			DrawPIDGainControl("Z D", &PIDSet->ZPID->DerivativeGain, 0.0f, 10.0f);
+			// Using a small minimum value for Z, consistent with user request
+			DrawPIDGainControl("Z P", &PIDSet->ZPID->ProportionalGain, 0.0001f, 10.0f);
+			DrawPIDGainControl("Z I", &PIDSet->ZPID->IntegralGain, 0.0001f, 10.0f);
+			DrawPIDGainControl("Z D", &PIDSet->ZPID->DerivativeGain, 0.0001f, 10.0f);
 		}
 		else { ImGui::TextDisabled("Z PID Controller Unavailable"); }
 		ImGui::Unindent(); // Unindent Z controls
@@ -651,22 +645,22 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 		{
 			if (synchronizeGains && PIDSet->PitchPID)
 			{
-				if (DrawPIDGainControl("Roll P", &PIDSet->RollPID->ProportionalGain, 0.0f, 5.0f))
+				if (DrawPIDGainControl("Roll P", &PIDSet->RollPID->ProportionalGain, 0.0001f, 5.0f))
 					PIDSet->PitchPID->ProportionalGain = PIDSet->RollPID->ProportionalGain;
-				if (DrawPIDGainControl("Roll I", &PIDSet->RollPID->IntegralGain, 0.0f, 5.0f))
+				if (DrawPIDGainControl("Roll I", &PIDSet->RollPID->IntegralGain, 0.0001f, 5.0f))
 					PIDSet->PitchPID->IntegralGain = PIDSet->RollPID->IntegralGain;
-				if (DrawPIDGainControl("Roll D", &PIDSet->RollPID->DerivativeGain, 0.0f, 5.0f))
+				if (DrawPIDGainControl("Roll D", &PIDSet->RollPID->DerivativeGain, 0.0001f, 5.0f))
 					PIDSet->PitchPID->DerivativeGain = PIDSet->RollPID->DerivativeGain;
 			}
 			else // Not synchronizing or PitchPID is null
 			{
-				DrawPIDGainControl("Roll P", &PIDSet->RollPID->ProportionalGain, 0.0f, 5.0f);
-				DrawPIDGainControl("Roll I", &PIDSet->RollPID->IntegralGain, 0.0f, 5.0f);
-				DrawPIDGainControl("Roll D", &PIDSet->RollPID->DerivativeGain, 0.0f, 5.0f);
+				DrawPIDGainControl("Roll P", &PIDSet->RollPID->ProportionalGain, 0.0001f, 5.0f);
+				DrawPIDGainControl("Roll I", &PIDSet->RollPID->IntegralGain, 0.0001f, 5.0f);
+				DrawPIDGainControl("Roll D", &PIDSet->RollPID->DerivativeGain, 0.0001f, 5.0f);
 			}
 		}
 		else { ImGui::TextDisabled("Roll PID Unavailable"); }
-		ImGui::Unindent();
+            ImGui::Unindent();
 
 		// Pitch
 		ImGui::Text("Pitch");
@@ -675,47 +669,79 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 		{
 			if (synchronizeGains && PIDSet->RollPID)
 			{
-				if (DrawPIDGainControl("Pitch P", &PIDSet->PitchPID->ProportionalGain, 0.0f, 5.0f))
+				if (DrawPIDGainControl("Pitch P", &PIDSet->PitchPID->ProportionalGain, 0.0001f, 5.0f))
 					PIDSet->RollPID->ProportionalGain = PIDSet->PitchPID->ProportionalGain;
-				if (DrawPIDGainControl("Pitch I", &PIDSet->PitchPID->IntegralGain, 0.0f, 5.0f))
+				if (DrawPIDGainControl("Pitch I", &PIDSet->PitchPID->IntegralGain, 0.0001f, 5.0f))
 					PIDSet->RollPID->IntegralGain = PIDSet->PitchPID->IntegralGain;
-				if (DrawPIDGainControl("Pitch D", &PIDSet->PitchPID->DerivativeGain, 0.0f, 5.0f))
+				if (DrawPIDGainControl("Pitch D", &PIDSet->PitchPID->DerivativeGain, 0.0001f, 5.0f))
 					PIDSet->RollPID->DerivativeGain = PIDSet->PitchPID->DerivativeGain;
 			}
 			else // Not synchronizing or RollPID is null
 			{
-				DrawPIDGainControl("Pitch P", &PIDSet->PitchPID->ProportionalGain, 0.0f, 5.0f);
-				DrawPIDGainControl("Pitch I", &PIDSet->PitchPID->IntegralGain, 0.0f, 5.0f);
-				DrawPIDGainControl("Pitch D", &PIDSet->PitchPID->DerivativeGain, 0.0f, 5.0f);
+				DrawPIDGainControl("Pitch P", &PIDSet->PitchPID->ProportionalGain, 0.0001f, 5.0f);
+				DrawPIDGainControl("Pitch I", &PIDSet->PitchPID->IntegralGain, 0.0001f, 5.0f);
+				DrawPIDGainControl("Pitch D", &PIDSet->PitchPID->DerivativeGain, 0.0001f, 5.0f);
 			}
 		}
 		else { ImGui::TextDisabled("Pitch PID Unavailable"); }
 		ImGui::Unindent();
 
-		// Yaw
-		ImGui::Text("Yaw");
-		ImGui::Indent();
-		if (PIDSet->YawPID)
-		{
-			// Using original range [0, 2] for Yaw, adjust if needed
-			DrawPIDGainControl("Yaw P", &PIDSet->YawPID->ProportionalGain, 0.0f, 2.0f);
-			DrawPIDGainControl("Yaw I", &PIDSet->YawPID->IntegralGain, 0.0f, 2.0f);
-			DrawPIDGainControl("Yaw D", &PIDSet->YawPID->DerivativeGain, 0.0f, 2.0f);
-		}
-		else { ImGui::TextDisabled("Yaw PID Unavailable"); }
-		ImGui::Unindent();
+            // --- Angular Rate PID ---
+            ImGui::Separator();
+            ImGui::Text("Angular Rate PID Gains");
+            static bool syncRateGains = false;
+            ImGui::Checkbox("Synchronize Roll and Pitch Rate Gains", &syncRateGains);
+            ImGui::Indent();
+            // Roll Rate
+            ImGui::Text("Roll Rate");
+            ImGui::Indent();
+            if (PIDSet->RollRatePID)
+            {
+                bool changed = DrawPIDGainControl("Roll Rate P", &PIDSet->RollRatePID->ProportionalGain, 0.0001f, 5.0f);
+                if (syncRateGains && changed && PIDSet->PitchRatePID) PIDSet->PitchRatePID->ProportionalGain = PIDSet->RollRatePID->ProportionalGain;
+                changed = DrawPIDGainControl("Roll Rate I", &PIDSet->RollRatePID->IntegralGain, 0.0001f, 5.0f);
+                if (syncRateGains && changed && PIDSet->PitchRatePID) PIDSet->PitchRatePID->IntegralGain = PIDSet->RollRatePID->IntegralGain;
+                changed = DrawPIDGainControl("Roll Rate D", &PIDSet->RollRatePID->DerivativeGain, 0.0001f, 5.0f);
+                if (syncRateGains && changed && PIDSet->PitchRatePID) PIDSet->PitchRatePID->DerivativeGain = PIDSet->RollRatePID->DerivativeGain;
+            }
+            else { ImGui::TextDisabled("Roll Rate PID Unavailable"); }
+            ImGui::Unindent();
+            // Pitch Rate
+            ImGui::Text("Pitch Rate");
+            ImGui::Indent();
+            if (PIDSet->PitchRatePID)
+            {
+                DrawPIDGainControl("Pitch Rate P", &PIDSet->PitchRatePID->ProportionalGain, 0.0001f, 5.0f);
+                DrawPIDGainControl("Pitch Rate I", &PIDSet->PitchRatePID->IntegralGain, 0.0001f, 5.0f);
+                DrawPIDGainControl("Pitch Rate D", &PIDSet->PitchRatePID->DerivativeGain, 0.0001f, 5.0f);
+            }
+            else { ImGui::TextDisabled("Pitch Rate PID Unavailable"); }
+            ImGui::Unindent();
+            // Yaw Rate
+            ImGui::Text("Yaw Rate");
+            ImGui::Indent();
+            if (PIDSet->YawRatePID)
+            {
+                DrawPIDGainControl("Yaw Rate P", &PIDSet->YawRatePID->ProportionalGain, 0.0001f, 2.0f);
+                DrawPIDGainControl("Yaw Rate I", &PIDSet->YawRatePID->IntegralGain, 0.0001f, 2.0f);
+                DrawPIDGainControl("Yaw Rate D", &PIDSet->YawRatePID->DerivativeGain, 0.0001f, 2.0f);
+            }
+            else { ImGui::TextDisabled("Yaw Rate PID Unavailable"); }
+            ImGui::Unindent();
 
 		ImGui::Unindent(); // Unindent Attitude PID section
 		ImGui::Separator();
 
 		// --- Save Button ---
 		// Save logic remains the same
-        if (ImGui::Button("Save PID Gains", ImVec2(200, 50)))
-        {
-            // Determine plugin base directory for PIDGains file
-            TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("QuadSimPlugin"));
-            FString BaseDir = Plugin.IsValid() ? Plugin->GetBaseDir() : FPaths::ProjectDir();
-            FString FilePath = FPaths::Combine(BaseDir, TEXT("PIDGains.csv"));
+		if (ImGui::Button("Save PID Gains", ImVec2(200, 50)))
+		{
+			// Determine plugin directory for PID history file
+			TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("QuadSimPlugin"));
+			FString PluginDir = Plugin.IsValid()
+				? Plugin->GetBaseDir()
+				: FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("QuadSimPlugin"));
+			FString FilePath = FPaths::Combine(PluginDir, TEXT("PIDGains.csv"));
 			IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 			bool bFileExists = PlatformFile.FileExists(*FilePath);
 			FString Header = TEXT("Timestamp,xP,xI,xD,yP,yI,yD,zP,zI,zD,rollP,rollI,rollD,pitchP,pitchI,pitchD,yawP,yawI,yawD\n");
@@ -725,18 +751,17 @@ void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, b
 			}
 			FString GainData;
 			GainData = FDateTime::Now().ToString() + TEXT(",");
-			if (PIDSet->XPID) GainData += FString::Printf(TEXT("%.3f,%.3f,%.3f,"), PIDSet->XPID->ProportionalGain, PIDSet->XPID->IntegralGain, PIDSet->XPID->DerivativeGain); else GainData += TEXT("0,0,0,");
-			if (PIDSet->YPID) GainData += FString::Printf(TEXT("%.3f,%.3f,%.3f,"), PIDSet->YPID->ProportionalGain, PIDSet->YPID->IntegralGain, PIDSet->YPID->DerivativeGain); else GainData += TEXT("0,0,0,");
-			if (PIDSet->ZPID) GainData += FString::Printf(TEXT("%.3f,%.3f,%.3f,"), PIDSet->ZPID->ProportionalGain, PIDSet->ZPID->IntegralGain, PIDSet->ZPID->DerivativeGain); else GainData += TEXT("0,0,0,");
-			if (PIDSet->RollPID) GainData += FString::Printf(TEXT("%.3f,%.3f,%.3f,"), PIDSet->RollPID->ProportionalGain, PIDSet->RollPID->IntegralGain, PIDSet->RollPID->DerivativeGain); else GainData += TEXT("0,0,0,");
-			if (PIDSet->PitchPID) GainData += FString::Printf(TEXT("%.3f,%.3f,%.3f,"), PIDSet->PitchPID->ProportionalGain, PIDSet->PitchPID->IntegralGain, PIDSet->PitchPID->DerivativeGain); else GainData += TEXT("0,0,0,");
-			if (PIDSet->YawPID) GainData += FString::Printf(TEXT("%.3f,%.3f,%.3f"), PIDSet->YawPID->ProportionalGain, PIDSet->YawPID->IntegralGain, PIDSet->YawPID->DerivativeGain); else GainData += TEXT("0,0,0");
+			if (PIDSet->XPID) GainData += FString::Printf(TEXT("%.4f,%.4f,%.4f,"), PIDSet->XPID->ProportionalGain, PIDSet->XPID->IntegralGain, PIDSet->XPID->DerivativeGain); else GainData += TEXT("0,0,0,");
+			if (PIDSet->YPID) GainData += FString::Printf(TEXT("%.4f,%.4f,%.4f,"), PIDSet->YPID->ProportionalGain, PIDSet->YPID->IntegralGain, PIDSet->YPID->DerivativeGain); else GainData += TEXT("0,0,0,");
+			if (PIDSet->ZPID) GainData += FString::Printf(TEXT("%.4f,%.4f,%.4f,"), PIDSet->ZPID->ProportionalGain, PIDSet->ZPID->IntegralGain, PIDSet->ZPID->DerivativeGain); else GainData += TEXT("0,0,0,");
+			if (PIDSet->RollPID) GainData += FString::Printf(TEXT("%.4f,%.4f,%.4f,"), PIDSet->RollPID->ProportionalGain, PIDSet->RollPID->IntegralGain, PIDSet->RollPID->DerivativeGain); else GainData += TEXT("0,0,0,");
+			if (PIDSet->PitchPID) GainData += FString::Printf(TEXT("%.4f,%.4f,%.4f,"), PIDSet->PitchPID->ProportionalGain, PIDSet->PitchPID->IntegralGain, PIDSet->PitchPID->DerivativeGain); else GainData += TEXT("0,0,0,");
+			if (PIDSet->YawRatePID) GainData += FString::Printf(TEXT("%.4f,%.4f,%.4f"), PIDSet->YawRatePID->ProportionalGain, PIDSet->YawRatePID->IntegralGain, PIDSet->YawRatePID->DerivativeGain); else GainData += TEXT("0,0,0");
 
 			FFileHelper::SaveStringToFile(GainData + TEXT("\n"), *FilePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), EFileWrite::FILEWRITE_Append);
 		}
 	}
 }
-
 void UImGuiUtil::DisplayButtons()
 {
 	if (ImGui::Button("Switch Camera Mode", ImVec2(100, 50)))
@@ -757,7 +782,7 @@ void UImGuiUtil::DisplayButtons()
 	}
 	ImGui::SameLine(0, 10);
 
-   if (ImGui::Button("Reset Drone up high", ImVec2(100, 50)))
+   if (ImGui::Button("Reset Drone Rotation", ImVec2(100, 50)))
    {
        // Reset high for one or all controllers
        ADroneManager* Manager = ADroneManager::Get(GetWorld());
@@ -766,12 +791,12 @@ void UImGuiUtil::DisplayButtons()
            for (AQuadPawn* pawn : Manager->GetDroneList())
            {
                if (pawn && pawn->QuadController)
-                   pawn->QuadController->ResetDroneHigh();
+                   pawn->QuadController->ResetDroneRotation();
            }
        }
        else if (Controller)
        {
-           Controller->ResetDroneHigh();
+           Controller->ResetDroneRotation();
        }
    }
 	ImGui::SameLine(0, 10);
@@ -796,7 +821,7 @@ void UImGuiUtil::DisplayButtons()
 	
 }
 
-void UImGuiUtil::DisplayDesiredVelocities(float maxVelocity)
+void UImGuiUtil::DisplayDesiredVelocities(float velocityLimit)
 {
 	ImGui::Text("Desired Velocities");
 
@@ -877,19 +902,19 @@ void UImGuiUtil::DisplayDesiredVelocities(float maxVelocity)
     ImGui::Text("Desired Velocities & Yaw Rate");
     ImGui::Spacing();
 
-    ImGui::SliderFloat("Desired Velocity X", &tempVx, -maxVelocity, maxVelocity, "%.1f cm/s");
-    ImGui::SliderFloat("Desired Velocity Y", &tempVy, -maxVelocity, maxVelocity, "%.1f cm/s");
+    ImGui::SliderFloat("Desired Velocity X", &tempVx, -velocityLimit, velocityLimit, "%.1f cm/s");
+    ImGui::SliderFloat("Desired Velocity Y", &tempVy, -velocityLimit, velocityLimit, "%.1f cm/s");
 
     if (hoverModeActive)
     {
         tempVz = 0.0f; // Explicitly keep desired Z velocity at 0 when hover is active
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); // Dim the slider
-        ImGui::SliderFloat("Desired Velocity Z (Hover)", &tempVz, -maxVelocity, maxVelocity, "%.1f cm/s");
+        ImGui::SliderFloat("Desired Velocity Z (Hover)", &tempVz, -velocityLimit, velocityLimit, "%.1f cm/s");
         ImGui::PopStyleVar();
     }
     else
     {
-        ImGui::SliderFloat("Desired Velocity Z", &tempVz, -maxVelocity, maxVelocity, "%.1f cm/s");
+        ImGui::SliderFloat("Desired Velocity Z", &tempVz, -velocityLimit, velocityLimit, "%.1f cm/s");
     }
 
     ImGui::SliderFloat("Desired Yaw Rate", &tempYr, -50.f, 50.f, "%.1f deg/s");
@@ -981,8 +1006,6 @@ void UImGuiUtil::DisplayDesiredVelocities(float maxVelocity)
         prevYr = tempYr;
     }
 }
-
-
 void UImGuiUtil::DisplayDesiredPositions()
 {
 	if (!Controller)
@@ -1113,7 +1136,342 @@ void UImGuiUtil::DisplayDesiredPositions()
 
 	ImGui::Separator();
 }
+void UImGuiUtil::DisplayDesiredAngles(float maxAngle)
+{
+	ImGui::Text("Desired Angles & Altitude Control");
 
+	// Static variables to hold the state of the sliders and hover mode
+	static float desiredRoll = 0.0f;
+	static float desiredPitch = 0.0f;
+	static float desiredZVelocity = 0.0f;
+	static float desiredYawRate = 0.0f;
+	static float desiredHoverAltitude = 250.0f; // Default hover altitude
+	static bool firstRun = true;
+
+	if (!Controller)
+	{
+		ImGui::Text("Controller not available.");
+		return;
+	}
+
+	// Get current state from the controller
+	bool hoverModeActive = Controller->IsHoverModeActive();
+
+	// On the first run, initialize static variables with the controller's current state
+	if (firstRun)
+	{
+		desiredRoll = Controller->GetDesiredRoll();
+		desiredPitch = Controller->GetDesiredPitch();
+		desiredYawRate = Controller->GetDesiredYawRate();
+		// We use a local static for desired Z velocity, initializing to the controller's current.
+		desiredZVelocity = Controller->GetDesiredVelocity().Z;
+		firstRun = false;
+	}
+
+	// A flag to indicate if any value has changed and needs to be sent to the controller
+	bool valueChanged = false;
+
+	// --- Hover Mode Control (Identical to DisplayDesiredVelocities) ---
+	ImGui::PushStyleColor(ImGuiCol_Button, hoverModeActive ? ImVec4(0.1f, 0.8f, 0.6f, 1.0f) : ImVec4(0.1f, 0.6f, 0.8f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hoverModeActive ? ImVec4(0.2f, 0.9f, 0.7f, 1.0f) : ImVec4(0.2f, 0.7f, 0.9f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, hoverModeActive ? ImVec4(0.0f, 0.7f, 0.5f, 1.0f) : ImVec4(0.0f, 0.5f, 0.7f, 1.0f));
+
+	if (ImGui::Button(hoverModeActive ? "HOVER MODE ACTIVE" : "ACTIVATE HOVER MODE", ImVec2(200, 35)))
+	{
+		bool activateHover = !hoverModeActive;
+		ADroneManager* Manager = ADroneManager::Get(GetWorld());
+		if (Manager && Manager->IsSwarmMode())
+		{
+			for (AQuadPawn* pawn : Manager->GetDroneList())
+			{
+				if (pawn && pawn->QuadController)
+				{
+					pawn->QuadController->SetHoverMode(activateHover, activateHover ? desiredHoverAltitude : 0.0f);
+				}
+			}
+		}
+		else if (Controller)
+		{
+			Controller->SetHoverMode(activateHover, activateHover ? desiredHoverAltitude : 0.0f);
+		}
+		hoverModeActive = activateHover; // Update local state immediately
+		if (hoverModeActive) desiredZVelocity = 0.0f; // Zero out Z-velocity when activating hover
+		valueChanged = true;
+	}
+	ImGui::PopStyleColor(3);
+
+	// Hover Altitude Slider
+	if (ImGui::SliderFloat("Desired Hover Altitude (cm)", &desiredHoverAltitude, 50.0f, 1000.0f, "%.0f cm"))
+	{
+		valueChanged = true; // Mark as changed to update hover altitude if active
+	}
+
+	// If hover is active, continuously update the target altitude
+	if (hoverModeActive)
+	{
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0.1f, 0.8f, 0.6f, 1.0f), "Target Altitude: %.0f cm", desiredHoverAltitude);
+		static float lastSentAltitude = -1.0f;
+		if (fabs(desiredHoverAltitude - lastSentAltitude) > 1.0f) // Deadzone to prevent spamming
+		{
+			ADroneManager* Manager = ADroneManager::Get(GetWorld());
+			if (Manager && Manager->IsSwarmMode()) {
+				for (AQuadPawn* pawn : Manager->GetDroneList()) {
+					if (pawn && pawn->QuadController) pawn->QuadController->SetHoverMode(true, desiredHoverAltitude);
+				}
+			}
+			else if (Controller) {
+				Controller->SetHoverMode(true, desiredHoverAltitude);
+			}
+			lastSentAltitude = desiredHoverAltitude;
+		}
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Text("Desired Angles & Yaw Rate");
+	ImGui::Spacing();
+
+	// --- Main Angle & Yaw Sliders ---
+	if (ImGui::SliderFloat("Desired Roll", &desiredRoll, -maxAngle, maxAngle, "%.1f deg")) valueChanged = true;
+	if (ImGui::SliderFloat("Desired Pitch", &desiredPitch, -maxAngle, maxAngle, "%.1f deg")) valueChanged = true;
+
+	// --- Z-Velocity Control (identical logic to DisplayDesiredVelocities) ---
+	if (hoverModeActive)
+	{
+		desiredZVelocity = 0.0f; // Explicitly keep desired Z velocity at 0 when hover is active
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		ImGui::SliderFloat("Desired Velocity Z (Hover)", &desiredZVelocity, -SliderMaxVelocity, SliderMaxVelocity, "%.1f cm/s");
+		ImGui::PopStyleVar();
+	}
+	else
+	{
+		if (ImGui::SliderFloat("Desired Velocity Z", &desiredZVelocity, -SliderMaxVelocity, SliderMaxVelocity, "%.1f cm/s")) valueChanged = true;
+	}
+
+	if (ImGui::SliderFloat("Desired Yaw Rate", &desiredYawRate, -50.f, 50.f, "%.1f deg/s")) valueChanged = true;
+
+	ImGui::Separator();
+
+	// --- Reset Buttons ---
+	ImGui::Text("Reset to 0:");
+	ImGui::SameLine();
+	if (ImGui::Button("Roll")) { desiredRoll = 0.0f; valueChanged = true; }
+	ImGui::SameLine();
+	if (ImGui::Button("Pitch")) { desiredPitch = 0.0f; valueChanged = true; }
+	ImGui::SameLine();
+	if (!hoverModeActive)
+	{
+		if (ImGui::Button("Z")) { desiredZVelocity = 0.0f; valueChanged = true; }
+	}
+	else {
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		ImGui::Button("Z"); // Disabled button
+		ImGui::PopStyleVar();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Yaw")) { desiredYawRate = 0.0f; valueChanged = true; }
+
+	ImGui::Separator();
+
+	// --- Apply Changes to Controller(s) ---
+	if (valueChanged)
+	{
+		auto applyToController = [&](UQuadDroneController* C)
+		{
+			if (C)
+			{
+				C->SetDesiredRollAngle(desiredRoll);
+				C->SetDesiredPitchAngle(desiredPitch);
+				C->SetDesiredYawRate(desiredYawRate);
+
+				// In AngleControl mode, the drone primarily responds to roll/pitch commands.
+				// We also need to control the vertical speed.
+				// If not hovering, we directly set the Z component of the desired velocity.
+				if (!C->IsHoverModeActive()) {
+					FVector currentDesiredVel = C->GetDesiredVelocity();
+					FVector newDesiredVel(currentDesiredVel.X, currentDesiredVel.Y, desiredZVelocity);
+					C->SetDesiredVelocity(newDesiredVel);
+				}
+			}
+		};
+
+		// Apply to swarm or single controller
+		ADroneManager* Manager = ADroneManager::Get(GetWorld());
+		if (Manager && Manager->IsSwarmMode())
+		{
+			for (AQuadPawn* pawn : Manager->GetDroneList())
+			{
+				applyToController(pawn->QuadController);
+			}
+		}
+		else
+		{
+			applyToController(Controller);
+		}
+	}
+}
+void UImGuiUtil::DisplayDesiredAngleRates(float maxRate)
+{
+	ImGui::Text("Desired Angle Rates & Altitude Control");
+
+	// Static variables to hold the state of the sliders and hover mode
+	static float desiredRollRate = 0.0f;
+	static float desiredPitchRate = 0.0f;
+	static float desiredZVelocity = 0.0f;
+	static float desiredYawRate_persistent = 0.0f; // Use a different name to avoid confusion
+	static float desiredHoverAltitude = 250.0f;
+	static bool firstRun = true;
+
+	if (!Controller)
+	{
+		ImGui::Text("Controller not available.");
+		return;
+	}
+
+	bool hoverModeActive = Controller->IsHoverModeActive();
+
+	if (firstRun)
+	{
+		// On first run, initialize persistent values
+		desiredYawRate_persistent = Controller->GetDesiredYawRate();
+		desiredZVelocity = Controller->GetDesiredVelocity().Z;
+		firstRun = false;
+	}
+
+	// Helper lambda for broadcasting commands to single or swarm drones
+	auto applyToControllers = [&](auto&& Func) {
+		ADroneManager* Manager = ADroneManager::Get(GetWorld());
+		if (Manager && Manager->IsSwarmMode()) {
+			for (AQuadPawn* pawn : Manager->GetDroneList()) {
+				if (pawn && pawn->QuadController) {
+					Func(pawn->QuadController);
+				}
+			}
+		}
+		else if (Controller) {
+			Func(Controller);
+		}
+	};
+
+	// --- Hover Mode Control (Identical to previous modes) ---
+	ImGui::PushStyleColor(ImGuiCol_Button, hoverModeActive ? ImVec4(0.1f, 0.8f, 0.6f, 1.0f) : ImVec4(0.1f, 0.6f, 0.8f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hoverModeActive ? ImVec4(0.2f, 0.9f, 0.7f, 1.0f) : ImVec4(0.2f, 0.7f, 0.9f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, hoverModeActive ? ImVec4(0.0f, 0.7f, 0.5f, 1.0f) : ImVec4(0.0f, 0.5f, 0.7f, 1.0f));
+
+	if (ImGui::Button(hoverModeActive ? "HOVER MODE ACTIVE" : "ACTIVATE HOVER MODE", ImVec2(200, 35)))
+	{
+		bool activateHover = !hoverModeActive;
+		applyToControllers([&](UQuadDroneController* C) {
+			C->SetHoverMode(activateHover, activateHover ? desiredHoverAltitude : 0.0f);
+		});
+		hoverModeActive = activateHover;
+		if (hoverModeActive) desiredZVelocity = 0.0f;
+	}
+	ImGui::PopStyleColor(3);
+
+	bool hoverAltitudeChanged = ImGui::SliderFloat("Desired Hover Altitude (cm)", &desiredHoverAltitude, 50.0f, 1000.0f, "%.0f cm");
+	if (hoverModeActive)
+	{
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0.1f, 0.8f, 0.6f, 1.0f), "Target Altitude: %.0f cm", desiredHoverAltitude);
+		if (hoverAltitudeChanged)
+		{
+			applyToControllers([&](UQuadDroneController* C) { C->SetHoverMode(true, desiredHoverAltitude); });
+		}
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Text("Desired Angle Rates (Momentary)");
+	ImGui::Spacing();
+
+	// --- Momentary Angle Rate Sliders ---
+	// Roll Rate (persistent)
+	if (ImGui::SliderFloat("Desired Roll Rate", &desiredRollRate, -maxRate, maxRate, "%.1f deg/s"))
+	{
+		applyToControllers([&](UQuadDroneController* C) {
+		    C->SetDesiredRollRate(desiredRollRate);
+		});
+	}
+
+	// Pitch Rate
+	if (ImGui::SliderFloat("Desired Pitch Rate", &desiredPitchRate, -maxRate, maxRate, "%.1f deg/s"))
+	{
+		applyToControllers([&](UQuadDroneController* C) { C->SetDesiredPitchRate(desiredPitchRate); });
+	}
+
+	ImGui::Separator();
+	ImGui::Text("Desired Vertical Velocity & Yaw Rate (Persistent)");
+	
+	bool zVelChanged = false;
+	bool yawRateChanged = false;
+
+	// --- Persistent Z-Velocity and Yaw Rate Sliders ---
+	if (hoverModeActive)
+	{
+		desiredZVelocity = 0.0f;
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		ImGui::SliderFloat("Desired Velocity Z (Hover)", &desiredZVelocity, -SliderMaxVelocity, SliderMaxVelocity, "%.1f cm/s");
+		ImGui::PopStyleVar();
+	}
+	else
+	{
+		if (ImGui::SliderFloat("Desired Velocity Z", &desiredZVelocity, -SliderMaxVelocity, SliderMaxVelocity, "%.1f cm/s")) zVelChanged = true;
+	}
+
+	if (ImGui::SliderFloat("Desired Yaw Rate", &desiredYawRate_persistent, -50.f, 50.f, "%.1f deg/s")) yawRateChanged = true;
+
+	ImGui::Separator();
+
+	// --- Reset Buttons for Persistent Controls ---
+	ImGui::Text("Reset to 0:");
+	ImGui::SameLine();
+	if (!hoverModeActive) {
+		if (ImGui::Button("Z")) {
+			desiredZVelocity = 0.0f;
+			zVelChanged = true;
+		}
+	} else {
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		ImGui::Button("Z");
+		ImGui::PopStyleVar();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Yaw")) {
+		desiredYawRate_persistent = 0.0f;
+		yawRateChanged = true;
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Roll")) {
+		desiredRollRate = 0.0f;
+		applyToControllers([&](UQuadDroneController* C) {
+			C->SetDesiredRollRate(0.0f);
+		});
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Pitch")) {
+		desiredPitchRate = 0.0f;
+		applyToControllers([&](UQuadDroneController* C) {
+			C->SetDesiredPitchRate(0.0f);
+		});
+	}
+	// --- Apply Changes for Persistent Controls ---
+	if (zVelChanged)
+	{
+		applyToControllers([&](UQuadDroneController* C) {
+			if (!C->IsHoverModeActive()) {
+				FVector currentDesiredVel = C->GetDesiredVelocity();
+				FVector newDesiredVel(currentDesiredVel.X, currentDesiredVel.Y, desiredZVelocity);
+				C->SetDesiredVelocity(newDesiredVel);
+			}
+		});
+	}
+	if (yawRateChanged)
+	{
+		applyToControllers([&](UQuadDroneController* C) { C->SetDesiredYawRate(desiredYawRate_persistent); });
+	}
+}
 void UImGuiUtil::DisplayPIDHistoryWindow()
 {
 	ImGui::SetNextWindowPos(ImVec2(420, 520), ImGuiCond_FirstUseEver);
@@ -1125,10 +1483,13 @@ void UImGuiUtil::DisplayPIDHistoryWindow()
 		return;
 	}
 
-    // Path to the CSV file (located in plugin base directory)
-    TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("QuadSimPlugin"));
-    FString BaseDir = Plugin.IsValid() ? Plugin->GetBaseDir() : FPaths::ProjectDir();
-    FString FilePath = FPaths::Combine(BaseDir, TEXT("PIDGains.csv"));
+	// Determine plugin directory for PID history file
+	TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("QuadSimPlugin"));
+	FString PluginDir = Plugin.IsValid()
+		? Plugin->GetBaseDir()
+		: FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("QuadSimPlugin"));
+	// Path to the CSV file
+	FString FilePath = FPaths::Combine(PluginDir, TEXT("PIDGains.csv"));
 
 	// Check if file exists
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
@@ -1279,96 +1640,13 @@ void UImGuiUtil::LoadPIDValues(EFlightMode Mode, const TArray<FString>& Values)
 	}
 
 	// Load Yaw PID
-	if (PIDSet->YawPID)
+	if (PIDSet->YawRatePID)
 	{
-		PIDSet->YawPID->ProportionalGain = FCString::Atof(*Values[16]);
-		PIDSet->YawPID->IntegralGain = FCString::Atof(*Values[17]);
-		PIDSet->YawPID->DerivativeGain = FCString::Atof(*Values[18]);
+		PIDSet->YawRatePID->ProportionalGain = FCString::Atof(*Values[16]);
+		PIDSet->YawRatePID->IntegralGain = FCString::Atof(*Values[17]);
+		PIDSet->YawRatePID->DerivativeGain = FCString::Atof(*Values[18]);
 	}
 
 	// Notify of successful load
 	UE_LOG(LogTemp, Display, TEXT("Loaded PID configuration from %s"), *Values[0]);
 }
-
-
-//
-// void UImGuiUtil::DisplayDesiredVelocities()
-// {
-//     static float prevVx = 0.0f, prevVy = 0.0f, prevVz = 0.0f, prevYr = 0.0f;
-//     static bool firstRun = true;
-//     static bool resetXChecked = false, resetYChecked = false, resetZChecked = false, resetYrChecked = false;
-//
-//     if (!Controller) return;
-//
-//     FVector currentDesiredVelocity = Controller->GetDesiredVelocity();
-//     float currentYawRate = Controller->GetDesiredYawRate();
-//     bool hoverModeActive = Controller->IsHoverModeActive();
-//
-//     float tempVx = currentDesiredVelocity.X;
-//     float tempVy = currentDesiredVelocity.Y;
-//     float tempVz = currentDesiredVelocity.Z;
-//     float tempYr = currentYawRate;
-//     bool velocityChanged = false;
-//
-//     ImGui::PushStyleColor(ImGuiCol_Button, hoverModeActive ? ImVec4(0.1f, 0.8f, 0.6f, 1.0f) : ImVec4(0.1f, 0.6f, 0.8f, 1.0f));
-//     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hoverModeActive ? ImVec4(0.2f, 0.9f, 0.7f, 1.0f) : ImVec4(0.2f, 0.7f, 0.9f, 1.0f));
-//     ImGui::PushStyleColor(ImGuiCol_ButtonActive, hoverModeActive ? ImVec4(0.0f, 0.7f, 0.5f, 1.0f) : ImVec4(0.0f, 0.5f, 0.7f, 1.0f));
-//     if (ImGui::Button(hoverModeActive ? "Hover Mode: ON" : "Hover Mode: OFF", ImVec2(150, 30))) {
-//         Controller->SetHoverMode(!hoverModeActive);
-//         velocityChanged = true;
-//     }
-//     ImGui::PopStyleColor(3);
-//     if (hoverModeActive) { ImGui::SameLine(); ImGui::TextDisabled("(Z Velocity Disabled)"); }
-//     ImGui::Spacing();
-//
-//     auto VelocitySlider = [&](const char* label, float* value, float minVal, float maxVal, bool disabled = false) {
-//         bool changed = false;
-//         ImGui::PushItemWidth(-1);
-//         if(disabled) {
-//             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-//             ImGui::SliderFloat(label, value, minVal, maxVal, "%.1f");
-//             ImGui::PopStyleVar();
-//         } else {
-//             changed = ImGui::SliderFloat(label, value, minVal, maxVal, "%.1f");
-//         }
-//         ImGui::PopItemWidth();
-//         return changed;
-//     };
-//     velocityChanged |= VelocitySlider("X", &tempVx, -maxVelocity, maxVelocity);
-//     velocityChanged |= VelocitySlider("Y", &tempVy, -maxVelocity, maxVelocity);
-//     velocityChanged |= VelocitySlider("Z", &tempVz, -maxVelocity, maxVelocity, hoverModeActive);
-//     velocityChanged |= VelocitySlider("Yaw", &tempYr, -50.f, 50.f);
-//
-//     ImGui::Separator();
-//     ImGui::Text("Reset Axes to 0:");
-//     ImGui::Spacing();
-//     ImGui::PushID("ResetChecks");
-//     if (ImGui::Checkbox("X", &resetXChecked)) { if (resetXChecked) { tempVx = 0.0f; velocityChanged = true; } resetXChecked = false; }
-//     ImGui::SameLine(0, 20);
-//     if (ImGui::Checkbox("Y", &resetYChecked)) { if (resetYChecked) { tempVy = 0.0f; velocityChanged = true; } resetYChecked = false; }
-//     ImGui::SameLine(0, 20);
-//     if (ImGui::Checkbox("Z", &resetZChecked)) { if (resetZChecked) { tempVz = 0.0f; velocityChanged = true; } resetZChecked = false; }
-//     ImGui::SameLine(0, 20);
-//     if (ImGui::Checkbox("Yaw", &resetYrChecked)) { if (resetYrChecked) { tempYr = 0.0f; velocityChanged = true; } resetYrChecked = false; }
-//     ImGui::PopID();
-//
-//     if (firstRun) {
-//         prevVx = tempVx; prevVy = tempVy; prevVz = tempVz; prevYr = tempYr;
-//         firstRun = false;
-//     }
-//     const float threshold = 0.01f;
-//     bool significantChange = false;
-//     if (!velocityChanged) {
-//         significantChange = (FMath::Abs(tempVx - prevVx) > threshold) ||
-//                            (FMath::Abs(tempVy - prevVy) > threshold) ||
-//                            (FMath::Abs(tempVz - prevVz) > threshold) ||
-//                            (FMath::Abs(tempYr - prevYr) > threshold);
-//     }
-//     if (velocityChanged || significantChange) {
-//         if (hoverModeActive) tempVz = 0.0f;
-//         FVector desiredNewVelocity = FVector(tempVx, tempVy, tempVz);
-//         Controller->SetDesiredVelocity(desiredNewVelocity);
-//         Controller->SetDesiredYawRate(tempYr);
-//         prevVx = tempVx; prevVy = tempVy; prevVz = tempVz; prevYr = tempYr;
-//     }
-// }

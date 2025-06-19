@@ -10,13 +10,15 @@
 #include "Components/ChildActorComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Components/SkeletalMeshComponent.h" // For visual skeletal mesh
+#include "Components/SceneCaptureComponent2D.h" // Add this include
+#include "Engine/TextureRenderTarget2D.h" // Ensure this is included
 #include "QuadPawn.generated.h"
 
 // Forward Declarations
 class UQuadDroneController;
 class UImGuiUtil;
 class UThrusterComponent;
+class UQuadHUDWidget;
 
 // Enum to track camera state
 UENUM(BlueprintType)
@@ -49,8 +51,8 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	// --- Drone Components ---
-   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-   USkeletalMeshComponent* DroneBody;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UStaticMeshComponent* DroneBody;
 
 	// --- Camera Components ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -65,16 +67,32 @@ public:
 	// Ground tracking camera
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	UCameraComponent* CameraGroundTrack;
+	
+	// --- HUD Scene Capture Components ---
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "HUD")
+	USceneCaptureComponent2D* TPCaptureComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "HUD")
+	USceneCaptureComponent2D* FPVCaptureComponent;
+
+	// --- HUD Render Targets ---
+	// Assign these in the Blueprint editor for this Pawn
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD")
+	UTextureRenderTarget2D* TPCaptureRenderTarget;
+    
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD")
+	UTextureRenderTarget2D* FPVCaptureRenderTarget;
 
 	// --- Thruster Components ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TArray<UStaticMeshComponent*> Propellers;
 
-   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-   TArray<UThrusterComponent*> Thrusters;
-   // ROS2 Controller as a child actor component
-   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-   UChildActorComponent* ROS2ControllerComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TArray<UThrusterComponent*> Thrusters;
+ 	
+	// ROS2 Controller as a child actor component
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UChildActorComponent* ROS2ControllerComponent;
 
 	// --- Drone Configuration ---
 	UPROPERTY(EditDefaultsOnly, Category = "Drone Configuration")
@@ -125,11 +143,18 @@ public:
    TArray<FVector> GenerateFigureEightWaypoints() const;
 
 protected:
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> HUDWidgetClass;
+
+	UPROPERTY()
+	UQuadHUDWidget* HUDWidgetInstance;
+	
+	void UpdateHUD();
 	virtual void BeginPlay() override;
 
-   // Collision hit event
-   UFUNCTION()
-   void OnDroneHit(
+    UFUNCTION()
+    void OnDroneHit(
        UPrimitiveComponent* HitComponent,
        AActor* OtherActor,
        UPrimitiveComponent* OtherComp,

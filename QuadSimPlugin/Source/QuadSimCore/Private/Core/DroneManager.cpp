@@ -2,12 +2,11 @@
 // Controller includes
 #include "Controllers/QuadDroneController.h"
 #include "Pawns/QuadPawn.h"
-//#include "Controllers/ROS2Controller.h"  // Removed; ROS2Controller is now a child actor of QuadPawn
 #include "Kismet/GameplayStatics.h"
-    #include "Kismet/GameplayStatics.h"
-    #include "Engine/World.h"
-    #include "imgui.h"
-    #include "Engine/Engine.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/World.h"
+#include "imgui.h"
+#include "Engine/Engine.h"
 
     // Initialize static or default values
     // Static accessor for the DroneManager in the world

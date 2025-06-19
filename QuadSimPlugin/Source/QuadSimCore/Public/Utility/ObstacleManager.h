@@ -41,7 +41,6 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UStaticMeshComponent* VisualMarker;
    
-    // Main function to create obstacles and goal - called by ZMQ controller
     UFUNCTION(BlueprintCallable, Category = "Obstacles")
     void CreateObstacles(int32 NumObstacles, EGoalPosition GoalPos = EGoalPosition::Random);
    
