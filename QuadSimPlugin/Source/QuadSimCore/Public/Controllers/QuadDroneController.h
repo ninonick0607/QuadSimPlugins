@@ -70,7 +70,7 @@ public:
     
     void ResetPID();
     void ResetDroneIntegral();
-    void ResetDroneHigh();
+    void ResetDroneRotation();
     void ResetDroneOrigin();
 
 
@@ -83,12 +83,16 @@ public:
     void SafetyReset();
     void ApplyManualThrusts();
  
+    FVector GetCurrentLocalVelocity() const { return currentLocalVelocity; }
+    FVector GetCurrentAngularVelocity() const {return currentLocalVelocity; }
     FVector GetDesiredVelocity() const { return desiredNewVelocity; }
     bool GetDebugVisualsEnabled() const { return bDebugVisualsEnabled; }
-    FVector GetCurrentLocalVelocity() const { return currentLocalVelocity; }
     float GetDesiredYawRate() const { return desiredYawRate; }
     double GetDesiredRoll() const {return desiredRoll;}
     double GetDesiredPitch() const {return desiredPitch;}
+    double GetDesiredRollRate() const {return desiredRollRate;}
+    double GetDesiredPitchRate() const {return desiredPitchRate;}
+    
     FVector GetCurrentSetPoint() const { return setPoint; }
     const TArray<float>& GetThrusts() const { return Thrusts; }
 
@@ -127,18 +131,10 @@ private:
 
     //Global Drone Variables
     FVector currentLocalVelocity;
-    float maxVelocity;
-    float maxAngle;
-    float maxAngleRate;
-    float maxPIDOutput;
-    FVector desiredForwardVector;
-    double YawTorqueForce;
     bool bDebugVisualsEnabled = false;
 
     // Position Control
     FVector setPoint;
-    float minAltitudeLocal;
-    float acceptableDistance;
     
     // Velocity Control
     FVector desiredNewVelocity;
@@ -150,23 +146,29 @@ private:
     double desiredNewPitch;
 
     // Angle Rate Control
+    double desiredRollRate;
+    double desiredPitchRate;
     double desiredNewRollRate;
     double desiredNewPitchRate;
     float desiredYawRate;
-    
-    // Cascaded yaw control parameters
-    float maxYawRate;
-    float minVelocityForYaw;
+    FVector localAngularRateDeg;
     
     // Hover Mode
     float hoverTargetAltitude;
     bool bHoverModeActive;
+    bool bManualThrustMode = false;
+    
+    float maxVelocity;
+    float maxAngle;
+    float maxAngleRate;
+    float maxPIDOutput;
+    float minAltitudeLocal;
+    float acceptableDistance;
 
-    // Debug
+    // Cascaded yaw control parameters
+    float maxYawRate;
+    float minVelocityForYaw;
+
     bool Debug_DrawDroneCollisionSphere;
     bool Debug_DrawDroneWaypoint;
-    
-    bool bManualThrustMode = false;
-
-
 };

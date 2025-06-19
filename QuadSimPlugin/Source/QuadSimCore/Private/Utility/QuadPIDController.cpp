@@ -102,9 +102,7 @@ double QuadPIDController::Calculate(float desiredState,float measuredState, floa
     
     UE_LOG(LogTemp, VeryVerbose, TEXT("Time: %.3f | BufferSize: %d | Sum: %.4f | dRaw: %.4f | dFiltered: %.4f"),
            absoluteTime, integralBuffer.Num(), currentBufferSum, dx / dt, filteredDerivative);
-
-
-        
+    
     prevError   = error;
     lastOutput = output;
     return output;

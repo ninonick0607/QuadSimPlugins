@@ -58,12 +58,16 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
 	
 	TArray<float>& ThrustsVal = DronePawn->QuadController->Thrusts;
 	FVector currentVelocity = DronePawn->QuadController->GetCurrentLocalVelocity();
+	FVector currentAngularVelocity = DronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();//DronePawn->QuadController->GetCurrentAngularVelocity();
 	FVector currLoc = DronePawn->GetActorLocation();
 	FRotator currentRotation = DronePawn->GetActorRotation();
 	
 	double desiredRollAngle = DronePawn->QuadController->GetDesiredRoll();
 	double desiredPitchAngle = DronePawn->QuadController->GetDesiredPitch();
 
+	double desiredRollAngleRate = DronePawn->QuadController->GetDesiredRollRate();
+	double desiredPitchAngleRate = DronePawn->QuadController->GetDesiredPitchRate();
+	
     // Window setup
     ImGui::SetNextWindowPos(ImVec2(420, 10), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(500, 600), ImGuiCond_FirstUseEver);
@@ -241,11 +245,11 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
     ImGui::End();
 
     if (plotSwitch)
-        RenderControlPlots(deltaTime, currentRotation, desiredRollAngle, desiredPitchAngle, SliderMaxAngle);
+        RenderControlPlots(deltaTime, currentRotation, currentAngularVelocity, desiredRollAngle, desiredPitchAngle, desiredPitchAngleRate, desiredRollAngleRate, SliderMaxAngle,SliderMaxAngleRate);
     DisplayPIDHistoryWindow();
 }
 
-void UImGuiUtil::RenderControlPlots(float deltaTime, const FRotator& currentRotation, float desiredRoll, float desiredPitch, float maxAngle)
+void UImGuiUtil::RenderControlPlots(float deltaTime, const FRotator& currentRotation, FVector currentAngularRate, float desiredRoll, float desiredPitch, double desiredPitchRate, double desiredRollRate, float maxAngle, float maxRate)
 {
     if (!Controller) return;
 
@@ -267,10 +271,15 @@ void UImGuiUtil::RenderControlPlots(float deltaTime, const FRotator& currentRota
     DesiredVelocityZData.Add(desiredVelocity.Z); // Make sure to add Z data if you plot it
 
     CurrentRollData.Add(currentRotation.Roll);
-    DesiredRollData.Add(desiredRoll);
     CurrentPitchData.Add(currentRotation.Pitch);
+    DesiredRollData.Add(desiredRoll);
     DesiredPitchData.Add(desiredPitch);
 
+	CurrentRollRateData.Add(currentAngularRate.X);
+	CurrentPitchRateData.Add(currentAngularRate.Y);
+	DesiredRollRateData.Add(desiredRollRate);
+	DesiredPitchRateData.Add(desiredPitchRate);
+	
     // 2. Prune old data if we exceed the maximum number of points
     while (TimeData.Num() > MaxDataPoints)
     {
@@ -285,6 +294,11 @@ void UImGuiUtil::RenderControlPlots(float deltaTime, const FRotator& currentRota
         DesiredRollData.RemoveAt(0);
         CurrentPitchData.RemoveAt(0);
         DesiredPitchData.RemoveAt(0);
+    	CurrentRollRateData.RemoveAt(0);
+    	CurrentPitchRateData.RemoveAt(0);
+    	DesiredRollRateData.RemoveAt(0);
+    	DesiredPitchRateData.RemoveAt(0);
+
     }
     
     // 3. Render the plots
@@ -341,6 +355,36 @@ void UImGuiUtil::RenderControlPlots(float deltaTime, const FRotator& currentRota
             
             ImPlot::EndPlot();
         }
+
+    	ImGui::Spacing();
+		
+    	// Pitch Rate Plot
+    	if (ImPlot::BeginPlot("Pitch Rate", plotSize))
+    	{
+    		ImPlot::SetupAxes("Time (s)", "Angle deg/s");
+    		ImPlot::SetupAxisLimits(ImAxis_X1, TimeData[0], TimeData.Last(), ImGuiCond_Always);
+    		ImPlot::SetupAxisLimits(ImAxis_Y1, -maxAngle - 10, maxAngle + 10, ImPlotCond_Once);
+
+    		ImPlot::PlotLine("Current Pitch", TimeData.GetData(), CurrentPitchRateData.GetData(), TimeData.Num());
+    		ImPlot::PlotLine("Desired Pitch", TimeData.GetData(), DesiredPitchRateData.GetData(), TimeData.Num());
+            
+    		ImPlot::EndPlot();
+    	}
+
+    	// Roll Rate Plot
+    	if (ImPlot::BeginPlot("Roll Rate", plotSize))
+    	{
+    		ImPlot::SetupAxes("Time (s)", "Angle deg/s");
+    		ImPlot::SetupAxisLimits(ImAxis_X1, TimeData[0], TimeData.Last(), ImGuiCond_Always);
+    		ImPlot::SetupAxisLimits(ImAxis_Y1, -maxAngle - 10, maxAngle + 10, ImPlotCond_Once);
+
+    		ImPlot::PlotLine("Current Pitch", TimeData.GetData(), CurrentRollRateData.GetData(), TimeData.Num());
+    		ImPlot::PlotLine("Desired Pitch", TimeData.GetData(), DesiredRollRateData.GetData(), TimeData.Num());
+            
+    		ImPlot::EndPlot();
+    	}
+	
+		
     }
 
     ImGui::End();
@@ -738,7 +782,7 @@ void UImGuiUtil::DisplayButtons()
 	}
 	ImGui::SameLine(0, 10);
 
-   if (ImGui::Button("Reset Drone up high", ImVec2(100, 50)))
+   if (ImGui::Button("Reset Drone Rotation", ImVec2(100, 50)))
    {
        // Reset high for one or all controllers
        ADroneManager* Manager = ADroneManager::Get(GetWorld());
@@ -747,12 +791,12 @@ void UImGuiUtil::DisplayButtons()
            for (AQuadPawn* pawn : Manager->GetDroneList())
            {
                if (pawn && pawn->QuadController)
-                   pawn->QuadController->ResetDroneHigh();
+                   pawn->QuadController->ResetDroneRotation();
            }
        }
        else if (Controller)
        {
-           Controller->ResetDroneHigh();
+           Controller->ResetDroneRotation();
        }
    }
 	ImGui::SameLine(0, 10);
@@ -1343,26 +1387,18 @@ void UImGuiUtil::DisplayDesiredAngleRates(float maxRate)
 	ImGui::Spacing();
 
 	// --- Momentary Angle Rate Sliders ---
-	// Roll Rate
+	// Roll Rate (persistent)
 	if (ImGui::SliderFloat("Desired Roll Rate", &desiredRollRate, -maxRate, maxRate, "%.1f deg/s"))
 	{
-		applyToControllers([&](UQuadDroneController* C) { C->SetDesiredRollRate(desiredRollRate); });
-	}
-	if (ImGui::IsItemDeactivatedAfterEdit()) // This is true on mouse release
-	{
-		applyToControllers([&](UQuadDroneController* C) { C->SetDesiredRollRate(0.0f); });
-		desiredRollRate = 0.0f;
+		applyToControllers([&](UQuadDroneController* C) {
+		    C->SetDesiredRollRate(desiredRollRate);
+		});
 	}
 
 	// Pitch Rate
 	if (ImGui::SliderFloat("Desired Pitch Rate", &desiredPitchRate, -maxRate, maxRate, "%.1f deg/s"))
 	{
 		applyToControllers([&](UQuadDroneController* C) { C->SetDesiredPitchRate(desiredPitchRate); });
-	}
-	if (ImGui::IsItemDeactivatedAfterEdit()) // This is true on mouse release
-	{
-		applyToControllers([&](UQuadDroneController* C) { C->SetDesiredPitchRate(0.0f); });
-		desiredPitchRate = 0.0f;
 	}
 
 	ImGui::Separator();
@@ -1391,18 +1427,35 @@ void UImGuiUtil::DisplayDesiredAngleRates(float maxRate)
 	// --- Reset Buttons for Persistent Controls ---
 	ImGui::Text("Reset to 0:");
 	ImGui::SameLine();
-	if (!hoverModeActive)
-	{
-		if (ImGui::Button("Z")) { desiredZVelocity = 0.0f; zVelChanged = true; }
-	}
-	else {
+	if (!hoverModeActive) {
+		if (ImGui::Button("Z")) {
+			desiredZVelocity = 0.0f;
+			zVelChanged = true;
+		}
+	} else {
 		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-		ImGui::Button("Z"); // Disabled button
+		ImGui::Button("Z");
 		ImGui::PopStyleVar();
 	}
 	ImGui::SameLine();
-	if (ImGui::Button("Yaw")) { desiredYawRate_persistent = 0.0f; yawRateChanged = true; }
-
+	if (ImGui::Button("Yaw")) {
+		desiredYawRate_persistent = 0.0f;
+		yawRateChanged = true;
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Roll")) {
+		desiredRollRate = 0.0f;
+		applyToControllers([&](UQuadDroneController* C) {
+			C->SetDesiredRollRate(0.0f);
+		});
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Pitch")) {
+		desiredPitchRate = 0.0f;
+		applyToControllers([&](UQuadDroneController* C) {
+			C->SetDesiredPitchRate(0.0f);
+		});
+	}
 	// --- Apply Changes for Persistent Controls ---
 	if (zVelChanged)
 	{

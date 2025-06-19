@@ -24,7 +24,7 @@ public:
     /** Main functions to draw the UI */
     void ImGuiHud(EFlightMode CurrentMode, float deltaTime);
     
-    void RenderControlPlots(float deltaTime, const FRotator& currentRotation, float desiredRoll, float desiredPitch,float maxAngle);
+    void RenderControlPlots(float deltaTime, const FRotator& currentRotation, FVector currentAngularRate, float desiredRoll, float desiredPitch, double desiredPitchRate, double desiredRollRate, float maxAngle, float maxRate);
     void DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, bool& synchronizeXYGains, bool& synchronizeGains);
     void DisplayButtons();
     void DisplayThrust(TArray<float>& ThrustsNum);
@@ -85,6 +85,12 @@ private:
     TArray<float> DesiredRollData;
     TArray<float> CurrentPitchData;
     TArray<float> DesiredPitchData;
+
+    TArray<float> CurrentRollRateData;
+    TArray<float> DesiredRollRateData;
+    TArray<float> CurrentPitchRateData;
+    TArray<float> DesiredPitchRateData;
+    
     
     // Helper method to load PID values from a CSV row
     void LoadPIDValues(EFlightMode Mode, const TArray<FString>& Values);
