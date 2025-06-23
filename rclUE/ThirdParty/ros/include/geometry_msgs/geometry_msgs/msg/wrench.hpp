@@ -7,6 +7,5 @@
 #include "geometry_msgs/msg/detail/wrench__struct.hpp"
 #include "geometry_msgs/msg/detail/wrench__builder.hpp"
 #include "geometry_msgs/msg/detail/wrench__traits.hpp"
-#include "geometry_msgs/msg/detail/wrench__type_support.hpp"
 
 #endif  // GEOMETRY_MSGS__MSG__WRENCH_HPP_

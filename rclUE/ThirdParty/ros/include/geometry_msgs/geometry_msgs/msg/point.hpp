@@ -7,6 +7,5 @@
 #include "geometry_msgs/msg/detail/point__struct.hpp"
 #include "geometry_msgs/msg/detail/point__builder.hpp"
 #include "geometry_msgs/msg/detail/point__traits.hpp"
-#include "geometry_msgs/msg/detail/point__type_support.hpp"
 
 #endif  // GEOMETRY_MSGS__MSG__POINT_HPP_

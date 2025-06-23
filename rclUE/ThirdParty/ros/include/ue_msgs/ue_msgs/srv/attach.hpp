@@ -7,6 +7,5 @@
 #include "ue_msgs/srv/detail/attach__struct.hpp"
 #include "ue_msgs/srv/detail/attach__builder.hpp"
 #include "ue_msgs/srv/detail/attach__traits.hpp"
-#include "ue_msgs/srv/detail/attach__type_support.hpp"
 
 #endif  // UE_MSGS__SRV__ATTACH_HPP_

@@ -7,6 +7,5 @@
 #include "sensor_msgs/msg/detail/point_cloud2__struct.hpp"
 #include "sensor_msgs/msg/detail/point_cloud2__builder.hpp"
 #include "sensor_msgs/msg/detail/point_cloud2__traits.hpp"
-#include "sensor_msgs/msg/detail/point_cloud2__type_support.hpp"
 
 #endif  // SENSOR_MSGS__MSG__POINT_CLOUD2_HPP_

@@ -7,6 +7,5 @@
 #include "geometry_msgs/msg/detail/quaternion__struct.hpp"
 #include "geometry_msgs/msg/detail/quaternion__builder.hpp"
 #include "geometry_msgs/msg/detail/quaternion__traits.hpp"
-#include "geometry_msgs/msg/detail/quaternion__type_support.hpp"
 
 #endif  // GEOMETRY_MSGS__MSG__QUATERNION_HPP_

@@ -28,8 +28,8 @@ struct FFullPIDSet
     QuadPIDController* ZPID;
     QuadPIDController* RollPID;
     QuadPIDController* PitchPID;
-    QuadPIDController* RollRatePID;
     QuadPIDController* PitchRatePID;
+    QuadPIDController* RollRatePID;
     QuadPIDController* YawRatePID;
     FFullPIDSet()
         : XPID(nullptr)

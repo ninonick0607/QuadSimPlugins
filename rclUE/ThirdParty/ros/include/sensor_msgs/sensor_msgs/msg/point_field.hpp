@@ -7,6 +7,5 @@
 #include "sensor_msgs/msg/detail/point_field__struct.hpp"
 #include "sensor_msgs/msg/detail/point_field__builder.hpp"
 #include "sensor_msgs/msg/detail/point_field__traits.hpp"
-#include "sensor_msgs/msg/detail/point_field__type_support.hpp"
 
 #endif  // SENSOR_MSGS__MSG__POINT_FIELD_HPP_
