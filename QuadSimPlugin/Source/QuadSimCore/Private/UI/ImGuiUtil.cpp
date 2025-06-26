@@ -24,7 +24,7 @@ UImGuiUtil::UImGuiUtil()
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	maxVelocityBound = Config.FlightParams.MaxVelocityBound;
-	
+	maxThrust = 700.f;
 	SliderMaxVelocity = Config.FlightParams.MaxVelocity;
 	SliderMaxAngle    = Config.FlightParams.MaxAngle;
 	SliderMaxAngleRate = Config.FlightParams.MaxAngleRate;
@@ -175,8 +175,9 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
     case EFlightMode::VelocityControl:
         DisplayDesiredVelocities(SliderMaxVelocity);
         break;
-    case EFlightMode::JoyStickControl:
-        // joy-stick UI if needed
+    case EFlightMode::JoyStickAngleControl:
+    case EFlightMode::JoyStickAcroControl:
+        DisplayJoystickControl(DronePawn->GamepadInputs);
         break;
     case EFlightMode::AngleControl:
 		DisplayDesiredAngles(SliderMaxAngle);
@@ -189,7 +190,6 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
     // Thruster & state info
     DisplayThrust(ThrustsVal);
     ImGui::Separator();
-    ImGui::Text("===== Current State & Feedback =====");
 	ImGui::Text("======= Current State & Feedback =======");
 	if (DronePawn && DronePawn->DroneBody)
 	{
@@ -204,26 +204,26 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode,float deltaTime)
 	ImGui::Spacing();
 	ImGui::Text("==== Attitude ====");
 	ImGui::Text("Current: Roll: %.2f || Pitch: %.2f", currentRotation.Roll, currentRotation.Pitch);
-		ImGui::Text("Desired: Roll: %.2f || Pitch: %.2f ", desiredRollAngle, desiredPitchAngle);
-            // Angular Rate
-            if (DronePawn && DronePawn->DroneBody)
-            {
-                FVector worldAngVel = DronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
-                FVector localAngVel = currentRotation.UnrotateVector(worldAngVel);
-                ImGui::Text("==== Angular Rate ====");
-                ImGui::Text("Current Rate: Roll: %.2f deg/s || Pitch: %.2f deg/s", localAngVel.X, localAngVel.Y);
-                FFullPIDSet* PIDSet = Controller ? Controller->GetPIDSet(CurrentMode) : nullptr;
-                if (PIDSet && PIDSet->RollRatePID && PIDSet->PitchRatePID)
-                {
-                    float desiredRollRate = PIDSet->RollRatePID->lastOutput;
-                    float desiredPitchRate = PIDSet->PitchRatePID->lastOutput;
-                    ImGui::Text("Desired Rate: Roll: %.2f deg/s || Pitch: %.2f deg/s", desiredRollRate, desiredPitchRate);
-                }
-            }
-            else
-            {
-                ImGui::Text("Angular Rate data unavailable");
-            }
+	ImGui::Text("Desired: Roll: %.2f || Pitch: %.2f ", desiredRollAngle, desiredPitchAngle);
+    // Angular Rate
+    if (DronePawn && DronePawn->DroneBody)
+    {
+        FVector worldAngVel = DronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
+        FVector localAngVel = currentRotation.UnrotateVector(worldAngVel);
+        ImGui::Text("==== Angular Rate ====");
+        ImGui::Text("Current Rate: Roll: %.2f deg/s || Pitch: %.2f deg/s", localAngVel.X, localAngVel.Y);
+        FFullPIDSet* PIDSet = Controller ? Controller->GetPIDSet(CurrentMode) : nullptr;
+        if (PIDSet && PIDSet->RollRatePID && PIDSet->PitchRatePID)
+        {
+            float desiredRollRate = PIDSet->RollRatePID->lastOutput;
+            float desiredPitchRate = PIDSet->PitchRatePID->lastOutput;
+            ImGui::Text("Desired Rate: Roll: %.2f deg/s || Pitch: %.2f deg/s", desiredRollRate, desiredPitchRate);
+        }
+    }
+    else
+    {
+        ImGui::Text("Angular Rate data unavailable");
+    }
 	ImGui::Text("==== Position ====");
 	ImGui::Text("Current: %.1f, %.1f, %.1f ", currLoc.X, currLoc.Y, currLoc.Z);
 	ImGui::Text("==== Velocity ====");
@@ -389,76 +389,93 @@ void UImGuiUtil::RenderControlPlots(float deltaTime, const FRotator& currentRota
 
     ImGui::End();
 }
-void UImGuiUtil::DisplayThrust(TArray<float>& ThrustsNum) {
-
+void UImGuiUtil::DisplayThrust(TArray<float>& ThrustsNum)
+{
 	ImGui::Separator();
 	ImGui::Text("Thruster Power");
 
-	static float AllThrustValue = 0.0f;
-	if (ImGui::SliderFloat("All Thrusts", &AllThrustValue, 0, maxThrust))
+	// Labels in order
+	static const char* labels[] = { "FL", "FR", "BL", "BR" };
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	ImVec2 barSize(20, 100);
+
+	for (int i = 0; i < ThrustsNum.Num(); ++i)
 	{
-		for (int i = 0; i < ThrustsNum.Num(); i++)
-		{
-			ThrustsNum[i] = AllThrustValue;
-		}
+		ImGui::PushID(i);
+		float thrust = ThrustsNum[i];
+		float percent = FMath::Clamp(thrust / maxThrust, 0.0f, 1.0f);
+
+		ImGui::BeginGroup();
+		// Motor label above bar
+		ImGui::Text("%s", labels[i]);
+
+		// Reserve the bar area
+		ImVec2 p = ImGui::GetCursorScreenPos();
+		ImGui::InvisibleButton("##bar", barSize);
+		ImVec2 q = ImGui::GetItemRectMax();
+
+		// Draw frame
+		drawList->AddRect(p, q, IM_COL32(255, 255, 255, 255));
+
+		// Draw filled portion from bottom
+		float fillH = barSize.y * percent;
+		ImVec2 fillMin(p.x, p.y + barSize.y - fillH);
+		ImVec2 fillMax(q.x, q.y);
+		drawList->AddRectFilled(fillMin, fillMax, IM_COL32(255, 255, 0, 255));
+
+		// Draw thrust value centered inside the fill
+		char buf[16];
+		snprintf(buf, sizeof(buf), "%.0f", thrust);
+		ImVec2 txtSize = ImGui::CalcTextSize(buf);
+		ImVec2 txtPos(p.x + (barSize.x - txtSize.x) * 0.5f,
+					  fillMin.y + (fillH - txtSize.y) * 0.5f);
+		drawList->AddText(txtPos, IM_COL32(0, 0, 0, 255), buf);
+
+		ImGui::EndGroup();
+
+		if (i < ThrustsNum.Num() - 1)
+			ImGui::SameLine(0, 20);
+		ImGui::PopID();
 	}
-
+}
+void UImGuiUtil::DisplayJoystickControl(const FGamepadInputs& GamepadInputs)
+{
 	ImGui::Separator();
-	ImGui::Text("Thruster Power");
+	ImGui::Text("Joystick Visualization");
 
-	static bool synchronizeDiagonal1 = false;
-	static bool synchronizeDiagonal2 = false;
-	ImGui::Checkbox("Synchronize Diagonal Motors FL & BR", &synchronizeDiagonal1);
-	ImGui::Checkbox("Synchronize Diagonal Motors FR & BL", &synchronizeDiagonal2);
+	// Box size for sticks
+	ImVec2 boxSize(100, 100);
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-	ImGui::Separator();
+	ImGui::BeginGroup();
+	ImGui::Text("Left Stick");
+	ImGui::InvisibleButton("##leftStick", boxSize);
+	ImVec2 rp = ImGui::GetItemRectMin();
+	ImVec2 rq = ImGui::GetItemRectMax();
+	drawList->AddRect(rp, rq, IM_COL32(255,255,255,255));
+	float rx = GamepadInputs.Yaw;
+	float ry = GamepadInputs.Throttle;
+	ImVec2 rCenter((rp.x + rq.x) * 0.5f, (rp.y + rq.y) * 0.5f);
+	ImVec2 rPos(rCenter.x + rx * (boxSize.x * 0.5f),
+				rCenter.y - ry * (boxSize.y * 0.5f));
+	drawList->AddCircleFilled(rPos, 5.0f, IM_COL32(255,255,0,255));
+	ImGui::EndGroup();
 
-	if (ThrustsNum.Num() >= 4)
-	{
-		ImGui::Text("Diagonal 1 Motors");
+	ImGui::SameLine(0, 30);
 
-		// Push a unique ID to differentiate these widgets
-		ImGui::PushID("Diag1");
-		ImGui::Indent();
-		if (synchronizeDiagonal1)
-		{
-			if (ImGui::SliderFloat("FL & BR Thrust", &ThrustsNum[0], 0, maxThrust))
-			{
-				ThrustsNum[3] = ThrustsNum[0];
-			}
-			ImGui::Text("Back Right (Synchronized): %.2f", ThrustsNum[3]);
-		}
-		else
-		{
-			// "Front Left" is effectively "Diag1/Front Left"
-			ImGui::SliderFloat("Front Left", &ThrustsNum[0], 0, maxThrust);
-			ImGui::SliderFloat("Back Right", &ThrustsNum[3], 0, maxThrust);
-		}
-		ImGui::Unindent();
-		ImGui::PopID();  // pop "Diag1"
-
-		// -------------------- Diagonal 2 --------------------
-		ImGui::Text("Diagonal 2 Motors");
-
-		ImGui::PushID("Diag2");
-		ImGui::Indent();
-		if (synchronizeDiagonal2)
-		{
-			if (ImGui::SliderFloat("FR & BL Thrust", &ThrustsNum[1], 0, maxThrust))
-			{
-				ThrustsNum[2] = ThrustsNum[1];
-			}
-			ImGui::Text("Back Left (Synchronized): %.2f", ThrustsNum[2]);
-		}
-		else
-		{
-			ImGui::SliderFloat("Front Right", &ThrustsNum[1], 0, maxThrust);
-			ImGui::SliderFloat("Back Left", &ThrustsNum[2], 0, maxThrust);
-		}
-		ImGui::Unindent();
-		ImGui::PopID(); // pop "Diag2"
-	}
-
+	ImGui::BeginGroup();
+	ImGui::Text("Right Stick");
+	ImGui::InvisibleButton("##rightStick", boxSize);
+	ImVec2 lp = ImGui::GetItemRectMin();
+	ImVec2 lq = ImGui::GetItemRectMax();
+	drawList->AddRect(lp, lq, IM_COL32(255,255,255,255));
+	float lx = GamepadInputs.Roll;
+	float ly = GamepadInputs.Pitch; 
+	ImVec2 lCenter((lp.x + lq.x) * 0.5f, (lp.y + lq.y) * 0.5f);
+	ImVec2 lPos(lCenter.x + lx * (boxSize.x * 0.5f),
+				lCenter.y + ly * (boxSize.y * 0.5f));
+	drawList->AddCircleFilled(lPos, 5.0f, IM_COL32(255,255,0,255));
+	ImGui::EndGroup();
 }
 
 void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, bool& synchronizeXYGains, bool& synchronizeGains)

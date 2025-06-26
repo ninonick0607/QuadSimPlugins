@@ -132,7 +132,6 @@ void UQuadDroneController::Update(double a_deltaTime)
 	{
 		if (!Manager->IsSwarmMode())
 		{
-			// Independent mode: only show UI on the possessed pawn
 			APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 			if (PC && PC->GetPawn() != dronePawn)
 			{
@@ -141,7 +140,6 @@ void UQuadDroneController::Update(double a_deltaTime)
 		}
 		else
 		{
-			// Swarm mode: only show UI on first drone (index 0)
 			int32 MyIndex = Manager->GetDroneIndex(dronePawn);
 			if (MyIndex != 0)
 			{
@@ -149,57 +147,138 @@ void UQuadDroneController::Update(double a_deltaTime)
 			}
 		}
 	}
-     
 	if (bShowUI)
 	{
 		// Unique window name per drone to avoid ID conflicts
 		FString WinName = FString::Printf(TEXT("Flight Mode Selector##%s"), *dronePawn->DroneID);
 		ImGui::Begin(TCHAR_TO_UTF8(*WinName));
-		// Flight mode buttons
-        if (ImGui::Button("Position Control", ImVec2(200, 50)))
-        {
-            // Switch to auto-waypoint mode and load figure-8 plan
-            SetFlightMode(EFlightMode::AutoWaypoint);
-            // Broadcast to swarm if enabled
-            if (Manager && Manager->IsSwarmMode())
-                Manager->OnGlobalFlightModeChanged.Broadcast(currentFlightMode);
-        }
-        // if (ImGui::Button("JoyStick Control", ImVec2(200, 50)))
-        // {
-        //     // Switch to joystick control mode
-        //     SetFlightMode(EFlightMode::JoyStickControl);
-        //     if (Manager && Manager->IsSwarmMode())
-        //         Manager->OnGlobalFlightModeChanged.Broadcast(currentFlightMode);
-        // }
-        if (ImGui::Button("Move By Velocity", ImVec2(200, 50)))
-        {
-            // Switch to velocity control mode
-            SetFlightMode(EFlightMode::VelocityControl);
-            if (Manager && Manager->IsSwarmMode())
-                Manager->OnGlobalFlightModeChanged.Broadcast(currentFlightMode);
-        }
-		if (ImGui::Button("Angle Control", ImVec2(200, 50)))
+
+		static bool useGamepad = false;                         
+		ImGui::Checkbox("GamePad?", &useGamepad);
+		bGamepadModeUI = useGamepad;               
+		if (!useGamepad)
 		{
-			// Switch to joystick control mode
-			SetFlightMode(EFlightMode::AngleControl);
-			if (Manager && Manager->IsSwarmMode())
-				Manager->OnGlobalFlightModeChanged.Broadcast(currentFlightMode);
+			// determine which button is active
+			const bool selPos = currentFlightMode == EFlightMode::AutoWaypoint;
+			const bool selVel = currentFlightMode == EFlightMode::VelocityControl;
+			const bool selAng = currentFlightMode == EFlightMode::AngleControl;
+
+			// Position Control
+			ImGui::PushStyleColor(
+				ImGuiCol_Button,
+				selPos
+					? ImVec4(0.1f, 0.7f, 0.1f, 1.0f)
+					: ImGui::GetStyleColorVec4(ImGuiCol_Button)
+			);
+			if (ImGui::Button("Position Control", ImVec2(200, 50)))
+				SetFlightMode(EFlightMode::AutoWaypoint);
+			ImGui::PopStyleColor();
+
+			// Move By Velocity
+			ImGui::PushStyleColor(
+				ImGuiCol_Button,
+				selVel
+					? ImVec4(0.1f, 0.7f, 0.1f, 1.0f)
+					: ImVec4(ImGui::GetStyleColorVec4(ImGuiCol_Button))
+			);
+			if (ImGui::Button("Move By Velocity", ImVec2(200, 50)))
+				SetFlightMode(EFlightMode::VelocityControl);
+			ImGui::PopStyleColor();
+
+			// Angle Control
+			ImGui::PushStyleColor(
+				ImGuiCol_Button,
+				selAng
+					? ImVec4(0.1f, 0.7f, 0.1f, 1.0f)
+					: ImGui::GetStyleColorVec4(ImGuiCol_Button)
+			);
+			if (ImGui::Button("Angle Control", ImVec2(200, 50)))
+				SetFlightMode(EFlightMode::AngleControl);
+			ImGui::PopStyleColor();
 		}
-		// if (ImGui::Button("Rate Control", ImVec2(200, 50)))
-		// {
-		// 	// Switch to velocity control mode
-		// 	SetFlightMode(EFlightMode::RateControl);
-		// 	if (Manager && Manager->IsSwarmMode())
-		// 		Manager->OnGlobalFlightModeChanged.Broadcast(currentFlightMode);
-		// }
+		else
+		{
+			// highlight the active one with a different colour
+			const bool selAngle = currentFlightMode == EFlightMode::JoyStickAngleControl;
+			const bool selAcro  = currentFlightMode == EFlightMode::JoyStickAcroControl;
+
+			ImGui::PushStyleColor(ImGuiCol_Button, selAngle ? ImVec4(0.1f,0.7f,0.1f,1.f)
+															: ImGui::GetStyleColorVec4(ImGuiCol_Button));
+			if (ImGui::Button("Angle Control", ImVec2(200,50)))
+				SetFlightMode(EFlightMode::JoyStickAngleControl);
+			ImGui::PopStyleColor();
+
+			ImGui::PushStyleColor(ImGuiCol_Button, selAcro ? ImVec4(0.1f,0.7f,0.1f,1.f)
+														   : ImGui::GetStyleColorVec4(ImGuiCol_Button));
+			if (ImGui::Button("Acro Control", ImVec2(200,50)))
+				SetFlightMode(EFlightMode::JoyStickAcroControl);
+			ImGui::PopStyleColor();
+		}
 		ImGui::End();
 	}
 
-	if(currentFlightMode != EFlightMode::None){
-		FlightController(a_deltaTime);
+	if (currentFlightMode != EFlightMode::None)
+	{
+		if (bGamepadModeUI)
+			GamepadController(a_deltaTime);      
+		else
+			FlightController(a_deltaTime);
 	}
 }
+void UQuadDroneController::GamepadController(double DeltaTime)
+{
+	if (!dronePawn) return;
+	const FGamepadInputs& GP = dronePawn->GamepadInputs;
 
+	/* ---------------- state ---------------- */
+	const FVector  currPos = dronePawn->GetActorLocation();
+	const FVector  currVel = dronePawn->GetVelocity();
+	const FRotator currRot = dronePawn->GetActorRotation();
+	const FRotator yawOnlyRot(0.f, currRot.Yaw, 0.f);
+	FVector localVel = yawOnlyRot.UnrotateVector(currVel);
+
+	const FVector worldAngDeg = dronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
+	localAngularRateDeg = yawOnlyRot.UnrotateVector(worldAngDeg);
+
+	/* ---------------- altitude / throttle ---------------- */
+	hoverTargetAltitude += GP.Throttle * 150.f * DeltaTime;          // ±1 m s-¹
+
+	double altVelSetpoint = AltitudePID->Calculate(hoverTargetAltitude, currPos.Z, DeltaTime);
+	double zEffort = PIDSet.ZPID->Calculate(altVelSetpoint, localVel.Z, DeltaTime);
+
+	/* ---------------- desired attitudes from sticks ---------------- */
+	desiredRoll       =  GP.Roll   *  maxAngle;     // right-stick X
+	desiredPitch      = -GP.Pitch  *  maxAngle;     // right-stick Y (invert)
+	desiredYawRate    =  GP.Yaw    *  maxYawRate;   // left-stick X
+
+	/* ---------------- PID cascades (same gains as normal) ---------- */
+	const double rollOut  = PIDSet.RollPID ->Calculate(desiredRoll,  currRot.Roll,      DeltaTime);
+	const double pitchOut = PIDSet.PitchPID->Calculate(desiredPitch, -currRot.Pitch,    DeltaTime);
+	const float  yawOut   = YawRateControl(DeltaTime);   // uses desiredYawRate
+
+	/* no XY position hold in this simple ANGLE mode */
+	ThrustMixer(desiredRoll, desiredPitch, zEffort,
+				rollOut,   pitchOut,      yawOut);
+
+	/* optional HUD / debug */
+	DrawDebugVisualsVel(FVector::ZeroVector);
+
+	if (dronePawn && dronePawn->ImGuiUtil)
+	{
+		// Display HUD only for the selected drone (independent) or all (swarm)
+		bool bShowUI = true;
+		if (ADroneManager* Manager = ADroneManager::Get(dronePawn->GetWorld()))
+		{
+			if (!Manager->IsSwarmMode())
+			{
+				const int32 myIdx = Manager->GetDroneIndex(dronePawn);
+				bShowUI = (myIdx == Manager->SelectedDroneIndex);
+			}
+		}
+
+		if (bShowUI){dronePawn->ImGuiUtil->ImGuiHud(currentFlightMode,DeltaTime);}
+	}
+}
 void UQuadDroneController::FlightController(double DeltaTime)
 {
 	FFullPIDSet* CurrentSet = &PIDSet;
@@ -481,8 +560,10 @@ float  UQuadDroneController::YawRateControl(double DeltaTime)
 	
 	FVector currentAngularVelocity = dronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
 	float currentYawRate = currentAngularVelocity.Z;
+	UE_LOG(LogTemp, Warning, TEXT("Yaw Rate Output: %f deg/s"), desiredYawRate);
 
-	float yawTorqueFeedback = CurrentSet->YawRatePID->Calculate(desiredYawRate,currentYawRate, DeltaTime);
+	float currentdesiredYawRate = desiredYawRate;
+	float yawTorqueFeedback = CurrentSet->YawRatePID->Calculate(currentdesiredYawRate,currentYawRate, DeltaTime);
 	return yawTorqueFeedback;
 }
 
@@ -706,6 +787,18 @@ FVector UQuadDroneController::GetCurrentVelocity() const
 }
 void UQuadDroneController::SetFlightMode(EFlightMode NewMode)
 {
+	switch (NewMode)
+	{
+	case EFlightMode::AngleControl:
+	case EFlightMode::JoyStickAngleControl:
+	case EFlightMode::JoyStickAcroControl:
+		hoverTargetAltitude = dronePawn ? dronePawn->GetActorLocation().Z : 0.f;
+		AltitudePID->Reset();                       // forget old integral wind-up
+		break;
+
+	default:
+		break;
+	}
     currentFlightMode = NewMode;
     // On selecting AutoWaypoint, generate and load the figure-8 navigation plan
     if (NewMode == EFlightMode::AutoWaypoint && dronePawn)

@@ -16,7 +16,7 @@ public class QuadSimCore : ModuleRules
             "rclUE" 
         });
 
-        PrivateDependencyModuleNames.AddRange(new string[] { "Projects" });
+        PrivateDependencyModuleNames.AddRange(new string[] { "Projects", "AITestSuite" });
         
 	string ProjectPluginsDirectory = Path.GetFullPath(Path.Combine(ModuleDirectory, "../../../")); 
 

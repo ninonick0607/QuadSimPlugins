@@ -13,14 +13,16 @@
 #include "Msgs/ROS2Img.h"
 #include "Msgs/ROS2Float64.h"
 #include "Msgs/ROS2Twist.h"
+#include "Msgs/ROS2Imu.h"
 #include "Msgs/ROS2Str.h"
+#include "Msgs/ROS2Vec3.h" 
 #include "Msgs/ROS2Odom.h"
 #include "Msgs/ROS2Empty.h"
-#include "Msgs/ROS2TFMsg.h"           // Wrapper for tf2_msgs/TFMessage
-#include "Msgs/ROS2TFStamped.h"       // Wrapper for geometry_msgs/TransformStamped
-#include "Msgs/ROS2PoseStamped.h"     // Wrapper for geometry_msgs/PoseStamped
-#include "Msgs/ROS2PointStamped.h"    // For click input if needed elsewhere
-#include "Msgs/ROS2Quat.h"            // Include for FROSQuat if needed directly (used via PoseStamped)
+#include "Msgs/ROS2TFMsg.h"           
+#include "Msgs/ROS2TFStamped.h"       
+#include "Msgs/ROS2PoseStamped.h"     
+#include "Msgs/ROS2PointStamped.h"    
+#include "Msgs/ROS2Quat.h"            
 
 // --- Utilities ---
 #include "rclcUtilities.h"
@@ -94,6 +96,11 @@ public:
     FString ResetTopicName = TEXT("/reset");
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ROS2|Subscribers")
     FString HoverTopicName = TEXT("/hover/height");
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ROS2|Subscribers")
+    FString AttitudeEulerTopicName = TEXT("/attitude/euler");
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ROS2|Subscribers")
+    FString ImuTopicName = TEXT("/imu/data");
+    
     UPROPERTY(EditAnywhere, Category="ROS2|Subscribers")
     FString GoalPoseTopicName = TEXT("/goal_pose"); // Subscribes to PoseStamped
 
@@ -135,7 +142,10 @@ private:
     void HandleHoverCommand(const UROS2GenericMsg* InMsg);
     UFUNCTION()
     void HandleGoalPose(const UROS2GenericMsg* InMsg); // Handles incoming PoseStamped goal
-
+    UFUNCTION()
+    void HandleAttitudeEuler(const UROS2GenericMsg* InMsg);
+    UFUNCTION()
+    void HandleImuData(const UROS2GenericMsg* InMsg);
     // --- ROS2 Components (Internal) ---
     UPROPERTY()
     UROS2NodeComponent* Node;
@@ -158,7 +168,8 @@ private:
     UROS2Subscriber* ResetSubscriber;
     UPROPERTY()
     UROS2Subscriber* HoverSubscriber;
-
+    UPROPERTY()
+    UROS2Subscriber* ImuSubscriber;
     // --- Internal State ---
     UPROPERTY()
     AObstacleManager* ObstacleManagerInstance;

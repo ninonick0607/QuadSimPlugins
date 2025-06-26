@@ -319,12 +319,6 @@ void AQuadPawn::SwitchCamera()
 		ResetGroundCameraPosition();
 		UE_LOG(LogTemp, Log, TEXT("Camera Mode: Ground Track"));
 		break;
-
-	// case ECameraMode::GroundTrack:
-	// 	CurrentCameraMode = ECameraMode::ThirdPerson;
-	// 	Camera->SetActive(true);
-	// 	UE_LOG(LogTemp, Log, TEXT("Camera Mode: Third Person"));
-	// 	break;
 	default:
 		CurrentCameraMode = ECameraMode::ThirdPerson;
 		Camera->SetActive(true);
@@ -387,6 +381,26 @@ void AQuadPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	PlayerInputComponent->BindAction("ToggleImGui", IE_Pressed, this, &AQuadPawn::ToggleImguiInput);
 	PlayerInputComponent->BindAction("ReloadJSON", IE_Pressed, this, &AQuadPawn::ReloadJSONConfig);
+
+	PlayerInputComponent->BindAxis("GP_Throttle", this, &AQuadPawn::OnThrottleAxis);
+	PlayerInputComponent->BindAxis("GP_Yaw",      this, &AQuadPawn::OnYawAxis);
+	PlayerInputComponent->BindAxis("GP_Pitch",    this, &AQuadPawn::OnPitchAxis);
+	PlayerInputComponent->BindAxis("GP_Roll",     this, &AQuadPawn::OnRollAxis);
+
+	PlayerInputComponent->BindAction("GP_ToggleFlightMode", IE_Pressed,
+							this, &AQuadPawn::ToggleGamepadMode);
+}
+
+void AQuadPawn::OnThrottleAxis(float Value) { GamepadInputs.Throttle = Value; }
+void AQuadPawn::OnYawAxis(float Value)      { GamepadInputs.Yaw      = Value; }
+void AQuadPawn::OnPitchAxis(float Value)    { GamepadInputs.Pitch    = Value; }
+void AQuadPawn::OnRollAxis(float Value)     { GamepadInputs.Roll     = Value; }
+
+void AQuadPawn::ToggleGamepadMode()
+{
+	const bool bGP = (QuadController->GetFlightMode() == EFlightMode::JoyStickAngleControl);
+	QuadController->SetFlightMode(bGP ? EFlightMode::None
+									  : EFlightMode::JoyStickAngleControl);
 }
 
 void AQuadPawn::ReloadJSONConfig()

@@ -12,11 +12,14 @@ enum class EFlightMode : uint8
 {
     None UMETA(DisplayName = "None"),
     AutoWaypoint UMETA(DisplayName = "AutoWaypoint"),
-    JoyStickControl UMETA(DisplayName = "JoyStickControl"),
     VelocityControl UMETA(DisplayName = "VelocityControl"),
     AngleControl UMETA(DisplayName = "AngleControl"),
-    RateControl UMETA(DisplayName = "RateControl")
+    RateControl UMETA(DisplayName = "RateControl"),
+    JoyStickAngleControl UMETA(DisplayName = "JoyStickAngleControl"),
+    JoyStickAcroControl UMETA(DisplayName = "JoyStickAcroControl")
 };
+
+struct FGamepadInputs;
 
 USTRUCT()
 struct FFullPIDSet
@@ -63,6 +66,7 @@ public:
     void Update(double DeltaTime);
 
     void FlightController(double DeltaTime);
+    void GamepadController(double DeltaTime);
     void dynamicController(double DeltaTime);
     void ThrustMixer(double currentRoll, double currentPitch, double zOutput, double rollOutput, double pitchOutput, double yawOutput);
     float YawRateControl(double DeltaTime);
@@ -91,6 +95,7 @@ public:
     double GetDesiredPitch() const {return desiredPitch;}
     double GetDesiredRollRate() const {return desiredRollRate;}
     double GetDesiredPitchRate() const {return desiredPitchRate;}
+    EFlightMode GetFlightMode() const { return currentFlightMode; }
     
     FVector GetCurrentSetPoint() const { return setPoint; }
     const TArray<float>& GetThrusts() const { return Thrusts; }
@@ -125,7 +130,7 @@ public:
     {
         return &PIDSet;
     }
-    
+
 private:
 
     UPROPERTY()
@@ -175,4 +180,5 @@ private:
 
     bool Debug_DrawDroneCollisionSphere;
     bool Debug_DrawDroneWaypoint;
+    bool bGamepadModeUI = false; 
 };

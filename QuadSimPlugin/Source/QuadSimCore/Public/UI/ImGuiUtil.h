@@ -7,6 +7,7 @@ class AQuadPawn;
 class QuadPIDController;
 class UQuadDroneController;
 
+struct FGamepadInputs;
 
 enum class EFlightMode : uint8;
 
@@ -31,6 +32,7 @@ public:
     void DisplayDesiredVelocities(float maxVelocity);
     void DisplayDesiredAngles(float maxAngle);
     void DisplayDesiredAngleRates(float maxRate);
+    void DisplayJoystickControl(const FGamepadInputs& GamepadInputs);
 
     void DisplayDesiredPositions();
     void DisplayPIDHistoryWindow();

@@ -35,6 +35,21 @@ enum class EWaypointMode
 	ManualWaypointInput,
 	ReadyToStart
 };
+
+enum class EFlightMode : uint8;              // lives in the controller
+
+USTRUCT(BlueprintType)
+struct FGamepadInputs
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite) float Throttle = 0.f; // left-stick Y (-1…+1)
+	UPROPERTY(BlueprintReadWrite) float Yaw      = 0.f; // left-stick X
+	UPROPERTY(BlueprintReadWrite) float Pitch    = 0.f; // right-stick Y
+	UPROPERTY(BlueprintReadWrite) float Roll     = 0.f; // right-stick X
+};
+
+
 UCLASS()
 class QUADSIMCORE_API AQuadPawn : public APawn 
 {
@@ -44,10 +59,7 @@ public:
 	// Constructor
 	AQuadPawn();
 
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	// --- Drone Components ---
@@ -76,7 +88,6 @@ public:
 	USceneCaptureComponent2D* FPVCaptureComponent;
 
 	// --- HUD Render Targets ---
-	// Assign these in the Blueprint editor for this Pawn
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD")
 	UTextureRenderTarget2D* TPCaptureRenderTarget;
     
@@ -116,9 +127,7 @@ public:
 
 	// --- Helper Functions ---
 	void SwitchCamera();
-
 	void ToggleImguiInput();
-
 	void ReloadJSONConfig();
 
 	UFUNCTION(BlueprintPure, Category = "Drone State")
@@ -141,17 +150,18 @@ public:
    // Generate a figure-8 waypoint list around the pawn's current position
    UFUNCTION(BlueprintCallable, Category = "Navigation")
    TArray<FVector> GenerateFigureEightWaypoints() const;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Input")
+	FGamepadInputs GamepadInputs;
 
 protected:
+	virtual void BeginPlay() override;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> HUDWidgetClass;
-
 	UPROPERTY()
 	UQuadHUDWidget* HUDWidgetInstance;
-	
 	void UpdateHUD();
-	virtual void BeginPlay() override;
+	
 
     UFUNCTION()
     void OnDroneHit(
@@ -161,13 +171,21 @@ protected:
        FVector NormalImpulse,
        const FHitResult& Hit);
 
+	void OnThrottleAxis(float Value);
+	void OnYawAxis     (float Value);
+	void OnPitchAxis   (float Value);
+	void OnRollAxis    (float Value);
+	void ToggleGamepadMode();
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	ECameraMode CurrentCameraMode;
+	void ResetGroundCameraPosition();
+	void UpdateGroundCameraTracking();
+
+
 
 private:
 	void UpdateControl(float DeltaTime);
-	void ResetGroundCameraPosition();
-	void UpdateGroundCameraTracking();
 	float LastCollisionTime;
 	float CollisionTimeout = 0.2f;
 	bool bWaypointModeSelected;
