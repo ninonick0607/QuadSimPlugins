@@ -1,0 +1,6 @@
+<map id="ADroneManager::RegisterDroneController" name="ADroneManager::RegisterDroneController">
+<area shape="rect" id="node1" title=" " alt="" coords="5,39,233,80"/>
+<area shape="rect" id="node2" href="$classUQuadDroneController.html#abe10155e4aa1c6a77e67347ca91d2fdc" title=" " alt="" coords="281,39,451,80"/>
+<area shape="rect" id="node3" href="$classAQuadPawn.html#a08a971a005a8dfe3148b82e659731b1b" title=" " alt="" coords="499,5,705,47"/>
+<area shape="rect" id="node4" href="$classQuadPIDController.html#aa21a311e6b52f6d72c19468b85c359b3" title=" " alt="" coords="527,71,677,112"/>
+</map>

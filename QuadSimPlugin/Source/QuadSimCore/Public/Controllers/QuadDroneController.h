@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Utility/QuadPIDController.h"
+#include "ROSFlightControllerSource.h"
 #include "UI/ImGuiUtil.h"
 #include "QuadDroneController.generated.h"
 
@@ -49,7 +50,7 @@ struct FFullPIDSet
 
 
 UCLASS(Blueprintable, BlueprintType)
-class QUADSIMCORE_API UQuadDroneController : public UObject
+class QUADSIMCORE_API UQuadDroneController : public UObject, public IROSFlightControllerSource
 {
     GENERATED_BODY()
 
@@ -76,7 +77,7 @@ public:
     void ResetDroneRotation();
     void ResetDroneOrigin();
 
-//
+
     void SetManualThrustMode(bool bEnable);
     void SetHoverMode(bool bActive, float TargetAltitude = 250.0f);
     void SetDestination(FVector desiredSetPoints);
@@ -90,16 +91,23 @@ public:
     FVector GetCurrentAngularVelocity() const {return currentLocalVelocity; }
     FVector GetDesiredVelocity() const { return desiredNewVelocity; }
     bool GetDebugVisualsEnabled() const { return bDebugVisualsEnabled; }
-    float GetDesiredYawRate() const { return desiredYawRate; }
-    double GetDesiredRoll() const {return desiredRoll;}
-    double GetDesiredPitch() const {return desiredPitch;}
+    
+    virtual float IsUsingROSflight() const override { return bUseROSflight; }
+    virtual float GetDesiredRoll() const override { return desiredRoll; }
+    virtual float GetDesiredPitch() const override { return desiredPitch; }
+    virtual float GetDesiredYawRate() const override { return desiredYawRate; }
+    virtual float GetDesiredThrustNormalized() const override { return desiredThrust_Normalized; }
+
+    
     double GetDesiredRollRate() const {return desiredRollRate;}
     double GetDesiredPitchRate() const {return desiredPitchRate;}
+    
+
     EFlightMode GetFlightMode() const { return currentFlightMode; }
     
     FVector GetCurrentSetPoint() const { return setPoint; }
     const TArray<float>& GetThrusts() const { return Thrusts; }
-
+    
     void SetDebugVisualsEnabled(bool bEnabled) { bDebugVisualsEnabled = bEnabled; }
     void SetDesiredAngle(float newAngle) { maxAngle = newAngle; }
     void SetMaxVelocity(float newMaxVelocity) { maxVelocity = newMaxVelocity;}
@@ -131,6 +139,7 @@ public:
         return &PIDSet;
     }
 
+    
 private:
 
     UPROPERTY()
@@ -149,8 +158,8 @@ private:
     FVector desiredNewVelocity;
 
     // Angle Controlv
-    double desiredRoll;
-    double desiredPitch;
+    float desiredRoll;
+    float desiredPitch;
     double desiredNewRoll;
     double desiredNewPitch;
 
@@ -167,6 +176,10 @@ private:
     bool bHoverModeActive;
     bool bManualThrustMode = false;
     
+    bool bUseROSflight = false;
+
+    float desiredThrust_Normalized = 0.0f;
+
     float maxVelocity;
     float maxAngle;
     float maxAngleRate;

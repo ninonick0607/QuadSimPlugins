@@ -1,0 +1,11 @@
+<map id="AQuadPawn::BeginPlay" name="AQuadPawn::BeginPlay">
+<area shape="rect" id="node1" title=" " alt="" coords="5,130,177,157"/>
+<area shape="rect" id="node2" href="$classUQuadDroneController.html#a3579fab5efc89478ef45237815734b4b" title=" " alt="" coords="241,5,410,47"/>
+<area shape="rect" id="node4" href="$classAQuadPawn.html#a35bc5d31ebef121488abba33484b28b8" title=" " alt="" coords="234,71,417,98"/>
+<area shape="rect" id="node5" href="$classAQuadPawn.html#acdb49424f7f7a367df1e95676a2a23ae" title=" " alt="" coords="225,123,425,164"/>
+<area shape="rect" id="node6" href="$classUQuadDroneController.html#aafeb859afe8b578e40afd30aea2748cb" title=" " alt="" coords="241,188,410,229"/>
+<area shape="rect" id="node8" href="$classAQuadPawn.html#a1d35d6472a7036da345489dadcbbfab5" title=" " alt="" coords="233,254,417,281"/>
+<area shape="rect" id="node3" href="$classADroneManager.html#a9c3c9b9953ac4f47093c19e72029c41d" title=" " alt="" coords="531,13,690,39"/>
+<area shape="rect" id="node7" href="$classQuadPIDController.html#aa21a311e6b52f6d72c19468b85c359b3" title=" " alt="" coords="535,188,686,229"/>
+<area shape="rect" id="node9" href="$classUQuadHUDWidget.html#a700952af9b5aed0a2196af1c3b94155c" title=" " alt="" coords="473,254,748,281"/>
+</map>

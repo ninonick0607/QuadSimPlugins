@@ -7,6 +7,8 @@
 #include "Core/ThrusterComponent.h"
 #include "Utility/NavigationComponent.h"
 #include "UI/ImGuiUtil.h"
+#include "GameFramework/Pawn.h"
+#include "ROS2NodeComponent.h" 
 #include "Components/ChildActorComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -19,6 +21,7 @@ class UQuadDroneController;
 class UImGuiUtil;
 class UThrusterComponent;
 class UQuadHUDWidget;
+class UROSFlightComponent;
 
 // Enum to track camera state
 UENUM(BlueprintType)
@@ -102,8 +105,12 @@ public:
     TArray<UThrusterComponent*> Thrusters;
  	
 	// ROS2 Controller as a child actor component
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	// UChildActorComponent* ROS2ControllerComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	UChildActorComponent* ROS2ControllerComponent;
+	UROS2NodeComponent* ROS2Node;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UROSFlightComponent* RosflightDynamics;
 
 	// --- Drone Configuration ---
 	UPROPERTY(EditDefaultsOnly, Category = "Drone Configuration")
@@ -144,12 +151,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Collision")
 	void ResetCollisionStatus();
 
-   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Navigation")
-   UNavigationComponent* NavigationComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Navigation")
+    UNavigationComponent* NavigationComponent;
 
-   // Generate a figure-8 waypoint list around the pawn's current position
-   UFUNCTION(BlueprintCallable, Category = "Navigation")
-   TArray<FVector> GenerateFigureEightWaypoints() const;
+    // Generate a figure-8 waypoint list around the pawn's current position
+    UFUNCTION(BlueprintCallable, Category = "Navigation")
+    TArray<FVector> GenerateFigureEightWaypoints() const;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Input")
 	FGamepadInputs GamepadInputs;
 

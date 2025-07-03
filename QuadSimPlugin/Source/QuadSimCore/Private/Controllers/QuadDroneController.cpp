@@ -36,7 +36,8 @@ UQuadDroneController::UQuadDroneController(const FObjectInitializer& ObjectIniti
 	, localAngularRateDeg(FVector::ZeroVector)
 	, hoverTargetAltitude(0.0f)
 	, bHoverModeActive(false)
-	, bManualThrustMode(false)  
+	, bManualThrustMode(false)
+	
 {
 	const auto& Config = UDroneJSONConfig::Get().Config;
 	maxVelocity = Config.FlightParams.MaxVelocity;
@@ -155,6 +156,9 @@ void UQuadDroneController::Update(double a_deltaTime)
 
 		static bool useGamepad = false;                         
 		ImGui::Checkbox("GamePad?", &useGamepad);
+		ImGui::Checkbox("Use ROSflight", &bUseROSflight);
+		ImGui::Separator(); // Adds a visual line
+
 		bGamepadModeUI = useGamepad;               
 		if (!useGamepad)
 		{
@@ -340,40 +344,57 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	const double yOut = CurrentSet->YPID -> Calculate(desiredLocalVelocity.Y,currentLocalVelocity.Y, DeltaTime);
 	const double zOut = CurrentSet->ZPID -> Calculate(desiredLocalVelocity.Z,currentLocalVelocity.Z, DeltaTime);
 
-	/*-------- Angle P Control -------- */ 
+	if (bUseROSflight)
+	{
+		desiredRoll  = FMath::Clamp(yOut, -maxAngle,  maxAngle);
+		desiredPitch = FMath::Clamp(xOut, -maxAngle,  maxAngle);
+		desiredYawRate = 0.f; // Command a stable yaw rate, can be expanded later.
+
+		// Calculate and store normalized thrust
+		const float droneMass = dronePawn->GetMass();
+		const float gravity = 980.0f;
+		const float hoverThrustForce = droneMass * gravity;
+		const float maxTotalThrust = 700.0f * 4; // From your mixer's clamp value
+
+		float totalThrustForce = hoverThrustForce + zOut;
+		desiredThrust_Normalized = FMath::Clamp(totalThrustForce / maxTotalThrust, 0.0f, 1.0f);
+    
+	}
+	else
+	{
+		/*-------- Angle P Control -------- */ 
 	
-	desiredRoll  = (currentFlightMode == EFlightMode::AngleControl) ? desiredNewRoll: FMath::Clamp( yOut, -maxAngle,  maxAngle); // Implement switch here for angle control using DesirednewRoll
-	desiredPitch = (currentFlightMode == EFlightMode::AngleControl) ? desiredNewPitch: FMath::Clamp( xOut, -maxAngle,  maxAngle); // Implement switch here
+		desiredRoll  = (currentFlightMode == EFlightMode::AngleControl) ? desiredNewRoll: FMath::Clamp( yOut, -maxAngle,  maxAngle);
+		desiredPitch = (currentFlightMode == EFlightMode::AngleControl) ? desiredNewPitch: FMath::Clamp( xOut, -maxAngle,  maxAngle);
 	
-	const double rollOut  = CurrentSet ->RollPID->Calculate(desiredRoll,currRot.Roll , DeltaTime);
-	const double pitchOut = CurrentSet ->PitchPID->Calculate(desiredPitch,-currRot.Pitch, DeltaTime);
-	// UE_LOG(LogTemp, Warning, TEXT("Roll Output: %f deg/s"), rollOut);
-	// UE_LOG(LogTemp, Warning, TEXT("Pitch Output: %f deg/s"), pitchOut);
+		const double rollOut  = CurrentSet ->RollPID->Calculate(desiredRoll,currRot.Roll , DeltaTime);
+		const double pitchOut = CurrentSet ->PitchPID->Calculate(desiredPitch,-currRot.Pitch, DeltaTime);
+		// UE_LOG(LogTemp, Warning, TEXT("Roll Output: %f deg/s"), rollOut);
+		// UE_LOG(LogTemp, Warning, TEXT("Pitch Output: %f deg/s"), pitchOut);
 
-	/*-------- Angle Rate PID Control -------- */ 
+		/*-------- Angle Rate PID Control -------- */ 
 
-	// desiredPitchRate = (currentFlightMode == EFlightMode::RateControl) ? desiredNewPitchRate: FMath::Clamp(pitchOut, -maxAngleRate, maxAngleRate); // Implement switch here for angle control using DesiredNewPitchRate
-	// desiredRollRate = (currentFlightMode == EFlightMode::RateControl) ? desiredNewRollRate: FMath::Clamp(rollOut, -maxAngleRate,  maxAngleRate); // Implement switch here for angle control 
+		// desiredPitchRate = (currentFlightMode == EFlightMode::RateControl) ? desiredNewPitchRate: FMath::Clamp(pitchOut, -maxAngleRate, maxAngleRate); // Implement switch here for angle control using DesiredNewPitchRate
+		// desiredRollRate = (currentFlightMode == EFlightMode::RateControl) ? desiredNewRollRate: FMath::Clamp(rollOut, -maxAngleRate,  maxAngleRate); // Implement switch here for angle control 
 
-	// UE_LOG(LogTemp, Warning, TEXT("Desired Pitch Rate: %f deg/s"), desiredPitchRate);
-	// UE_LOG(LogTemp, Warning, TEXT("Desired Roll Rate: %f deg/s"), desiredRollRate);
-	// UE_LOG(LogTemp, Warning, TEXT("Current Pitch Angular Rate: %f deg/s"), localAngularRateDeg.Y);
-	// UE_LOG(LogTemp, Warning, TEXT("Current Roll Angular Rate: %f deg/s"), localAngularRateDeg.X);
+		// UE_LOG(LogTemp, Warning, TEXT("Desired Pitch Rate: %f deg/s"), desiredPitchRate);
+		// UE_LOG(LogTemp, Warning, TEXT("Desired Roll Rate: %f deg/s"), desiredRollRate);
+		// UE_LOG(LogTemp, Warning, TEXT("Current Pitch Angular Rate: %f deg/s"), localAngularRateDeg.Y);
+		// UE_LOG(LogTemp, Warning, TEXT("Current Roll Angular Rate: %f deg/s"), localAngularRateDeg.X);
 
-	// const double pitchRateOut = CurrentSet->PitchRatePID->Calculate(desiredPitchRate,-localAngularRateDeg.Y, DeltaTime);
-	// const double rollRateOut  = CurrentSet->RollRatePID->Calculate(desiredRollRate,localAngularRateDeg.X,  DeltaTime);
+		// const double pitchRateOut = CurrentSet->PitchRatePID->Calculate(desiredPitchRate,-localAngularRateDeg.Y, DeltaTime);
+		// const double rollRateOut  = CurrentSet->RollRatePID->Calculate(desiredRollRate,localAngularRateDeg.X,  DeltaTime);
 
-	const float yawOutput = YawRateControl(DeltaTime);
+		const float yawOutput = YawRateControl(DeltaTime);
 
-	//  Mix & apply motor thrusts / torques
-	ThrustMixer(desiredRoll, desiredPitch, zOut, rollOut, pitchOut, yawOutput);
-
+		//  Mix & apply motor thrusts / torques
+		ThrustMixer(desiredRoll, desiredPitch, zOut, rollOut, pitchOut, yawOutput);
+	}
 	//  Debug drawing and on‑screen HUD (optional)
 	DrawDebugVisualsVel(FVector(desiredLocalVelocity.X, desiredLocalVelocity.Y, 0.f));
 
 	if (dronePawn && dronePawn->ImGuiUtil)
 	{
-		// Display HUD only for the selected drone (independent) or all (swarm)
 		bool bShowUI = true;
 		if (ADroneManager* Manager = ADroneManager::Get(dronePawn->GetWorld()))
 		{
@@ -560,7 +581,6 @@ float  UQuadDroneController::YawRateControl(double DeltaTime)
 	
 	FVector currentAngularVelocity = dronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
 	float currentYawRate = currentAngularVelocity.Z;
-	UE_LOG(LogTemp, Warning, TEXT("Yaw Rate Output: %f deg/s"), desiredYawRate);
 
 	float currentdesiredYawRate = desiredYawRate;
 	float yawTorqueFeedback = CurrentSet->YawRatePID->Calculate(currentdesiredYawRate,currentYawRate, DeltaTime);

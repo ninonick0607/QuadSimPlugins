@@ -1,0 +1,26 @@
+var classQuadPIDController =
+[
+    [ "IntegralPoint", "structQuadPIDController_1_1IntegralPoint.html", "structQuadPIDController_1_1IntegralPoint" ],
+    [ "QuadPIDController", "classQuadPIDController.html#a90ee8f998f457d1beeefac6298c22d3c", null ],
+    [ "Calculate", "classQuadPIDController.html#ad96b9199d7ae1f627a01c0ac888220c8", null ],
+    [ "GetBufferSize", "classQuadPIDController.html#ada59822219afda95a1777d099215406b", null ],
+    [ "GetCurrentBufferSum", "classQuadPIDController.html#a1ec8e8f3bd0302a9a8d700eab8fc4f8c", null ],
+    [ "RemoveExpiredPoints", "classQuadPIDController.html#ab7e668b1b8cba6bf742e8e5d73e43b87", null ],
+    [ "Reset", "classQuadPIDController.html#aa21a311e6b52f6d72c19468b85c359b3", null ],
+    [ "ResetIntegral", "classQuadPIDController.html#a283be99595ca119de53e4a6cfc910c47", null ],
+    [ "SetGains", "classQuadPIDController.html#aa39a65d8fe819e59c0e5e4b82f278ed5", null ],
+    [ "SetLimits", "classQuadPIDController.html#ae025f6dac3089684c90d9b0a4589516a", null ],
+    [ "absoluteTime", "classQuadPIDController.html#af8a2a44949ab4d28291745134a81cdf3", null ],
+    [ "currentBufferSum", "classQuadPIDController.html#ac4cb920b2a3b9a1a127c51273b1005e3", null ],
+    [ "DerivativeGain", "classQuadPIDController.html#a60483680837ed49ec430a2db1099fefd", null ],
+    [ "filteredDerivative", "classQuadPIDController.html#a00b7c392c529c4af8e7e80365862dfef", null ],
+    [ "integralBuffer", "classQuadPIDController.html#ab3d1945f906d5b918e8230810cfb3b4b", null ],
+    [ "IntegralGain", "classQuadPIDController.html#a27ceda607edec36db4193927e97a4367", null ],
+    [ "lastOutput", "classQuadPIDController.html#aad7f574c6364ee73a5a68e432b0dbc8a", null ],
+    [ "lastState", "classQuadPIDController.html#af0790767e23c7ea9c6741b003a790a93", null ],
+    [ "maxOutput", "classQuadPIDController.html#a88ee82732832e89279aa797a4d35d3f5", null ],
+    [ "minOutput", "classQuadPIDController.html#ae00d761f993229aaab82395d1d5dedcb", null ],
+    [ "prevError", "classQuadPIDController.html#a5232c0bb10c1b8df58152ceca261db12", null ],
+    [ "ProportionalGain", "classQuadPIDController.html#a3b6a05673d053f660591d27188002931", null ],
+    [ "tau", "classQuadPIDController.html#a712196671b4360ef9a56f5b89835fa6c", null ]
+];

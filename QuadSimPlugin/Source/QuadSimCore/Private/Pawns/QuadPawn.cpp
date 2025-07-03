@@ -18,9 +18,8 @@
 #include "UI/ImGuiUtil.h"
 #include "UI/QuadHUDWidget.h"
 #include "Components/ChildActorComponent.h"
-
 #include "Controllers/ROS2Controller.h"
-
+#include "ROSFlightComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -160,10 +159,12 @@ AQuadPawn::AQuadPawn()
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
 	NavigationComponent = CreateDefaultSubobject<UNavigationComponent>(TEXT("NavigationComponent"));
 	// Child Actor Component for ROS2Controller
-	ROS2ControllerComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("ROS2ControllerComponent"));
-	ROS2ControllerComponent->SetupAttachment(RootComponent);
-	ROS2ControllerComponent->SetChildActorClass(AROS2Controller::StaticClass());
-	
+	// ROS2ControllerComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("ROS2ControllerComponent"));
+	// ROS2ControllerComponent->SetupAttachment(RootComponent);
+	// ROS2ControllerComponent->SetChildActorClass(AROS2Controller::StaticClass());
+	ROS2Node = CreateDefaultSubobject<UROS2NodeComponent>(TEXT("ROS2Node"));
+	RosflightDynamics = CreateDefaultSubobject<UROSFlightComponent>(TEXT("RosflightDynamics"));
+
 }
 
 void AQuadPawn::BeginPlay()
@@ -207,7 +208,12 @@ void AQuadPawn::BeginPlay()
 		QuadController = NewObject<UQuadDroneController>(this, TEXT("QuadDroneController"));
 		QuadController->Initialize(this);
 	}
-
+	if (QuadController && RosflightDynamics)
+	{
+		// Call the new setter that takes a UObject pointer.
+		// This works because QuadController is a UObject that implements the interface.
+		RosflightDynamics->SetControllerSource(QuadController);
+	}
 	UE_LOG(LogTemp, Display, TEXT("QuadPawn BeginPlay: Pawn=%p, Name=%s"), this, *GetName());
 	
 	if (!ImGuiUtil)
@@ -221,14 +227,14 @@ void AQuadPawn::BeginPlay()
     }
 
 	
-        // Reset PID controllers
-        QuadController->ResetPID();
-        // Collision events binding
-        if (DroneBody)
-        {
-            DroneBody->OnComponentHit.AddDynamic(this, &AQuadPawn::OnDroneHit);
-        }
-        // Collision handling via NotifyHit override; skip AddDynamic binding
+    // Reset PID controllers
+    QuadController->ResetPID();
+    // Collision events binding
+    if (DroneBody)
+    {
+        DroneBody->OnComponentHit.AddDynamic(this, &AQuadPawn::OnDroneHit);
+    }
+    // Collision handling via NotifyHit override; skip AddDynamic binding
 	
 	ResetCollisionStatus();
 

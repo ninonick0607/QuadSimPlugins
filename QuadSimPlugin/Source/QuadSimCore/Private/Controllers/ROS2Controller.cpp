@@ -259,7 +259,6 @@ void AROS2Controller::HandleImuData(const UROS2GenericMsg* InMsg)
         float PitchDeg = FMath::RadiansToDegrees(StampedData.Vector.Y);
         float YawDeg =   FMath::RadiansToDegrees(StampedData.Vector.Z);
 
-        UE_LOG(LogTemp, Log, TEXT("Received Euler Angles [deg]: Roll=%.2f, Pitch=%.2f, Yaw=%.2f"), RollDeg, PitchDeg, YawDeg);
         DroneController->SetDesiredPitchAngle(PitchDeg);
         DroneController->SetDesiredRollAngle(-RollDeg);
     }

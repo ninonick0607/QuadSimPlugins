@@ -1,0 +1,74 @@
+\hypertarget{QuadPawn_8cpp}{}\doxysection{Source/\+Quad\+Sim\+Core/\+Private/\+Pawns/\+Quad\+Pawn.cpp File Reference}
+\label{QuadPawn_8cpp}\index{Source/QuadSimCore/Private/Pawns/QuadPawn.cpp@{Source/QuadSimCore/Private/Pawns/QuadPawn.cpp}}
+{\ttfamily \#include \char`\"{}Pawns/\+Quad\+Pawn.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Controllers/\+Quad\+Drone\+Controller.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Game\+Framework/\+Spring\+Arm\+Component.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Camera/\+Camera\+Component.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Math/\+Unreal\+Math\+Utility.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Core/\+Drone\+JSONConfig.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Engine\+Utils.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Blueprint/\+User\+Widget.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Blueprint/\+Widget\+Blueprint\+Library.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Components/\+Scene\+Capture\+Component2\+D.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Engine/\+Texture\+Render\+Target2\+D.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Engine/\+Engine.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Components/\+Static\+Mesh\+Component.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Components/\+Skeletal\+Mesh\+Component.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Components/\+Primitive\+Component.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Game\+Framework/\+Actor.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Core/\+Thruster\+Component.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}UI/\+Im\+Gui\+Util.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}UI/\+Quad\+HUDWidget.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Components/\+Child\+Actor\+Component.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Controllers/\+ROS2\+Controller.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ROSFlight\+Component.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Kismet/\+Gameplay\+Statics.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Kismet/\+Kismet\+Math\+Library.\+h\char`\"{}}\newline
+Include dependency graph for Quad\+Pawn.\+cpp\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{QuadPawn_8cpp__incl}
+\end{center}
+\end{figure}
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceDroneWaypointConfig}{Drone\+Waypoint\+Config}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{QuadPawn_8cpp_a002b2f4894492820fe708b1b7e7c5e70}{EPSILON}}~0.\+0001f
+\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+const FVector \mbox{\hyperlink{QuadPawn_8cpp_ae75fa6f16de8c4b8b0bdbb129dd87201}{start}} = FVector(0, 0, 1000)
+\item 
+const FName \mbox{\hyperlink{QuadPawn_8cpp_a8e9c7fc85c12fa2cd9fde461ff4c3c01}{Obstacle\+Collision\+Tag}} = FName(\char`\"{}Obstacle\char`\"{})
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Macro Definition Documentation}
+\mbox{\Hypertarget{QuadPawn_8cpp_a002b2f4894492820fe708b1b7e7c5e70}\label{QuadPawn_8cpp_a002b2f4894492820fe708b1b7e7c5e70}} 
+\index{QuadPawn.cpp@{QuadPawn.cpp}!EPSILON@{EPSILON}}
+\index{EPSILON@{EPSILON}!QuadPawn.cpp@{QuadPawn.cpp}}
+\doxysubsubsection{\texorpdfstring{EPSILON}{EPSILON}}
+{\footnotesize\ttfamily \#define EPSILON~0.\+0001f}
+
+
+
+\doxysubsection{Variable Documentation}
+\mbox{\Hypertarget{QuadPawn_8cpp_a8e9c7fc85c12fa2cd9fde461ff4c3c01}\label{QuadPawn_8cpp_a8e9c7fc85c12fa2cd9fde461ff4c3c01}} 
+\index{QuadPawn.cpp@{QuadPawn.cpp}!ObstacleCollisionTag@{ObstacleCollisionTag}}
+\index{ObstacleCollisionTag@{ObstacleCollisionTag}!QuadPawn.cpp@{QuadPawn.cpp}}
+\doxysubsubsection{\texorpdfstring{ObstacleCollisionTag}{ObstacleCollisionTag}}
+{\footnotesize\ttfamily const FName Obstacle\+Collision\+Tag = FName(\char`\"{}Obstacle\char`\"{})}
+
+\mbox{\Hypertarget{QuadPawn_8cpp_ae75fa6f16de8c4b8b0bdbb129dd87201}\label{QuadPawn_8cpp_ae75fa6f16de8c4b8b0bdbb129dd87201}} 
+\index{QuadPawn.cpp@{QuadPawn.cpp}!start@{start}}
+\index{start@{start}!QuadPawn.cpp@{QuadPawn.cpp}}
+\doxysubsubsection{\texorpdfstring{start}{start}}
+{\footnotesize\ttfamily const FVector start = FVector(0, 0, 1000)}
+

@@ -1,0 +1,320 @@
+\hypertarget{classAObstacleManager}{}\doxysection{AObstacle\+Manager Class Reference}
+\label{classAObstacleManager}\index{AObstacleManager@{AObstacleManager}}
+
+
+{\ttfamily \#include $<$Obstacle\+Manager.\+h$>$}
+
+
+
+Inheritance diagram for AObstacle\+Manager\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=189pt]{classAObstacleManager__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for AObstacle\+Manager\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=189pt]{classAObstacleManager__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classAObstacleManager_ab48f28468f47d6899fa97d1c7b2d7393}{AObstacle\+Manager}} ()
+\item 
+void \mbox{\hyperlink{classAObstacleManager_adeb6b0b2beed769a6b8bbae69bc00849}{Create\+Obstacles}} (int32 Num\+Obstacles, \mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}} Goal\+Pos=\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a64663f4646781c9c0110838b905daa23}{EGoal\+Position\+::\+Random}})
+\item 
+void \mbox{\hyperlink{classAObstacleManager_aea69b1fc06b29a36d98673c2a1ac5302}{Clear\+Obstacles}} ()
+\item 
+void \mbox{\hyperlink{classAObstacleManager_a231657c5b5cffa654a526bbe2f1ce05c}{Move\+Drone\+To\+Opposite\+Of\+Goal}} (\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}} Goal\+Pos)
+\item 
+FVector \mbox{\hyperlink{classAObstacleManager_a63459be11f1af8febbbfb23c6879f6e3}{Get\+Goal\+Position}} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+float \mbox{\hyperlink{classAObstacleManager_a36f3996de0390b87b728b9a6d3ca5972}{Inner\+Boundary\+Size}}
+\item 
+float \mbox{\hyperlink{classAObstacleManager_a4599b1c44699a2334f6865b0332088a2}{Outer\+Boundary\+Size}}
+\item 
+float \mbox{\hyperlink{classAObstacleManager_a2dbfaccca0d1d189d860fc6f41d31dfc}{Obstacle\+Spawn\+Height}}
+\item 
+TSubclass\+Of$<$ AActor $>$ \mbox{\hyperlink{classAObstacleManager_a131eb647f948dd00ebab1d9d6184c79f}{Obstacle\+Class}}
+\item 
+TSubclass\+Of$<$ AActor $>$ \mbox{\hyperlink{classAObstacleManager_a51feab0b4341ecbb17adfb0cc2b11dbe}{Goal\+Class}}
+\item 
+UStatic\+Mesh\+Component $\ast$ \mbox{\hyperlink{classAObstacleManager_a2192b7a6184bd7df0fd74b8a9ab3c962}{Visual\+Marker}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual void \mbox{\hyperlink{classAObstacleManager_a70b1ee6056da82b4289535ad69ec1b67}{Begin\+Play}} () override
+\item 
+void \mbox{\hyperlink{classAObstacleManager_a76f203fda8aab28dcd97829554d8218d}{Visualize\+Spawn\+Boundaries}} (bool b\+Persistent\+Lines=false)
+\end{DoxyCompactItemize}
+\doxysubsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+AActor $\ast$ \mbox{\hyperlink{classAObstacleManager_a995b27c090bb8131e0a4076ca4ea872e}{Spawn\+Obstacle}} ()
+\item 
+AActor $\ast$ \mbox{\hyperlink{classAObstacleManager_ae7ac658131e204b783c048d177ef5c5b}{Spawn\+Goal}} (\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}} Position)
+\item 
+FVector \mbox{\hyperlink{classAObstacleManager_adecee5b0414d248cead0d36e92571e6f}{Get\+Random\+Inner\+Point}} ()
+\item 
+\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}} \mbox{\hyperlink{classAObstacleManager_a56e3ca06a6508da0f0862e6a6c1d022b}{Get\+Opposite\+Position}} (\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}} Position)
+\item 
+FVector \mbox{\hyperlink{classAObstacleManager_a7948888d77b4a7d278cd1be4629cc450}{Get\+Position\+Location}} (\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}} Position)
+\end{DoxyCompactItemize}
+\doxysubsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+TArray$<$ AActor $\ast$ $>$ \mbox{\hyperlink{classAObstacleManager_a79efe7d9fd6ee7843714f709a627085c}{Spawned\+Obstacles}}
+\item 
+AActor $\ast$ \mbox{\hyperlink{classAObstacleManager_ada213825367b19387d7451c89106df00}{Spawned\+Goal}}
+\item 
+FVector \mbox{\hyperlink{classAObstacleManager_a49457926bf51b607d473e7a2a146cff8}{Goal\+Position}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classAObstacleManager_ab48f28468f47d6899fa97d1c7b2d7393}\label{classAObstacleManager_ab48f28468f47d6899fa97d1c7b2d7393}} 
+\index{AObstacleManager@{AObstacleManager}!AObstacleManager@{AObstacleManager}}
+\index{AObstacleManager@{AObstacleManager}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{AObstacleManager()}{AObstacleManager()}}
+{\footnotesize\ttfamily AObstacle\+Manager\+::\+AObstacle\+Manager (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_ab48f28468f47d6899fa97d1c7b2d7393_cgraph}
+\end{center}
+\end{figure}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classAObstacleManager_a70b1ee6056da82b4289535ad69ec1b67}\label{classAObstacleManager_a70b1ee6056da82b4289535ad69ec1b67}} 
+\index{AObstacleManager@{AObstacleManager}!BeginPlay@{BeginPlay}}
+\index{BeginPlay@{BeginPlay}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{BeginPlay()}{BeginPlay()}}
+{\footnotesize\ttfamily void AObstacle\+Manager\+::\+Begin\+Play (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [protected]}, {\ttfamily [virtual]}}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_a70b1ee6056da82b4289535ad69ec1b67_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classAObstacleManager_aea69b1fc06b29a36d98673c2a1ac5302}\label{classAObstacleManager_aea69b1fc06b29a36d98673c2a1ac5302}} 
+\index{AObstacleManager@{AObstacleManager}!ClearObstacles@{ClearObstacles}}
+\index{ClearObstacles@{ClearObstacles}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{ClearObstacles()}{ClearObstacles()}}
+{\footnotesize\ttfamily void AObstacle\+Manager\+::\+Clear\+Obstacles (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_aea69b1fc06b29a36d98673c2a1ac5302_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classAObstacleManager_adeb6b0b2beed769a6b8bbae69bc00849}\label{classAObstacleManager_adeb6b0b2beed769a6b8bbae69bc00849}} 
+\index{AObstacleManager@{AObstacleManager}!CreateObstacles@{CreateObstacles}}
+\index{CreateObstacles@{CreateObstacles}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{CreateObstacles()}{CreateObstacles()}}
+{\footnotesize\ttfamily void AObstacle\+Manager\+::\+Create\+Obstacles (\begin{DoxyParamCaption}\item[{int32}]{Num\+Obstacles,  }\item[{\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}}}]{Goal\+Pos = {\ttfamily \mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a64663f4646781c9c0110838b905daa23}{EGoal\+Position\+::\+Random}}} }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_adeb6b0b2beed769a6b8bbae69bc00849_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_adeb6b0b2beed769a6b8bbae69bc00849_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classAObstacleManager_a63459be11f1af8febbbfb23c6879f6e3}\label{classAObstacleManager_a63459be11f1af8febbbfb23c6879f6e3}} 
+\index{AObstacleManager@{AObstacleManager}!GetGoalPosition@{GetGoalPosition}}
+\index{GetGoalPosition@{GetGoalPosition}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{GetGoalPosition()}{GetGoalPosition()}}
+{\footnotesize\ttfamily FVector AObstacle\+Manager\+::\+Get\+Goal\+Position (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_a63459be11f1af8febbbfb23c6879f6e3_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classAObstacleManager_a56e3ca06a6508da0f0862e6a6c1d022b}\label{classAObstacleManager_a56e3ca06a6508da0f0862e6a6c1d022b}} 
+\index{AObstacleManager@{AObstacleManager}!GetOppositePosition@{GetOppositePosition}}
+\index{GetOppositePosition@{GetOppositePosition}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{GetOppositePosition()}{GetOppositePosition()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}} AObstacle\+Manager\+::\+Get\+Opposite\+Position (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}}}]{Position }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_a56e3ca06a6508da0f0862e6a6c1d022b_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classAObstacleManager_a7948888d77b4a7d278cd1be4629cc450}\label{classAObstacleManager_a7948888d77b4a7d278cd1be4629cc450}} 
+\index{AObstacleManager@{AObstacleManager}!GetPositionLocation@{GetPositionLocation}}
+\index{GetPositionLocation@{GetPositionLocation}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{GetPositionLocation()}{GetPositionLocation()}}
+{\footnotesize\ttfamily FVector AObstacle\+Manager\+::\+Get\+Position\+Location (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}}}]{Position }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classAObstacleManager_adecee5b0414d248cead0d36e92571e6f}\label{classAObstacleManager_adecee5b0414d248cead0d36e92571e6f}} 
+\index{AObstacleManager@{AObstacleManager}!GetRandomInnerPoint@{GetRandomInnerPoint}}
+\index{GetRandomInnerPoint@{GetRandomInnerPoint}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{GetRandomInnerPoint()}{GetRandomInnerPoint()}}
+{\footnotesize\ttfamily FVector AObstacle\+Manager\+::\+Get\+Random\+Inner\+Point (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_adecee5b0414d248cead0d36e92571e6f_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classAObstacleManager_a231657c5b5cffa654a526bbe2f1ce05c}\label{classAObstacleManager_a231657c5b5cffa654a526bbe2f1ce05c}} 
+\index{AObstacleManager@{AObstacleManager}!MoveDroneToOppositeOfGoal@{MoveDroneToOppositeOfGoal}}
+\index{MoveDroneToOppositeOfGoal@{MoveDroneToOppositeOfGoal}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{MoveDroneToOppositeOfGoal()}{MoveDroneToOppositeOfGoal()}}
+{\footnotesize\ttfamily void AObstacle\+Manager\+::\+Move\+Drone\+To\+Opposite\+Of\+Goal (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}}}]{Goal\+Pos }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_a231657c5b5cffa654a526bbe2f1ce05c_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_a231657c5b5cffa654a526bbe2f1ce05c_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classAObstacleManager_ae7ac658131e204b783c048d177ef5c5b}\label{classAObstacleManager_ae7ac658131e204b783c048d177ef5c5b}} 
+\index{AObstacleManager@{AObstacleManager}!SpawnGoal@{SpawnGoal}}
+\index{SpawnGoal@{SpawnGoal}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{SpawnGoal()}{SpawnGoal()}}
+{\footnotesize\ttfamily AActor $\ast$ AObstacle\+Manager\+::\+Spawn\+Goal (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}}}]{Position }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_ae7ac658131e204b783c048d177ef5c5b_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classAObstacleManager_a995b27c090bb8131e0a4076ca4ea872e}\label{classAObstacleManager_a995b27c090bb8131e0a4076ca4ea872e}} 
+\index{AObstacleManager@{AObstacleManager}!SpawnObstacle@{SpawnObstacle}}
+\index{SpawnObstacle@{SpawnObstacle}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{SpawnObstacle()}{SpawnObstacle()}}
+{\footnotesize\ttfamily AActor $\ast$ AObstacle\+Manager\+::\+Spawn\+Obstacle (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_a995b27c090bb8131e0a4076ca4ea872e_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_a995b27c090bb8131e0a4076ca4ea872e_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classAObstacleManager_a76f203fda8aab28dcd97829554d8218d}\label{classAObstacleManager_a76f203fda8aab28dcd97829554d8218d}} 
+\index{AObstacleManager@{AObstacleManager}!VisualizeSpawnBoundaries@{VisualizeSpawnBoundaries}}
+\index{VisualizeSpawnBoundaries@{VisualizeSpawnBoundaries}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{VisualizeSpawnBoundaries()}{VisualizeSpawnBoundaries()}}
+{\footnotesize\ttfamily void AObstacle\+Manager\+::\+Visualize\+Spawn\+Boundaries (\begin{DoxyParamCaption}\item[{bool}]{b\+Persistent\+Lines = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [protected]}}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classAObstacleManager_a76f203fda8aab28dcd97829554d8218d_icgraph}
+\end{center}
+\end{figure}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classAObstacleManager_a51feab0b4341ecbb17adfb0cc2b11dbe}\label{classAObstacleManager_a51feab0b4341ecbb17adfb0cc2b11dbe}} 
+\index{AObstacleManager@{AObstacleManager}!GoalClass@{GoalClass}}
+\index{GoalClass@{GoalClass}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{GoalClass}{GoalClass}}
+{\footnotesize\ttfamily TSubclass\+Of$<$AActor$>$ AObstacle\+Manager\+::\+Goal\+Class}
+
+\mbox{\Hypertarget{classAObstacleManager_a49457926bf51b607d473e7a2a146cff8}\label{classAObstacleManager_a49457926bf51b607d473e7a2a146cff8}} 
+\index{AObstacleManager@{AObstacleManager}!GoalPosition@{GoalPosition}}
+\index{GoalPosition@{GoalPosition}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{GoalPosition}{GoalPosition}}
+{\footnotesize\ttfamily FVector AObstacle\+Manager\+::\+Goal\+Position\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classAObstacleManager_a36f3996de0390b87b728b9a6d3ca5972}\label{classAObstacleManager_a36f3996de0390b87b728b9a6d3ca5972}} 
+\index{AObstacleManager@{AObstacleManager}!InnerBoundarySize@{InnerBoundarySize}}
+\index{InnerBoundarySize@{InnerBoundarySize}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{InnerBoundarySize}{InnerBoundarySize}}
+{\footnotesize\ttfamily float AObstacle\+Manager\+::\+Inner\+Boundary\+Size}
+
+\mbox{\Hypertarget{classAObstacleManager_a131eb647f948dd00ebab1d9d6184c79f}\label{classAObstacleManager_a131eb647f948dd00ebab1d9d6184c79f}} 
+\index{AObstacleManager@{AObstacleManager}!ObstacleClass@{ObstacleClass}}
+\index{ObstacleClass@{ObstacleClass}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{ObstacleClass}{ObstacleClass}}
+{\footnotesize\ttfamily TSubclass\+Of$<$AActor$>$ AObstacle\+Manager\+::\+Obstacle\+Class}
+
+\mbox{\Hypertarget{classAObstacleManager_a2dbfaccca0d1d189d860fc6f41d31dfc}\label{classAObstacleManager_a2dbfaccca0d1d189d860fc6f41d31dfc}} 
+\index{AObstacleManager@{AObstacleManager}!ObstacleSpawnHeight@{ObstacleSpawnHeight}}
+\index{ObstacleSpawnHeight@{ObstacleSpawnHeight}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{ObstacleSpawnHeight}{ObstacleSpawnHeight}}
+{\footnotesize\ttfamily float AObstacle\+Manager\+::\+Obstacle\+Spawn\+Height}
+
+\mbox{\Hypertarget{classAObstacleManager_a4599b1c44699a2334f6865b0332088a2}\label{classAObstacleManager_a4599b1c44699a2334f6865b0332088a2}} 
+\index{AObstacleManager@{AObstacleManager}!OuterBoundarySize@{OuterBoundarySize}}
+\index{OuterBoundarySize@{OuterBoundarySize}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{OuterBoundarySize}{OuterBoundarySize}}
+{\footnotesize\ttfamily float AObstacle\+Manager\+::\+Outer\+Boundary\+Size}
+
+\mbox{\Hypertarget{classAObstacleManager_ada213825367b19387d7451c89106df00}\label{classAObstacleManager_ada213825367b19387d7451c89106df00}} 
+\index{AObstacleManager@{AObstacleManager}!SpawnedGoal@{SpawnedGoal}}
+\index{SpawnedGoal@{SpawnedGoal}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{SpawnedGoal}{SpawnedGoal}}
+{\footnotesize\ttfamily AActor$\ast$ AObstacle\+Manager\+::\+Spawned\+Goal\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classAObstacleManager_a79efe7d9fd6ee7843714f709a627085c}\label{classAObstacleManager_a79efe7d9fd6ee7843714f709a627085c}} 
+\index{AObstacleManager@{AObstacleManager}!SpawnedObstacles@{SpawnedObstacles}}
+\index{SpawnedObstacles@{SpawnedObstacles}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{SpawnedObstacles}{SpawnedObstacles}}
+{\footnotesize\ttfamily TArray$<$AActor$\ast$$>$ AObstacle\+Manager\+::\+Spawned\+Obstacles\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classAObstacleManager_a2192b7a6184bd7df0fd74b8a9ab3c962}\label{classAObstacleManager_a2192b7a6184bd7df0fd74b8a9ab3c962}} 
+\index{AObstacleManager@{AObstacleManager}!VisualMarker@{VisualMarker}}
+\index{VisualMarker@{VisualMarker}!AObstacleManager@{AObstacleManager}}
+\doxysubsubsection{\texorpdfstring{VisualMarker}{VisualMarker}}
+{\footnotesize\ttfamily UStatic\+Mesh\+Component$\ast$ AObstacle\+Manager\+::\+Visual\+Marker}
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+Source/\+Quad\+Sim\+Core/\+Public/\+Utility/\mbox{\hyperlink{ObstacleManager_8h}{Obstacle\+Manager.\+h}}\item 
+Source/\+Quad\+Sim\+Core/\+Private/\+Utility/\mbox{\hyperlink{ObstacleManager_8cpp}{Obstacle\+Manager.\+cpp}}\end{DoxyCompactItemize}

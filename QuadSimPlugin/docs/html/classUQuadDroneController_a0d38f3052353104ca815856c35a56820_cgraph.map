@@ -1,0 +1,5 @@
+<map id="UQuadDroneController::YawRateControl" name="UQuadDroneController::YawRateControl">
+<area shape="rect" id="node1" title=" " alt="" coords="5,5,175,47"/>
+<area shape="rect" id="node2" href="$classQuadPIDController.html#ad96b9199d7ae1f627a01c0ac888220c8" title=" " alt="" coords="223,5,373,47"/>
+<area shape="rect" id="node3" href="$classQuadPIDController.html#ab7e668b1b8cba6bf742e8e5d73e43b87" title=" " alt="" coords="421,5,587,47"/>
+</map>

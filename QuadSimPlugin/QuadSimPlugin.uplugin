@@ -18,9 +18,8 @@
   ],
 
   "Plugins": [
+    {"Name": "EnhancedInput","Enabled": true},
     { "Name": "ImGui", "Enabled": true },
     { "Name": "rclUE", "Enabled": true }
-
-
   ]
 }

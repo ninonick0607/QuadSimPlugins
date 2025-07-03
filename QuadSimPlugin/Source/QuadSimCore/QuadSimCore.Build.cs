@@ -13,9 +13,8 @@ public class QuadSimCore : ModuleRules
             "ChaosVehicles", "PhysicsCore", "RenderCore", "RHI",
             "Sockets", "Networking", "ImGui", "Slate", "SlateCore", 
             "UMG", "Json", "JsonUtilities",
-            "rclUE" 
+            "rclUE" , "UnrealRosFlight" 
         });
-
         PrivateDependencyModuleNames.AddRange(new string[] { "Projects", "AITestSuite" });
         
 	string ProjectPluginsDirectory = Path.GetFullPath(Path.Combine(ModuleDirectory, "../../../")); 

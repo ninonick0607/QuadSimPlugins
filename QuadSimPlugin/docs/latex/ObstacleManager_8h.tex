@@ -1,0 +1,67 @@
+\hypertarget{ObstacleManager_8h}{}\doxysection{Source/\+Quad\+Sim\+Core/\+Public/\+Utility/\+Obstacle\+Manager.h File Reference}
+\label{ObstacleManager_8h}\index{Source/QuadSimCore/Public/Utility/ObstacleManager.h@{Source/QuadSimCore/Public/Utility/ObstacleManager.h}}
+{\ttfamily \#include \char`\"{}Core\+Minimal.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Game\+Framework/\+Actor.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Obstacle\+Manager.\+generated.\+h\char`\"{}}\newline
+Include dependency graph for Obstacle\+Manager.\+h\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{ObstacleManager_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{ObstacleManager_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classAObstacleManager}{AObstacle\+Manager}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum class \mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}} \+: uint8 \{ \newline
+\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a5835bab1ade0060909e31a06af2e2cde}{Front}}
+, \mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a0557fa923dcee4d0f86b1409f5c2167f}{Back}}
+, \mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a945d5e233cf7d6240f6b783b36a374ff}{Left}}
+, \mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a92b09c7c48c520c3c55e497875da437c}{Right}}
+, \newline
+\mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a64663f4646781c9c0110838b905daa23}{Random}}
+ \}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Enumeration Type Documentation}
+\mbox{\Hypertarget{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}\label{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}} 
+\index{ObstacleManager.h@{ObstacleManager.h}!EGoalPosition@{EGoalPosition}}
+\index{EGoalPosition@{EGoalPosition}!ObstacleManager.h@{ObstacleManager.h}}
+\doxysubsubsection{\texorpdfstring{EGoalPosition}{EGoalPosition}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8}{EGoal\+Position}} \+: uint8\hspace{0.3cm}{\ttfamily [strong]}}
+
+\begin{DoxyEnumFields}{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Front@{Front}!ObstacleManager.h@{ObstacleManager.h}}\index{ObstacleManager.h@{ObstacleManager.h}!Front@{Front}}}\mbox{\Hypertarget{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a5835bab1ade0060909e31a06af2e2cde}\label{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a5835bab1ade0060909e31a06af2e2cde}} 
+Front&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Back@{Back}!ObstacleManager.h@{ObstacleManager.h}}\index{ObstacleManager.h@{ObstacleManager.h}!Back@{Back}}}\mbox{\Hypertarget{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a0557fa923dcee4d0f86b1409f5c2167f}\label{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a0557fa923dcee4d0f86b1409f5c2167f}} 
+Back&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Left@{Left}!ObstacleManager.h@{ObstacleManager.h}}\index{ObstacleManager.h@{ObstacleManager.h}!Left@{Left}}}\mbox{\Hypertarget{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a945d5e233cf7d6240f6b783b36a374ff}\label{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a945d5e233cf7d6240f6b783b36a374ff}} 
+Left&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Right@{Right}!ObstacleManager.h@{ObstacleManager.h}}\index{ObstacleManager.h@{ObstacleManager.h}!Right@{Right}}}\mbox{\Hypertarget{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a92b09c7c48c520c3c55e497875da437c}\label{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a92b09c7c48c520c3c55e497875da437c}} 
+Right&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Random@{Random}!ObstacleManager.h@{ObstacleManager.h}}\index{ObstacleManager.h@{ObstacleManager.h}!Random@{Random}}}\mbox{\Hypertarget{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a64663f4646781c9c0110838b905daa23}\label{ObstacleManager_8h_aceaff20f4b08ff879e3ec3e8cb66e6e8a64663f4646781c9c0110838b905daa23}} 
+Random&\\
+\hline
+
+\end{DoxyEnumFields}

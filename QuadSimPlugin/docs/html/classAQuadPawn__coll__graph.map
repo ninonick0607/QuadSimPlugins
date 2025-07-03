@@ -1,0 +1,12 @@
+<map id="AQuadPawn" name="AQuadPawn">
+<area shape="rect" id="node1" title=" " alt="" coords="571,273,669,300"/>
+<area shape="rect" id="node6" href="$classUQuadDroneController.html" title=" " alt="" coords="297,363,466,389"/>
+<area shape="rect" id="node2" title=" " alt="" coords="465,81,530,108"/>
+<area shape="rect" id="node3" href="$structFGamepadInputs.html" title=" " alt="" coords="555,81,688,108"/>
+<area shape="rect" id="node4" href="$classUQuadHUDWidget.html" title=" " alt="" coords="713,81,855,108"/>
+<area shape="rect" id="node5" title=" " alt="" coords="730,5,838,32"/>
+<area shape="rect" id="node7" title=" " alt="" coords="5,273,80,300"/>
+<area shape="rect" id="node8" title=" " alt="" coords="103,273,302,300"/>
+<area shape="rect" id="node9" href="$classQuadPIDController.html" title=" " alt="" coords="289,81,431,108"/>
+<area shape="rect" id="node10" href="$structFFullPIDSet.html" title=" " alt="" coords="451,273,547,300"/>
+</map>

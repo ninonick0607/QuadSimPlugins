@@ -1,0 +1,27 @@
+var searchData=
+[
+  ['calculate_27',['Calculate',['../classQuadPIDController.html#ad96b9199d7ae1f627a01c0ac888220c8',1,'QuadPIDController']]],
+  ['calculatedesiredpitch_28',['CalculateDesiredPitch',['../classDroneMathUtils.html#a3d2fadb7dc519d4054294b4b3ac2fa58',1,'DroneMathUtils']]],
+  ['calculatedesiredroll_29',['CalculateDesiredRoll',['../classDroneMathUtils.html#af915ef63acdfa98c7c1b953d70e80089',1,'DroneMathUtils']]],
+  ['calculatedesiredvelocity_30',['CalculateDesiredVelocity',['../classDroneMathUtils.html#a60bb84d076590f7ea87f59df8ffb8a4e',1,'DroneMathUtils']]],
+  ['camera_31',['Camera',['../classAQuadPawn.html#a18e944a1af38fb8a30eb80890a250a4b',1,'AQuadPawn']]],
+  ['camerafpv_32',['CameraFPV',['../classAQuadPawn.html#abf3f8ed29ba001f7c913f8a22d513b42',1,'AQuadPawn']]],
+  ['cameragroundtrack_33',['CameraGroundTrack',['../classAQuadPawn.html#a5963a7ea956f3cd63c4b142a10afa274',1,'AQuadPawn']]],
+  ['captureimage_34',['CaptureImage',['../classAROS2Controller.html#a59f2f9109f5b848c088ad6e1d2e6bdb9',1,'AROS2Controller']]],
+  ['capturetimerhandle_35',['CaptureTimerHandle',['../classAROS2Controller.html#a69008cde0013a7d254803bc719be2f8c',1,'AROS2Controller']]],
+  ['clampvectormagnitude_36',['ClampVectorMagnitude',['../classDroneMathUtils.html#ae40deb5d1c3cc2d9844597294215c6a0',1,'DroneMathUtils']]],
+  ['clearobstacles_37',['ClearObstacles',['../classAObstacleManager.html#aea69b1fc06b29a36d98673c2a1ac5302',1,'AObstacleManager']]],
+  ['cmdvelsubscriber_38',['CmdVelSubscriber',['../classAROS2Controller.html#a6bbbd22ecc39e74a976de3cc0ca727c0',1,'AROS2Controller']]],
+  ['cmdveltopicname_39',['CmdVelTopicName',['../classAROS2Controller.html#a50574d9807b9660d9d1d629f082e21f2',1,'AROS2Controller']]],
+  ['collisionpublisher_40',['CollisionPublisher',['../classAROS2Controller.html#ad5caed0f5c601e7b08e44afa42a20ee5',1,'AROS2Controller']]],
+  ['collisiontimeout_41',['CollisionTimeout',['../classAQuadPawn.html#a4b5c2e21c74aac892c7d95be67ff8434',1,'AQuadPawn']]],
+  ['collisiontopicname_42',['CollisionTopicName',['../classAROS2Controller.html#a37a032e7d50cc9f072319ad777b03c7c',1,'AROS2Controller']]],
+  ['config_43',['Config',['../classUDroneJSONConfig.html#ad67190e77517834a85a9437070bb492d',1,'UDroneJSONConfig']]],
+  ['controllerparams_44',['ControllerParams',['../structFDroneConfigData.html#a98507df840a33287da1d91f78f6ef672',1,'FDroneConfigData']]],
+  ['createobstacles_45',['CreateObstacles',['../classAObstacleManager.html#adeb6b0b2beed769a6b8bbae69bc00849',1,'AObstacleManager']]],
+  ['currentbuffersum_46',['currentBufferSum',['../classQuadPIDController.html#ac4cb920b2a3b9a1a127c51273b1005e3',1,'QuadPIDController']]],
+  ['currentcameramode_47',['CurrentCameraMode',['../classAQuadPawn.html#a0f5e73733dbd95d0ef21d1d21c9bce96',1,'AQuadPawn']]],
+  ['currentflightmode_48',['currentFlightMode',['../classUQuadDroneController.html#a1e6a25d49baf648a6fb204f86c4c30a3',1,'UQuadDroneController']]],
+  ['currentlocalvelocity_49',['currentLocalVelocity',['../classUQuadDroneController.html#ab8e4bf8914e1641ec33097b0b9dcc3d1',1,'UQuadDroneController']]],
+  ['currentrendertargetindex_50',['CurrentRenderTargetIndex',['../classAROS2Controller.html#a9784358522b653cc8e0723086a428f91',1,'AROS2Controller']]]
+];
