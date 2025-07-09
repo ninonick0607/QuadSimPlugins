@@ -4,7 +4,6 @@
 DroneGlobalState::DroneGlobalState()
     : DesiredVelocity(FVector::ZeroVector)
 {
-    // BoundControllers defaults to empty list
 }
 
 DroneGlobalState::~DroneGlobalState()
@@ -14,7 +13,7 @@ DroneGlobalState::~DroneGlobalState()
 void DroneGlobalState::SetDesiredVelocity(const FVector& NewVelocity)
 {
     DesiredVelocity = NewVelocity;
-    // Broadcast velocity command to all bound controllers
+
     for (UQuadDroneController* Controller : BoundControllers)
     {
         if (Controller)

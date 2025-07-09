@@ -14,7 +14,7 @@ AObstacleManager::AObstacleManager() {
     VisualMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualMarker"));
     RootComponent = VisualMarker;
     VisualMarker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    VisualMarker->SetVisibility(false); // Hide by default
+    VisualMarker->SetVisibility(false);
     
     const auto& Config = UDroneJSONConfig::Get().Config;
     OuterBoundarySize = Config.ObstacleParams.OuterBoundarySize;

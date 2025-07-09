@@ -3,7 +3,7 @@
   "Version": 1,
   "Name": "QuadSimPlugin",
   "FriendlyName": "QuadSim",
-  "Description": "Quadcopter sim + ROS2 comms",
+  "Description": "Quadcopter simulation with modular communication support",
   "Category": "Simulation",
   "CreatedBy": "Nico",
   "CanContainContent": true,
@@ -18,9 +18,7 @@
   ],
 
   "Plugins": [
-    { "Name": "ImGui", "Enabled": true },
-    { "Name": "rclUE", "Enabled": true }
-
-
+    {"Name": "EnhancedInput","Enabled": true},
+    { "Name": "ImGui", "Enabled": true }
   ]
 }

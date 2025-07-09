@@ -18,9 +18,8 @@
 #include "UI/ImGuiUtil.h"
 #include "UI/QuadHUDWidget.h"
 #include "Components/ChildActorComponent.h"
-
-#include "Controllers/ROS2Controller.h"
-
+// ROSFlightComponent include - only if plugin is available
+// #include "ROSFlightComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -159,11 +158,13 @@ AQuadPawn::AQuadPawn()
 	ImGuiUtil = CreateDefaultSubobject<UImGuiUtil>(TEXT("DroneImGuiUtil"));
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
 	NavigationComponent = CreateDefaultSubobject<UNavigationComponent>(TEXT("NavigationComponent"));
-	// Child Actor Component for ROS2Controller
+	// ROS Communication Components (configured via RosCommunicationMode)
 	ROS2ControllerComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("ROS2ControllerComponent"));
 	ROS2ControllerComponent->SetupAttachment(RootComponent);
-	ROS2ControllerComponent->SetChildActorClass(AROS2Controller::StaticClass());
 	
+	// Create a generic component that can be replaced with ROSFlightComponent when plugin is available
+	RosflightDynamics = CreateDefaultSubobject<UActorComponent>(TEXT("RosflightDynamics"));
+
 }
 
 void AQuadPawn::BeginPlay()
@@ -207,7 +208,15 @@ void AQuadPawn::BeginPlay()
 		QuadController = NewObject<UQuadDroneController>(this, TEXT("QuadDroneController"));
 		QuadController->Initialize(this);
 	}
-
+	UE_LOG(LogTemp, Warning, TEXT("Debug SetController: QuadController=%p, RosflightDynamics=%p"), QuadController, RosflightDynamics);
+	
+	// Use a timer to delay controller setup to ensure everything is fully initialized
+	FTimerHandle InitTimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(InitTimerHandle, this, &AQuadPawn::InitializeROSFlightControllers, 0.1f, false);
+	
+	// Setup ROS communication based on selected mode
+	SetupROSCommunication();
+	
 	UE_LOG(LogTemp, Display, TEXT("QuadPawn BeginPlay: Pawn=%p, Name=%s"), this, *GetName());
 	
 	if (!ImGuiUtil)
@@ -221,14 +230,14 @@ void AQuadPawn::BeginPlay()
     }
 
 	
-        // Reset PID controllers
-        QuadController->ResetPID();
-        // Collision events binding
-        if (DroneBody)
-        {
-            DroneBody->OnComponentHit.AddDynamic(this, &AQuadPawn::OnDroneHit);
-        }
-        // Collision handling via NotifyHit override; skip AddDynamic binding
+    // Reset PID controllers
+    QuadController->ResetPID();
+    // Collision events binding
+    if (DroneBody)
+    {
+        DroneBody->OnComponentHit.AddDynamic(this, &AQuadPawn::OnDroneHit);
+    }
+    // Collision handling via NotifyHit override; skip AddDynamic binding
 	
 	ResetCollisionStatus();
 
@@ -239,6 +248,52 @@ void AQuadPawn::BeginPlay()
 
 	UpdateHUD();
 
+}
+
+void AQuadPawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// Clean up controller references from all ROSFlight components (only if plugin is available)
+	// This code will be executed via reflection when the plugin is loaded
+	UE_LOG(LogTemp, Warning, TEXT("QuadPawn EndPlay: Cleaning up ROSFlight components"));
+	
+	// Try to find ROSFlightComponent class dynamically
+	UClass* ROSFlightComponentClass = UClass::TryFindTypeSlow<UClass>(TEXT("UROSFlightComponent"));
+	if (ROSFlightComponentClass)
+	{
+		TArray<UActorComponent*> AllROSFlightComponents;
+		GetComponents(ROSFlightComponentClass, AllROSFlightComponents);
+		
+		UE_LOG(LogTemp, Warning, TEXT("QuadPawn EndPlay: Found %d ROSFlightComponent(s)"), AllROSFlightComponents.Num());
+		
+		for (UActorComponent* Component : AllROSFlightComponents)
+		{
+			if (Component)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Clearing ControllerSource on component %p"), Component);
+				// Use reflection to call SetControllerSource
+				UFunction* SetControllerSourceFunc = Component->FindFunction(TEXT("SetControllerSource"));
+				if (SetControllerSourceFunc)
+				{
+					void* NullPtr = nullptr;
+					Component->ProcessEvent(SetControllerSourceFunc, &NullPtr);
+				}
+			}
+		}
+		
+		// Also clear the C++ created one if it exists and is the right type
+		if (RosflightDynamics && RosflightDynamics->IsA(ROSFlightComponentClass))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Clearing C++ RosflightDynamics at %p"), RosflightDynamics);
+			UFunction* SetControllerSourceFunc = RosflightDynamics->FindFunction(TEXT("SetControllerSource"));
+			if (SetControllerSourceFunc)
+			{
+				void* NullPtr = nullptr;
+				RosflightDynamics->ProcessEvent(SetControllerSourceFunc, &NullPtr);
+			}
+		}
+	}
+	
+	Super::EndPlay(EndPlayReason);
 }
 
 void AQuadPawn::Tick(float DeltaTime)
@@ -467,4 +522,192 @@ void AQuadPawn::UpdateHUD()
 			HUDWidgetInstance->UpdateHUDTexture(renderTargetToDisplay);
 		}
 	}
+}
+
+void AQuadPawn::InitializeROSFlightControllers()
+{
+	if (!QuadController)
+	{
+		UE_LOG(LogTemp, Error, TEXT("InitializeROSFlightControllers: QuadController is null!"));
+		return;
+	}
+	
+	// Try to find ROSFlightComponent class dynamically
+	UClass* ROSFlightComponentClass = UClass::TryFindTypeSlow<UClass>(TEXT("UROSFlightComponent"));
+	if (ROSFlightComponentClass)
+	{
+		// Find ALL ROSFlightComponents and set them all (in case there are multiple)
+		TArray<UActorComponent*> AllROSFlightComponents;
+		GetComponents(ROSFlightComponentClass, AllROSFlightComponents);
+		
+		UE_LOG(LogTemp, Warning, TEXT("InitializeROSFlightControllers: Found %d ROSFlightComponent(s)"), AllROSFlightComponents.Num());
+		
+		for (int32 i = 0; i < AllROSFlightComponents.Num(); i++)
+		{
+			UActorComponent* Component = AllROSFlightComponents[i];
+			if (Component && QuadController)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Setting ControllerSource on component %d at %p"), i, Component);
+				// Use reflection to call SetControllerSource
+				UFunction* SetControllerSourceFunc = Component->FindFunction(TEXT("SetControllerSource"));
+				if (SetControllerSourceFunc)
+				{
+					Component->ProcessEvent(SetControllerSourceFunc, &QuadController);
+				}
+			}
+		}
+		
+		// Also set the C++ created one if it exists and is the right type
+		if (QuadController && RosflightDynamics && RosflightDynamics->IsA(ROSFlightComponentClass))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Also setting C++ RosflightDynamics at %p"), RosflightDynamics);
+			UFunction* SetControllerSourceFunc = RosflightDynamics->FindFunction(TEXT("SetControllerSource"));
+			if (SetControllerSourceFunc)
+			{
+				RosflightDynamics->ProcessEvent(SetControllerSourceFunc, &QuadController);
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InitializeROSFlightControllers: ROSFlightComponent class not found - UnrealRosFlight plugin not enabled"));
+	}
+}
+
+void AQuadPawn::SetupROSCommunication()
+{
+	UE_LOG(LogTemp, Log, TEXT("QuadPawn: Setting up ROS communication mode: %d"), (int32)RosCommunicationMode);
+	
+	// First, disable all ROS components
+	if (ROS2ControllerComponent)
+	{
+		ROS2ControllerComponent->SetChildActorClass(nullptr);
+		ROS2ControllerComponent->SetActive(false);
+	}
+	
+	if (RosflightDynamics)
+	{
+		RosflightDynamics->SetActive(false);
+	}
+	
+	// Then enable the selected mode
+	switch (RosCommunicationMode)
+	{
+		case ERosCommunicationMode::None:
+			UE_LOG(LogTemp, Log, TEXT("QuadPawn: No ROS communication enabled"));
+			break;
+			
+		case ERosCommunicationMode::ROS2Controller:
+			UE_LOG(LogTemp, Log, TEXT("QuadPawn: Enabling ROS2Controller"));
+			if (ROS2ControllerComponent)
+			{
+				// Try to find the ROS2Controller class - this will only work if UnrealRosFlight plugin is enabled
+				UClass* ROS2ControllerClass = UClass::TryFindTypeSlow<UClass>(TEXT("AROS2Controller"));
+				if (ROS2ControllerClass)
+				{
+					ROS2ControllerComponent->SetChildActorClass(ROS2ControllerClass);
+					ROS2ControllerComponent->SetActive(true);
+					UE_LOG(LogTemp, Log, TEXT("QuadPawn: ROS2Controller enabled successfully"));
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("QuadPawn: ROS2Controller class not found - is UnrealRosFlight plugin enabled?"));
+				}
+			}
+			break;
+			
+		case ERosCommunicationMode::ROSFlight:
+			UE_LOG(LogTemp, Log, TEXT("QuadPawn: Enabling ROSFlight component"));
+			if (RosflightDynamics)
+			{
+				// Try to create the actual ROSFlightComponent if the plugin is available
+				UClass* ROSFlightComponentClass = UClass::TryFindTypeSlow<UClass>(TEXT("UROSFlightComponent"));
+				if (ROSFlightComponentClass)
+				{
+					// Replace the generic component with the actual ROSFlightComponent
+					RosflightDynamics->DestroyComponent();
+					RosflightDynamics = NewObject<UActorComponent>(this, ROSFlightComponentClass, TEXT("RosflightDynamics"));
+					if (RosflightDynamics)
+					{
+						RosflightDynamics->RegisterComponent();
+						RosflightDynamics->SetActive(true);
+						UE_LOG(LogTemp, Log, TEXT("QuadPawn: ROSFlight component created and enabled successfully"));
+					}
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("QuadPawn: ROSFlightComponent class not found - is UnrealRosFlight plugin enabled?"));
+				}
+			}
+			break;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("QuadPawn: ROS communication setup complete"));
+}
+
+// ROS Communication Interface Methods
+void AQuadPawn::SetExternalVelocityCommand(const FVector& LinearVelocity, const FVector& AngularVelocity)
+{
+	if (QuadController)
+	{
+		QuadController->SetExternalVelocityCommand(LinearVelocity, AngularVelocity);
+		UE_LOG(LogTemp, Log, TEXT("QuadPawn: External velocity command - Linear: %s, Angular: %s"), 
+			*LinearVelocity.ToString(), *AngularVelocity.ToString());
+	}
+}
+
+void AQuadPawn::SetExternalGoalPosition(const FVector& GoalPosition)
+{
+	if (QuadController)
+	{
+		QuadController->SetExternalGoal(GoalPosition, FQuat::Identity);
+		UE_LOG(LogTemp, Log, TEXT("QuadPawn: External goal position set to: %s"), *GoalPosition.ToString());
+	}
+}
+
+void AQuadPawn::SetExternalHoverHeight(float Height)
+{
+	if (QuadController)
+	{
+		QuadController->SetHoverHeight(Height);
+		UE_LOG(LogTemp, Log, TEXT("QuadPawn: External hover height set to: %.2f"), Height);
+	}
+}
+
+void AQuadPawn::SetExternalAttitudeCommand(const FVector& EulerAngles)
+{
+	if (QuadController)
+	{
+		QuadController->SetDesiredAttitude(EulerAngles);
+		UE_LOG(LogTemp, Log, TEXT("QuadPawn: External attitude command - Euler: %s"), *EulerAngles.ToString());
+	}
+}
+
+void AQuadPawn::ResetDroneFromExternal()
+{
+	if (QuadController)
+	{
+		QuadController->ResetDroneOrigin();
+		UE_LOG(LogTemp, Log, TEXT("QuadPawn: External reset command executed"));
+	}
+}
+
+FVector AQuadPawn::GetDronePosition() const
+{
+	return GetActorLocation();
+}
+
+FVector AQuadPawn::GetDroneVelocity() const
+{
+	return GetVelocity();
+}
+
+FQuat AQuadPawn::GetDroneOrientation() const
+{
+	return GetActorQuat();
+}
+
+bool AQuadPawn::GetDroneCollisionState() const
+{
+	return bHasCollidedWithObstacle;
 }
