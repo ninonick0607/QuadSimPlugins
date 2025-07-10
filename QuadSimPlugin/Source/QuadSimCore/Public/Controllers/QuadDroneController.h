@@ -4,8 +4,6 @@
 #include "Utility/QuadPIDController.h"
 #include "UI/ImGuiUtil.h"
 
-// Forward declare interface for when UnrealRosFlight plugin is available
-class IROSFlightControllerSource;
 
 // Only include and implement interface if UnrealRosFlight plugin is available
 #if WITH_EDITOR
@@ -91,11 +89,6 @@ public:
     void SetHoverMode(bool bActive, float TargetAltitude = 250.0f);
     void SetDestination(FVector desiredSetPoints);
     
-    // External ROS Communication Interface
-    void SetExternalVelocityCommand(const FVector& LinearVelocity, const FVector& AngularVelocity);
-    void SetExternalGoal(const FVector& GoalPosition, const FQuat& GoalOrientation);
-    void SetHoverHeight(float Height);
-    void SetDesiredAttitude(const FVector& EulerAngles);
 
     void DrawDebugVisuals(const FVector& currentPosition)const;
     void DrawDebugVisualsVel(const FVector& horizontalVelocity) const;
@@ -109,7 +102,6 @@ public:
     
     // ROSFlight interface methods - available when UnrealRosFlight plugin is loaded
     float IsUsingROSflight() const { 
-        UE_LOG(LogTemp, Warning, TEXT("IsUsingROSflight called: %s"), bUseROSflight ? TEXT("TRUE") : TEXT("FALSE"));
         return bUseROSflight; 
     }
     float GetDesiredRoll() const { 
@@ -124,7 +116,6 @@ public:
     float GetDesiredThrustNormalized() const { 
         return desiredThrust_Normalized; 
     }
-
     
     double GetDesiredRollRate() const {return desiredRollRate;}
     double GetDesiredPitchRate() const {return desiredPitchRate;}
@@ -155,10 +146,6 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Drone State")
     FVector GetCurrentVelocity() const; 
-    UFUNCTION(BlueprintPure, Category = "Drone State|ROS")
-    FQuat GetOrientationAsQuat() const;
-    UFUNCTION(BlueprintPure, Category = "Drone State|ROS")
-    FVector GetCurrentAngularVelocityRADPS() const;
 
     UFUNCTION(BlueprintCallable, Category = "Flight")
     void SetFlightMode(EFlightMode NewMode);
@@ -205,7 +192,6 @@ private:
     bool bManualThrustMode = false;
     
     bool bUseROSflight = false;
-
     float desiredThrust_Normalized = 0.0f;
 
     float maxVelocity;

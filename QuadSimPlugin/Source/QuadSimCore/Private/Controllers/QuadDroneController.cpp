@@ -752,30 +752,6 @@ void UQuadDroneController::SetFlightMode(EFlightMode NewMode)
     }
 }
 
-FQuat UQuadDroneController::GetOrientationAsQuat() const 
-{
-	if (IsValid(dronePawn))
-	{
-		const FRotator WorldRotation = dronePawn->GetActorRotation();
-		return FQuat(WorldRotation); 
-	}
-	return FQuat::Identity; 
-}
-
-FVector UQuadDroneController::GetCurrentAngularVelocityRADPS() const
-{
-	if (IsValid(dronePawn) && IsValid(dronePawn->DroneBody))
-	{
-		FVector AngularVelocityDegS = dronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
-		return FVector(
-			FMath::DegreesToRadians(AngularVelocityDegS.X),
-			FMath::DegreesToRadians(AngularVelocityDegS.Y),
-			FMath::DegreesToRadians(AngularVelocityDegS.Z)
-		);
-	}
-	UE_LOG(LogTemp, Warning, TEXT("GetCurrentAngularVelocityRADPS: dronePawn or DroneBody invalid. Returning zero vector."));
-	return FVector::ZeroVector;
-}
 
 
 void UQuadDroneController::dynamicController(double DeltaTime)
@@ -900,51 +876,3 @@ void UQuadDroneController::dynamicController(double DeltaTime)
 	}
 }
 
-// External ROS Communication Interface Methods
-void UQuadDroneController::SetExternalVelocityCommand(const FVector& LinearVelocity, const FVector& AngularVelocity)
-{
-	// Set the desired velocity for velocity control mode
-	SetDesiredVelocity(LinearVelocity);
-	
-	// Set the angular velocity (primarily yaw rate)
-	SetDesiredYawRate(AngularVelocity.Z);
-	
-	// Automatically switch to velocity control mode when receiving external velocity commands
-	SetFlightMode(EFlightMode::VelocityControl);
-	
-	UE_LOG(LogTemp, Log, TEXT("QuadDroneController: External velocity command - Linear: %s, Angular: %s"), 
-		*LinearVelocity.ToString(), *AngularVelocity.ToString());
-}
-
-void UQuadDroneController::SetExternalGoal(const FVector& GoalPosition, const FQuat& GoalOrientation)
-{
-	// Set the destination waypoint for auto waypoint mode
-	SetDestination(GoalPosition);
-	
-	// Automatically switch to auto waypoint mode when receiving external goal commands
-	SetFlightMode(EFlightMode::AutoWaypoint);
-	
-	UE_LOG(LogTemp, Log, TEXT("QuadDroneController: External goal set - Position: %s, Orientation: %s"), 
-		*GoalPosition.ToString(), *GoalOrientation.ToString());
-}
-
-void UQuadDroneController::SetHoverHeight(float Height)
-{
-	// Set hover mode with the specified height
-	SetHoverMode(true, Height);
-	
-	UE_LOG(LogTemp, Log, TEXT("QuadDroneController: External hover height set to: %.2f"), Height);
-}
-
-void UQuadDroneController::SetDesiredAttitude(const FVector& EulerAngles)
-{
-	// Set the desired angles for angle control mode
-	SetDesiredRollAngle(EulerAngles.X);
-	SetDesiredPitchAngle(EulerAngles.Y);
-	SetDesiredYawRate(EulerAngles.Z); // Yaw as rate instead of angle
-	
-	// Automatically switch to angle control mode when receiving external attitude commands
-	SetFlightMode(EFlightMode::AngleControl);
-	
-	UE_LOG(LogTemp, Log, TEXT("QuadDroneController: External attitude command - Euler: %s"), *EulerAngles.ToString());
-}

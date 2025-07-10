@@ -1,0 +1,6 @@
+<map id="AObstacleManager::SpawnGoal" name="AObstacleManager::SpawnGoal">
+<area shape="rect" id="node1" title=" " alt="" coords="789,13,1016,39"/>
+<area shape="rect" id="node2" href="$classAObstacleManager.html#adeb6b0b2beed769a6b8bbae69bc00849" title=" " alt="" coords="545,5,741,47"/>
+<area shape="rect" id="node3" href="$classAROS2Controller.html#a938fc4b3971ecf3a68b2fff93d2d9e2f" title=" " alt="" coords="256,5,497,47"/>
+<area shape="rect" id="node4" href="$classAROS2Controller.html#a950f5d2c970783f3687246ecde0a6220" title=" " alt="" coords="5,13,208,39"/>
+</map>

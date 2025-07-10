@@ -20,7 +20,6 @@ class UQuadDroneController;
 class UImGuiUtil;
 class UThrusterComponent;
 class UQuadHUDWidget;
-// class UROSFlightComponent;
 
 // Enum to track camera state
 UENUM(BlueprintType)
@@ -40,14 +39,6 @@ enum class EWaypointMode
 
 enum class EFlightMode : uint8;              // lives in the controller
 
-// ROS Communication Mode
-UENUM(BlueprintType)
-enum class ERosCommunicationMode : uint8
-{
-	None			UMETA(DisplayName = "No ROS Communication"),
-	ROS2Controller	UMETA(DisplayName = "ROS2 Controller"),
-	ROSFlight		UMETA(DisplayName = "ROSFlight Component")
-};
 
 USTRUCT(BlueprintType)
 struct FGamepadInputs
@@ -112,46 +103,7 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TArray<UThrusterComponent*> Thrusters;
  	
-	// ROS2 Controller as a child actor component (managed by UnrealRosFlight plugin)
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	UChildActorComponent* ROS2ControllerComponent;
-	
-	// ROSFlightComponent - only available when UnrealRosFlight plugin is enabled
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	UActorComponent* RosflightDynamics;
 
-	// ROS Communication Mode Selection
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ROS Communication")
-	ERosCommunicationMode RosCommunicationMode = ERosCommunicationMode::None;
-
-	// ROS Communication Interface Methods (called by external ROS components)
-	UFUNCTION(BlueprintCallable, Category = "ROS Communication")
-	void SetExternalVelocityCommand(const FVector& LinearVelocity, const FVector& AngularVelocity);
-
-	UFUNCTION(BlueprintCallable, Category = "ROS Communication")
-	void SetExternalGoalPosition(const FVector& GoalPosition);
-
-	UFUNCTION(BlueprintCallable, Category = "ROS Communication")
-	void SetExternalHoverHeight(float Height);
-
-	UFUNCTION(BlueprintCallable, Category = "ROS Communication")
-	void SetExternalAttitudeCommand(const FVector& EulerAngles);
-
-	UFUNCTION(BlueprintCallable, Category = "ROS Communication")
-	void ResetDroneFromExternal();
-
-	// Methods for external ROS components to get drone state
-	UFUNCTION(BlueprintPure, Category = "ROS Communication")
-	FVector GetDronePosition() const;
-
-	UFUNCTION(BlueprintPure, Category = "ROS Communication")
-	FVector GetDroneVelocity() const;
-
-	UFUNCTION(BlueprintPure, Category = "ROS Communication")
-	FQuat GetDroneOrientation() const;
-
-	UFUNCTION(BlueprintPure, Category = "ROS Communication")
-	bool GetDroneCollisionState() const;
 
 	// --- Drone Configuration ---
 	UPROPERTY(EditDefaultsOnly, Category = "Drone Configuration")
@@ -177,8 +129,6 @@ public:
 	void SwitchCamera();
 	void ToggleImguiInput();
 	void ReloadJSONConfig();
-	void InitializeROSFlightControllers();
-	void SetupROSCommunication();
 
 	UFUNCTION(BlueprintPure, Category = "Drone State")
 	float GetMass();

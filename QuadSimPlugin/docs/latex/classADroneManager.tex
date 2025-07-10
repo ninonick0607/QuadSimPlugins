@@ -1,0 +1,283 @@
+\hypertarget{classADroneManager}{}\doxysection{ADrone\+Manager Class Reference}
+\label{classADroneManager}\index{ADroneManager@{ADroneManager}}
+
+
+{\ttfamily \#include $<$Drone\+Manager.\+h$>$}
+
+
+
+Inheritance diagram for ADrone\+Manager\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=175pt]{classADroneManager__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for ADrone\+Manager\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=175pt]{classADroneManager__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classADroneManager_a679a864fc01241033b9043ac80945d1b}{ADrone\+Manager}} ()
+\item 
+virtual void \mbox{\hyperlink{classADroneManager_a12da451bfc41c95d26d7a19032c37684}{Tick}} (float Delta\+Time) override
+\item 
+\mbox{\hyperlink{classAQuadPawn}{AQuad\+Pawn}} $\ast$ \mbox{\hyperlink{classADroneManager_a2e989c567629aeaf0479a8101334a3d6}{Spawn\+Drone}} (const FVector \&Spawn\+Location, const FRotator \&Spawn\+Rotation)
+\item 
+TArray$<$ \mbox{\hyperlink{classAQuadPawn}{AQuad\+Pawn}} $\ast$ $>$ \mbox{\hyperlink{classADroneManager_a989e9f0c92b3dcf3a9d9516c2d44e8dc}{Get\+Drone\+List}} () const
+\item 
+void \mbox{\hyperlink{classADroneManager_a7c710fb687f8c24a5f6b3c3075241ca7}{Register\+Drone\+Controller}} (class \mbox{\hyperlink{classUQuadDroneController}{UQuad\+Drone\+Controller}} $\ast$Controller)
+\item 
+void \mbox{\hyperlink{classADroneManager_a753e98bf77ff650e4c445f6389c12797}{Set\+Swarm\+Mode}} (bool b\+Enable)
+\item 
+bool \mbox{\hyperlink{classADroneManager_aa16196d3e75e814db5b7eeaebe5c70e3}{Is\+Swarm\+Mode}} () const
+\item 
+int32 \mbox{\hyperlink{classADroneManager_aeabd73366b51d5ec994b9dbcd906593f}{Get\+Drone\+Index}} (\mbox{\hyperlink{classAQuadPawn}{AQuad\+Pawn}} $\ast$Pawn) const
+\item 
+\mbox{\hyperlink{classADroneManager_ad1ef4e70b9812ddb66fa91044415313f}{DECLARE\+\_\+\+MULTICAST\+\_\+\+DELEGATE\+\_\+\+One\+Param}} (FOn\+Global\+Flight\+Mode\+Changed, \mbox{\hyperlink{QuadDroneController_8h_ac95e6d0ab91884a9e36f0aef33fdce7e}{EFlight\+Mode}})
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static \mbox{\hyperlink{classADroneManager}{ADrone\+Manager}} $\ast$ \mbox{\hyperlink{classADroneManager_a9c3c9b9953ac4f47093c19e72029c41d}{Get}} (UWorld $\ast$World)
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+FOn\+Global\+Flight\+Mode\+Changed \mbox{\hyperlink{classADroneManager_ae7e3122d1d21c94fc82678de98b494c5}{On\+Global\+Flight\+Mode\+Changed}}
+\item 
+int32 \mbox{\hyperlink{classADroneManager_ae520cc8559d0e506c4a33401261e1b23}{Selected\+Drone\+Index}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual void \mbox{\hyperlink{classADroneManager_ae3e88e96b14ba8d743c7244a3b3bd3cd}{Begin\+Play}} () override
+\item 
+virtual void \mbox{\hyperlink{classADroneManager_a4241bf40f35b3c598bff089b22a7005f}{End\+Play}} (const EEnd\+Play\+Reason\+::\+Type End\+Play\+Reason) override
+\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+TSubclass\+Of$<$ \mbox{\hyperlink{classAQuadPawn}{AQuad\+Pawn}} $>$ \mbox{\hyperlink{classADroneManager_af762d1c7f7da55080d361c7d7155ed80}{Quad\+Pawn\+Class}}
+\item 
+TArray$<$ TWeak\+Object\+Ptr$<$ \mbox{\hyperlink{classAQuadPawn}{AQuad\+Pawn}} $>$ $>$ \mbox{\hyperlink{classADroneManager_a47b9776944f7d9b3ae73353f6aaa36ea}{All\+Drones}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{classADroneManager_ad400d9a35a37bfcad06d0f99f361e0fb}{On\+Actor\+Spawned}} (AActor $\ast$Spawned\+Actor)
+\end{DoxyCompactItemize}
+\doxysubsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+bool \mbox{\hyperlink{classADroneManager_ab7d96fec0183b265fd6161ec9fbde23d}{b\+Swarm\+Mode}} = false
+\item 
+FDelegate\+Handle \mbox{\hyperlink{classADroneManager_a93a6dcb67bab3bd5f2c56680ecb0cb8a}{On\+Actor\+Spawned\+Handle}}
+\item 
+FVector \mbox{\hyperlink{classADroneManager_af3a5972bdc23e22136839e1681db2264}{Last\+Spawn\+Location}} = FVector\+::\+Zero\+Vector
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classADroneManager_a679a864fc01241033b9043ac80945d1b}\label{classADroneManager_a679a864fc01241033b9043ac80945d1b}} 
+\index{ADroneManager@{ADroneManager}!ADroneManager@{ADroneManager}}
+\index{ADroneManager@{ADroneManager}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{ADroneManager()}{ADroneManager()}}
+{\footnotesize\ttfamily ADrone\+Manager\+::\+ADrone\+Manager (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classADroneManager_ae3e88e96b14ba8d743c7244a3b3bd3cd}\label{classADroneManager_ae3e88e96b14ba8d743c7244a3b3bd3cd}} 
+\index{ADroneManager@{ADroneManager}!BeginPlay@{BeginPlay}}
+\index{BeginPlay@{BeginPlay}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{BeginPlay()}{BeginPlay()}}
+{\footnotesize\ttfamily void ADrone\+Manager\+::\+Begin\+Play (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [protected]}, {\ttfamily [virtual]}}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classADroneManager_ae3e88e96b14ba8d743c7244a3b3bd3cd_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classADroneManager_ad1ef4e70b9812ddb66fa91044415313f}\label{classADroneManager_ad1ef4e70b9812ddb66fa91044415313f}} 
+\index{ADroneManager@{ADroneManager}!DECLARE\_MULTICAST\_DELEGATE\_OneParam@{DECLARE\_MULTICAST\_DELEGATE\_OneParam}}
+\index{DECLARE\_MULTICAST\_DELEGATE\_OneParam@{DECLARE\_MULTICAST\_DELEGATE\_OneParam}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{DECLARE\_MULTICAST\_DELEGATE\_OneParam()}{DECLARE\_MULTICAST\_DELEGATE\_OneParam()}}
+{\footnotesize\ttfamily ADrone\+Manager\+::\+DECLARE\+\_\+\+MULTICAST\+\_\+\+DELEGATE\+\_\+\+One\+Param (\begin{DoxyParamCaption}\item[{FOn\+Global\+Flight\+Mode\+Changed}]{,  }\item[{\mbox{\hyperlink{QuadDroneController_8h_ac95e6d0ab91884a9e36f0aef33fdce7e}{EFlight\+Mode}}}]{ }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classADroneManager_a4241bf40f35b3c598bff089b22a7005f}\label{classADroneManager_a4241bf40f35b3c598bff089b22a7005f}} 
+\index{ADroneManager@{ADroneManager}!EndPlay@{EndPlay}}
+\index{EndPlay@{EndPlay}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{EndPlay()}{EndPlay()}}
+{\footnotesize\ttfamily void ADrone\+Manager\+::\+End\+Play (\begin{DoxyParamCaption}\item[{const EEnd\+Play\+Reason\+::\+Type}]{End\+Play\+Reason }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [protected]}, {\ttfamily [virtual]}}
+
+\mbox{\Hypertarget{classADroneManager_a9c3c9b9953ac4f47093c19e72029c41d}\label{classADroneManager_a9c3c9b9953ac4f47093c19e72029c41d}} 
+\index{ADroneManager@{ADroneManager}!Get@{Get}}
+\index{Get@{Get}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{Get()}{Get()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classADroneManager}{ADrone\+Manager}} $\ast$ ADrone\+Manager\+::\+Get (\begin{DoxyParamCaption}\item[{UWorld $\ast$}]{World }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classADroneManager_a9c3c9b9953ac4f47093c19e72029c41d_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classADroneManager_aeabd73366b51d5ec994b9dbcd906593f}\label{classADroneManager_aeabd73366b51d5ec994b9dbcd906593f}} 
+\index{ADroneManager@{ADroneManager}!GetDroneIndex@{GetDroneIndex}}
+\index{GetDroneIndex@{GetDroneIndex}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{GetDroneIndex()}{GetDroneIndex()}}
+{\footnotesize\ttfamily int32 ADrone\+Manager\+::\+Get\+Drone\+Index (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classAQuadPawn}{AQuad\+Pawn}} $\ast$}]{Pawn }\end{DoxyParamCaption}) const}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classADroneManager_aeabd73366b51d5ec994b9dbcd906593f_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classADroneManager_aeabd73366b51d5ec994b9dbcd906593f_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classADroneManager_a989e9f0c92b3dcf3a9d9516c2d44e8dc}\label{classADroneManager_a989e9f0c92b3dcf3a9d9516c2d44e8dc}} 
+\index{ADroneManager@{ADroneManager}!GetDroneList@{GetDroneList}}
+\index{GetDroneList@{GetDroneList}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{GetDroneList()}{GetDroneList()}}
+{\footnotesize\ttfamily TArray$<$ \mbox{\hyperlink{classAQuadPawn}{AQuad\+Pawn}} $\ast$ $>$ ADrone\+Manager\+::\+Get\+Drone\+List (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{classADroneManager_aa16196d3e75e814db5b7eeaebe5c70e3}\label{classADroneManager_aa16196d3e75e814db5b7eeaebe5c70e3}} 
+\index{ADroneManager@{ADroneManager}!IsSwarmMode@{IsSwarmMode}}
+\index{IsSwarmMode@{IsSwarmMode}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{IsSwarmMode()}{IsSwarmMode()}}
+{\footnotesize\ttfamily bool ADrone\+Manager\+::\+Is\+Swarm\+Mode (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classADroneManager_aa16196d3e75e814db5b7eeaebe5c70e3_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classADroneManager_ad400d9a35a37bfcad06d0f99f361e0fb}\label{classADroneManager_ad400d9a35a37bfcad06d0f99f361e0fb}} 
+\index{ADroneManager@{ADroneManager}!OnActorSpawned@{OnActorSpawned}}
+\index{OnActorSpawned@{OnActorSpawned}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{OnActorSpawned()}{OnActorSpawned()}}
+{\footnotesize\ttfamily void ADrone\+Manager\+::\+On\+Actor\+Spawned (\begin{DoxyParamCaption}\item[{AActor $\ast$}]{Spawned\+Actor }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classADroneManager_ad400d9a35a37bfcad06d0f99f361e0fb_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classADroneManager_a7c710fb687f8c24a5f6b3c3075241ca7}\label{classADroneManager_a7c710fb687f8c24a5f6b3c3075241ca7}} 
+\index{ADroneManager@{ADroneManager}!RegisterDroneController@{RegisterDroneController}}
+\index{RegisterDroneController@{RegisterDroneController}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{RegisterDroneController()}{RegisterDroneController()}}
+{\footnotesize\ttfamily void ADrone\+Manager\+::\+Register\+Drone\+Controller (\begin{DoxyParamCaption}\item[{class \mbox{\hyperlink{classUQuadDroneController}{UQuad\+Drone\+Controller}} $\ast$}]{Controller }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classADroneManager_a7c710fb687f8c24a5f6b3c3075241ca7_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classADroneManager_a753e98bf77ff650e4c445f6389c12797}\label{classADroneManager_a753e98bf77ff650e4c445f6389c12797}} 
+\index{ADroneManager@{ADroneManager}!SetSwarmMode@{SetSwarmMode}}
+\index{SetSwarmMode@{SetSwarmMode}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{SetSwarmMode()}{SetSwarmMode()}}
+{\footnotesize\ttfamily void ADrone\+Manager\+::\+Set\+Swarm\+Mode (\begin{DoxyParamCaption}\item[{bool}]{b\+Enable }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classADroneManager_a2e989c567629aeaf0479a8101334a3d6}\label{classADroneManager_a2e989c567629aeaf0479a8101334a3d6}} 
+\index{ADroneManager@{ADroneManager}!SpawnDrone@{SpawnDrone}}
+\index{SpawnDrone@{SpawnDrone}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{SpawnDrone()}{SpawnDrone()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classAQuadPawn}{AQuad\+Pawn}} $\ast$ ADrone\+Manager\+::\+Spawn\+Drone (\begin{DoxyParamCaption}\item[{const FVector \&}]{Spawn\+Location,  }\item[{const FRotator \&}]{Spawn\+Rotation }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classADroneManager_a2e989c567629aeaf0479a8101334a3d6_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classADroneManager_a12da451bfc41c95d26d7a19032c37684}\label{classADroneManager_a12da451bfc41c95d26d7a19032c37684}} 
+\index{ADroneManager@{ADroneManager}!Tick@{Tick}}
+\index{Tick@{Tick}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{Tick()}{Tick()}}
+{\footnotesize\ttfamily void ADrone\+Manager\+::\+Tick (\begin{DoxyParamCaption}\item[{float}]{Delta\+Time }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classADroneManager_a12da451bfc41c95d26d7a19032c37684_cgraph}
+\end{center}
+\end{figure}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classADroneManager_a47b9776944f7d9b3ae73353f6aaa36ea}\label{classADroneManager_a47b9776944f7d9b3ae73353f6aaa36ea}} 
+\index{ADroneManager@{ADroneManager}!AllDrones@{AllDrones}}
+\index{AllDrones@{AllDrones}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{AllDrones}{AllDrones}}
+{\footnotesize\ttfamily TArray$<$TWeak\+Object\+Ptr$<$\mbox{\hyperlink{classAQuadPawn}{AQuad\+Pawn}}$>$ $>$ ADrone\+Manager\+::\+All\+Drones\hspace{0.3cm}{\ttfamily [protected]}}
+
+\mbox{\Hypertarget{classADroneManager_ab7d96fec0183b265fd6161ec9fbde23d}\label{classADroneManager_ab7d96fec0183b265fd6161ec9fbde23d}} 
+\index{ADroneManager@{ADroneManager}!bSwarmMode@{bSwarmMode}}
+\index{bSwarmMode@{bSwarmMode}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{bSwarmMode}{bSwarmMode}}
+{\footnotesize\ttfamily bool ADrone\+Manager\+::b\+Swarm\+Mode = false\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classADroneManager_af3a5972bdc23e22136839e1681db2264}\label{classADroneManager_af3a5972bdc23e22136839e1681db2264}} 
+\index{ADroneManager@{ADroneManager}!LastSpawnLocation@{LastSpawnLocation}}
+\index{LastSpawnLocation@{LastSpawnLocation}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{LastSpawnLocation}{LastSpawnLocation}}
+{\footnotesize\ttfamily FVector ADrone\+Manager\+::\+Last\+Spawn\+Location = FVector\+::\+Zero\+Vector\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classADroneManager_a93a6dcb67bab3bd5f2c56680ecb0cb8a}\label{classADroneManager_a93a6dcb67bab3bd5f2c56680ecb0cb8a}} 
+\index{ADroneManager@{ADroneManager}!OnActorSpawnedHandle@{OnActorSpawnedHandle}}
+\index{OnActorSpawnedHandle@{OnActorSpawnedHandle}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{OnActorSpawnedHandle}{OnActorSpawnedHandle}}
+{\footnotesize\ttfamily FDelegate\+Handle ADrone\+Manager\+::\+On\+Actor\+Spawned\+Handle\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classADroneManager_ae7e3122d1d21c94fc82678de98b494c5}\label{classADroneManager_ae7e3122d1d21c94fc82678de98b494c5}} 
+\index{ADroneManager@{ADroneManager}!OnGlobalFlightModeChanged@{OnGlobalFlightModeChanged}}
+\index{OnGlobalFlightModeChanged@{OnGlobalFlightModeChanged}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{OnGlobalFlightModeChanged}{OnGlobalFlightModeChanged}}
+{\footnotesize\ttfamily FOn\+Global\+Flight\+Mode\+Changed ADrone\+Manager\+::\+On\+Global\+Flight\+Mode\+Changed}
+
+\mbox{\Hypertarget{classADroneManager_af762d1c7f7da55080d361c7d7155ed80}\label{classADroneManager_af762d1c7f7da55080d361c7d7155ed80}} 
+\index{ADroneManager@{ADroneManager}!QuadPawnClass@{QuadPawnClass}}
+\index{QuadPawnClass@{QuadPawnClass}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{QuadPawnClass}{QuadPawnClass}}
+{\footnotesize\ttfamily TSubclass\+Of$<$\mbox{\hyperlink{classAQuadPawn}{AQuad\+Pawn}}$>$ ADrone\+Manager\+::\+Quad\+Pawn\+Class\hspace{0.3cm}{\ttfamily [protected]}}
+
+\mbox{\Hypertarget{classADroneManager_ae520cc8559d0e506c4a33401261e1b23}\label{classADroneManager_ae520cc8559d0e506c4a33401261e1b23}} 
+\index{ADroneManager@{ADroneManager}!SelectedDroneIndex@{SelectedDroneIndex}}
+\index{SelectedDroneIndex@{SelectedDroneIndex}!ADroneManager@{ADroneManager}}
+\doxysubsubsection{\texorpdfstring{SelectedDroneIndex}{SelectedDroneIndex}}
+{\footnotesize\ttfamily int32 ADrone\+Manager\+::\+Selected\+Drone\+Index}
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+Source/\+Quad\+Sim\+Core/\+Public/\+Core/\mbox{\hyperlink{DroneManager_8h}{Drone\+Manager.\+h}}\item 
+Source/\+Quad\+Sim\+Core/\+Private/\+Core/\mbox{\hyperlink{DroneManager_8cpp}{Drone\+Manager.\+cpp}}\end{DoxyCompactItemize}

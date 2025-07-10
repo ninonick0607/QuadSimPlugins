@@ -1,0 +1,6 @@
+<map id="AROS2Controller::HandleResetCommand" name="AROS2Controller::HandleResetCommand">
+<area shape="rect" id="node1" title=" " alt="" coords="5,5,227,47"/>
+<area shape="rect" id="node2" href="$classUQuadDroneController.html#a370418d3d89f0ab498fc08cb864e1809" title=" " alt="" coords="275,5,444,47"/>
+<area shape="rect" id="node3" href="$classUQuadDroneController.html#aafeb859afe8b578e40afd30aea2748cb" title=" " alt="" coords="492,5,661,47"/>
+<area shape="rect" id="node4" href="$classQuadPIDController.html#aa21a311e6b52f6d72c19468b85c359b3" title=" " alt="" coords="709,5,860,47"/>
+</map>

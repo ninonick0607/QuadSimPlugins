@@ -1,0 +1,268 @@
+\hypertarget{classQuadPIDController}{}\doxysection{Quad\+PIDController Class Reference}
+\label{classQuadPIDController}\index{QuadPIDController@{QuadPIDController}}
+
+
+{\ttfamily \#include $<$Quad\+PIDController.\+h$>$}
+
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structQuadPIDController_1_1IntegralPoint}{Integral\+Point}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classQuadPIDController_a90ee8f998f457d1beeefac6298c22d3c}{Quad\+PIDController}} ()
+\item 
+void \mbox{\hyperlink{classQuadPIDController_aa39a65d8fe819e59c0e5e4b82f278ed5}{Set\+Gains}} (float p\+Gain, float i\+Gain, float d\+Gain, float \mbox{\hyperlink{classQuadPIDController_a712196671b4360ef9a56f5b89835fa6c}{tau}}=0.\+1f)
+\item 
+void \mbox{\hyperlink{classQuadPIDController_ae025f6dac3089684c90d9b0a4589516a}{Set\+Limits}} (float min\+\_\+output, float max\+\_\+output)
+\item 
+void \mbox{\hyperlink{classQuadPIDController_aa21a311e6b52f6d72c19468b85c359b3}{Reset}} ()
+\item 
+void \mbox{\hyperlink{classQuadPIDController_a283be99595ca119de53e4a6cfc910c47}{Reset\+Integral}} ()
+\item 
+double \mbox{\hyperlink{classQuadPIDController_ad96b9199d7ae1f627a01c0ac888220c8}{Calculate}} (float desired\+State, float measured\+State, float dt)
+\item 
+int32 \mbox{\hyperlink{classQuadPIDController_ada59822219afda95a1777d099215406b}{Get\+Buffer\+Size}} () const
+\item 
+float \mbox{\hyperlink{classQuadPIDController_a1ec8e8f3bd0302a9a8d700eab8fc4f8c}{Get\+Current\+Buffer\+Sum}} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+float \mbox{\hyperlink{classQuadPIDController_aad7f574c6364ee73a5a68e432b0dbc8a}{last\+Output}}
+\item 
+float \mbox{\hyperlink{classQuadPIDController_a3b6a05673d053f660591d27188002931}{Proportional\+Gain}}
+\item 
+float \mbox{\hyperlink{classQuadPIDController_a27ceda607edec36db4193927e97a4367}{Integral\+Gain}}
+\item 
+float \mbox{\hyperlink{classQuadPIDController_a60483680837ed49ec430a2db1099fefd}{Derivative\+Gain}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{classQuadPIDController_ab7e668b1b8cba6bf742e8e5d73e43b87}{Remove\+Expired\+Points}} ()
+\end{DoxyCompactItemize}
+\doxysubsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+TArray$<$ \mbox{\hyperlink{structQuadPIDController_1_1IntegralPoint}{Integral\+Point}} $>$ \mbox{\hyperlink{classQuadPIDController_ab3d1945f906d5b918e8230810cfb3b4b}{integral\+Buffer}}
+\item 
+float \mbox{\hyperlink{classQuadPIDController_af8a2a44949ab4d28291745134a81cdf3}{absolute\+Time}}
+\item 
+float \mbox{\hyperlink{classQuadPIDController_ac4cb920b2a3b9a1a127c51273b1005e3}{current\+Buffer\+Sum}}
+\item 
+float \mbox{\hyperlink{classQuadPIDController_ae00d761f993229aaab82395d1d5dedcb}{min\+Output}}
+\item 
+float \mbox{\hyperlink{classQuadPIDController_a88ee82732832e89279aa797a4d35d3f5}{max\+Output}}
+\item 
+float \mbox{\hyperlink{classQuadPIDController_a5232c0bb10c1b8df58152ceca261db12}{prev\+Error}}
+\item 
+float \mbox{\hyperlink{classQuadPIDController_af0790767e23c7ea9c6741b003a790a93}{last\+State}}
+\item 
+float \mbox{\hyperlink{classQuadPIDController_a00b7c392c529c4af8e7e80365862dfef}{filtered\+Derivative}}
+\item 
+float \mbox{\hyperlink{classQuadPIDController_a712196671b4360ef9a56f5b89835fa6c}{tau}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+static constexpr float \mbox{\hyperlink{classQuadPIDController_ad52cbd6622769fb3ab85092319db2248}{INTEGRAL\+\_\+\+WINDOW\+\_\+\+DURATION}} = 2.\+0f
+\item 
+static constexpr int32 \mbox{\hyperlink{classQuadPIDController_aac4fcae5bf5e64cf0a69517df30e1236}{ESTIMATED\+\_\+\+BUFFER\+\_\+\+SIZE}} = 140
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classQuadPIDController_a90ee8f998f457d1beeefac6298c22d3c}\label{classQuadPIDController_a90ee8f998f457d1beeefac6298c22d3c}} 
+\index{QuadPIDController@{QuadPIDController}!QuadPIDController@{QuadPIDController}}
+\index{QuadPIDController@{QuadPIDController}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{QuadPIDController()}{QuadPIDController()}}
+{\footnotesize\ttfamily Quad\+PIDController\+::\+Quad\+PIDController (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classQuadPIDController_ad96b9199d7ae1f627a01c0ac888220c8}\label{classQuadPIDController_ad96b9199d7ae1f627a01c0ac888220c8}} 
+\index{QuadPIDController@{QuadPIDController}!Calculate@{Calculate}}
+\index{Calculate@{Calculate}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{Calculate()}{Calculate()}}
+{\footnotesize\ttfamily double Quad\+PIDController\+::\+Calculate (\begin{DoxyParamCaption}\item[{float}]{desired\+State,  }\item[{float}]{measured\+State,  }\item[{float}]{dt }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classQuadPIDController_ad96b9199d7ae1f627a01c0ac888220c8_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classQuadPIDController_ad96b9199d7ae1f627a01c0ac888220c8_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classQuadPIDController_ada59822219afda95a1777d099215406b}\label{classQuadPIDController_ada59822219afda95a1777d099215406b}} 
+\index{QuadPIDController@{QuadPIDController}!GetBufferSize@{GetBufferSize}}
+\index{GetBufferSize@{GetBufferSize}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{GetBufferSize()}{GetBufferSize()}}
+{\footnotesize\ttfamily int32 Quad\+PIDController\+::\+Get\+Buffer\+Size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classQuadPIDController_a1ec8e8f3bd0302a9a8d700eab8fc4f8c}\label{classQuadPIDController_a1ec8e8f3bd0302a9a8d700eab8fc4f8c}} 
+\index{QuadPIDController@{QuadPIDController}!GetCurrentBufferSum@{GetCurrentBufferSum}}
+\index{GetCurrentBufferSum@{GetCurrentBufferSum}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{GetCurrentBufferSum()}{GetCurrentBufferSum()}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::\+Get\+Current\+Buffer\+Sum (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classQuadPIDController_ab7e668b1b8cba6bf742e8e5d73e43b87}\label{classQuadPIDController_ab7e668b1b8cba6bf742e8e5d73e43b87}} 
+\index{QuadPIDController@{QuadPIDController}!RemoveExpiredPoints@{RemoveExpiredPoints}}
+\index{RemoveExpiredPoints@{RemoveExpiredPoints}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{RemoveExpiredPoints()}{RemoveExpiredPoints()}}
+{\footnotesize\ttfamily void Quad\+PIDController\+::\+Remove\+Expired\+Points (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classQuadPIDController_ab7e668b1b8cba6bf742e8e5d73e43b87_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classQuadPIDController_aa21a311e6b52f6d72c19468b85c359b3}\label{classQuadPIDController_aa21a311e6b52f6d72c19468b85c359b3}} 
+\index{QuadPIDController@{QuadPIDController}!Reset@{Reset}}
+\index{Reset@{Reset}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{Reset()}{Reset()}}
+{\footnotesize\ttfamily void Quad\+PIDController\+::\+Reset (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classQuadPIDController_aa21a311e6b52f6d72c19468b85c359b3_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classQuadPIDController_a283be99595ca119de53e4a6cfc910c47}\label{classQuadPIDController_a283be99595ca119de53e4a6cfc910c47}} 
+\index{QuadPIDController@{QuadPIDController}!ResetIntegral@{ResetIntegral}}
+\index{ResetIntegral@{ResetIntegral}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{ResetIntegral()}{ResetIntegral()}}
+{\footnotesize\ttfamily void Quad\+PIDController\+::\+Reset\+Integral (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classQuadPIDController_a283be99595ca119de53e4a6cfc910c47_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classQuadPIDController_aa39a65d8fe819e59c0e5e4b82f278ed5}\label{classQuadPIDController_aa39a65d8fe819e59c0e5e4b82f278ed5}} 
+\index{QuadPIDController@{QuadPIDController}!SetGains@{SetGains}}
+\index{SetGains@{SetGains}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{SetGains()}{SetGains()}}
+{\footnotesize\ttfamily void Quad\+PIDController\+::\+Set\+Gains (\begin{DoxyParamCaption}\item[{float}]{p\+Gain,  }\item[{float}]{i\+Gain,  }\item[{float}]{d\+Gain,  }\item[{float}]{tau = {\ttfamily 0.1f} }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classQuadPIDController_ae025f6dac3089684c90d9b0a4589516a}\label{classQuadPIDController_ae025f6dac3089684c90d9b0a4589516a}} 
+\index{QuadPIDController@{QuadPIDController}!SetLimits@{SetLimits}}
+\index{SetLimits@{SetLimits}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{SetLimits()}{SetLimits()}}
+{\footnotesize\ttfamily void Quad\+PIDController\+::\+Set\+Limits (\begin{DoxyParamCaption}\item[{float}]{min\+\_\+output,  }\item[{float}]{max\+\_\+output }\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classQuadPIDController_af8a2a44949ab4d28291745134a81cdf3}\label{classQuadPIDController_af8a2a44949ab4d28291745134a81cdf3}} 
+\index{QuadPIDController@{QuadPIDController}!absoluteTime@{absoluteTime}}
+\index{absoluteTime@{absoluteTime}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{absoluteTime}{absoluteTime}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::absolute\+Time\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classQuadPIDController_ac4cb920b2a3b9a1a127c51273b1005e3}\label{classQuadPIDController_ac4cb920b2a3b9a1a127c51273b1005e3}} 
+\index{QuadPIDController@{QuadPIDController}!currentBufferSum@{currentBufferSum}}
+\index{currentBufferSum@{currentBufferSum}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{currentBufferSum}{currentBufferSum}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::current\+Buffer\+Sum\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classQuadPIDController_a60483680837ed49ec430a2db1099fefd}\label{classQuadPIDController_a60483680837ed49ec430a2db1099fefd}} 
+\index{QuadPIDController@{QuadPIDController}!DerivativeGain@{DerivativeGain}}
+\index{DerivativeGain@{DerivativeGain}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{DerivativeGain}{DerivativeGain}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::\+Derivative\+Gain}
+
+\mbox{\Hypertarget{classQuadPIDController_aac4fcae5bf5e64cf0a69517df30e1236}\label{classQuadPIDController_aac4fcae5bf5e64cf0a69517df30e1236}} 
+\index{QuadPIDController@{QuadPIDController}!ESTIMATED\_BUFFER\_SIZE@{ESTIMATED\_BUFFER\_SIZE}}
+\index{ESTIMATED\_BUFFER\_SIZE@{ESTIMATED\_BUFFER\_SIZE}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{ESTIMATED\_BUFFER\_SIZE}{ESTIMATED\_BUFFER\_SIZE}}
+{\footnotesize\ttfamily constexpr int32 Quad\+PIDController\+::\+ESTIMATED\+\_\+\+BUFFER\+\_\+\+SIZE = 140\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}, {\ttfamily [private]}}
+
+\mbox{\Hypertarget{classQuadPIDController_a00b7c392c529c4af8e7e80365862dfef}\label{classQuadPIDController_a00b7c392c529c4af8e7e80365862dfef}} 
+\index{QuadPIDController@{QuadPIDController}!filteredDerivative@{filteredDerivative}}
+\index{filteredDerivative@{filteredDerivative}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{filteredDerivative}{filteredDerivative}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::filtered\+Derivative\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classQuadPIDController_ad52cbd6622769fb3ab85092319db2248}\label{classQuadPIDController_ad52cbd6622769fb3ab85092319db2248}} 
+\index{QuadPIDController@{QuadPIDController}!INTEGRAL\_WINDOW\_DURATION@{INTEGRAL\_WINDOW\_DURATION}}
+\index{INTEGRAL\_WINDOW\_DURATION@{INTEGRAL\_WINDOW\_DURATION}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{INTEGRAL\_WINDOW\_DURATION}{INTEGRAL\_WINDOW\_DURATION}}
+{\footnotesize\ttfamily constexpr float Quad\+PIDController\+::\+INTEGRAL\+\_\+\+WINDOW\+\_\+\+DURATION = 2.\+0f\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}, {\ttfamily [private]}}
+
+\mbox{\Hypertarget{classQuadPIDController_ab3d1945f906d5b918e8230810cfb3b4b}\label{classQuadPIDController_ab3d1945f906d5b918e8230810cfb3b4b}} 
+\index{QuadPIDController@{QuadPIDController}!integralBuffer@{integralBuffer}}
+\index{integralBuffer@{integralBuffer}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{integralBuffer}{integralBuffer}}
+{\footnotesize\ttfamily TArray$<$\mbox{\hyperlink{structQuadPIDController_1_1IntegralPoint}{Integral\+Point}}$>$ Quad\+PIDController\+::integral\+Buffer\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classQuadPIDController_a27ceda607edec36db4193927e97a4367}\label{classQuadPIDController_a27ceda607edec36db4193927e97a4367}} 
+\index{QuadPIDController@{QuadPIDController}!IntegralGain@{IntegralGain}}
+\index{IntegralGain@{IntegralGain}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{IntegralGain}{IntegralGain}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::\+Integral\+Gain}
+
+\mbox{\Hypertarget{classQuadPIDController_aad7f574c6364ee73a5a68e432b0dbc8a}\label{classQuadPIDController_aad7f574c6364ee73a5a68e432b0dbc8a}} 
+\index{QuadPIDController@{QuadPIDController}!lastOutput@{lastOutput}}
+\index{lastOutput@{lastOutput}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{lastOutput}{lastOutput}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::last\+Output}
+
+\mbox{\Hypertarget{classQuadPIDController_af0790767e23c7ea9c6741b003a790a93}\label{classQuadPIDController_af0790767e23c7ea9c6741b003a790a93}} 
+\index{QuadPIDController@{QuadPIDController}!lastState@{lastState}}
+\index{lastState@{lastState}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{lastState}{lastState}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::last\+State\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classQuadPIDController_a88ee82732832e89279aa797a4d35d3f5}\label{classQuadPIDController_a88ee82732832e89279aa797a4d35d3f5}} 
+\index{QuadPIDController@{QuadPIDController}!maxOutput@{maxOutput}}
+\index{maxOutput@{maxOutput}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{maxOutput}{maxOutput}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::max\+Output\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classQuadPIDController_ae00d761f993229aaab82395d1d5dedcb}\label{classQuadPIDController_ae00d761f993229aaab82395d1d5dedcb}} 
+\index{QuadPIDController@{QuadPIDController}!minOutput@{minOutput}}
+\index{minOutput@{minOutput}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{minOutput}{minOutput}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::min\+Output\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classQuadPIDController_a5232c0bb10c1b8df58152ceca261db12}\label{classQuadPIDController_a5232c0bb10c1b8df58152ceca261db12}} 
+\index{QuadPIDController@{QuadPIDController}!prevError@{prevError}}
+\index{prevError@{prevError}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{prevError}{prevError}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::prev\+Error\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classQuadPIDController_a3b6a05673d053f660591d27188002931}\label{classQuadPIDController_a3b6a05673d053f660591d27188002931}} 
+\index{QuadPIDController@{QuadPIDController}!ProportionalGain@{ProportionalGain}}
+\index{ProportionalGain@{ProportionalGain}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{ProportionalGain}{ProportionalGain}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::\+Proportional\+Gain}
+
+\mbox{\Hypertarget{classQuadPIDController_a712196671b4360ef9a56f5b89835fa6c}\label{classQuadPIDController_a712196671b4360ef9a56f5b89835fa6c}} 
+\index{QuadPIDController@{QuadPIDController}!tau@{tau}}
+\index{tau@{tau}!QuadPIDController@{QuadPIDController}}
+\doxysubsubsection{\texorpdfstring{tau}{tau}}
+{\footnotesize\ttfamily float Quad\+PIDController\+::tau\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+Source/\+Quad\+Sim\+Core/\+Public/\+Utility/\mbox{\hyperlink{QuadPIDController_8h}{Quad\+PIDController.\+h}}\item 
+Source/\+Quad\+Sim\+Core/\+Private/\+Utility/\mbox{\hyperlink{QuadPIDController_8cpp}{Quad\+PIDController.\+cpp}}\end{DoxyCompactItemize}

@@ -1,0 +1,121 @@
+\hypertarget{classDroneGlobalState}{}\doxysection{Drone\+Global\+State Class Reference}
+\label{classDroneGlobalState}\index{DroneGlobalState@{DroneGlobalState}}
+
+
+{\ttfamily \#include $<$Drone\+Global\+State.\+h$>$}
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+const FVector \& \mbox{\hyperlink{classDroneGlobalState_a4f5b8f97a64b02d4a6c8423ad207b0b0}{Get\+Desired\+Velocity}} () const
+\item 
+void \mbox{\hyperlink{classDroneGlobalState_a17bad592a3bea38dbea1e6c7b3beb002}{Set\+Desired\+Velocity}} (const FVector \&New\+Velocity)
+\item 
+void \mbox{\hyperlink{classDroneGlobalState_ac9d96ffc2b6c8c85c90f2ed45c506431}{Bind\+Controller}} (\mbox{\hyperlink{classUQuadDroneController}{UQuad\+Drone\+Controller}} $\ast$Controller)
+\item 
+void \mbox{\hyperlink{classDroneGlobalState_a344c80e8c51548d472cdef0d0c319646}{Unbind\+Controller}} (\mbox{\hyperlink{classUQuadDroneController}{UQuad\+Drone\+Controller}} $\ast$Controller)
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static \mbox{\hyperlink{classDroneGlobalState}{Drone\+Global\+State}} \& \mbox{\hyperlink{classDroneGlobalState_a9d1e847700530db6d75f8ef25fc00112}{Get}} ()
+\end{DoxyCompactItemize}
+\doxysubsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classDroneGlobalState_a2cec9403d4be57db3a025bc4ce12bf76}{Drone\+Global\+State}} ()
+\item 
+\mbox{\hyperlink{classDroneGlobalState_a6a7b1139b49884df2f596bcab1b9aa7a}{$\sim$\+Drone\+Global\+State}} ()
+\item 
+\mbox{\hyperlink{classDroneGlobalState_ab76be660169c15da70d13c866e3165fa}{Drone\+Global\+State}} (const \mbox{\hyperlink{classDroneGlobalState}{Drone\+Global\+State}} \&)=delete
+\item 
+\mbox{\hyperlink{classDroneGlobalState}{Drone\+Global\+State}} \& \mbox{\hyperlink{classDroneGlobalState_a6ba1299b1eeba67b6c2771415a3f0bff}{operator=}} (const \mbox{\hyperlink{classDroneGlobalState}{Drone\+Global\+State}} \&)=delete
+\end{DoxyCompactItemize}
+\doxysubsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+FVector \mbox{\hyperlink{classDroneGlobalState_ac7b108e2edffcc66d54509621830a417}{Desired\+Velocity}}
+\item 
+TArray$<$ \mbox{\hyperlink{classUQuadDroneController}{UQuad\+Drone\+Controller}} $\ast$ $>$ \mbox{\hyperlink{classDroneGlobalState_ab92fdb6e9b355f4a66d6dfd2b7cf4bf6}{Bound\+Controllers}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classDroneGlobalState_a2cec9403d4be57db3a025bc4ce12bf76}\label{classDroneGlobalState_a2cec9403d4be57db3a025bc4ce12bf76}} 
+\index{DroneGlobalState@{DroneGlobalState}!DroneGlobalState@{DroneGlobalState}}
+\index{DroneGlobalState@{DroneGlobalState}!DroneGlobalState@{DroneGlobalState}}
+\doxysubsubsection{\texorpdfstring{DroneGlobalState()}{DroneGlobalState()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily Drone\+Global\+State\+::\+Drone\+Global\+State (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classDroneGlobalState_a6a7b1139b49884df2f596bcab1b9aa7a}\label{classDroneGlobalState_a6a7b1139b49884df2f596bcab1b9aa7a}} 
+\index{DroneGlobalState@{DroneGlobalState}!````~DroneGlobalState@{$\sim$DroneGlobalState}}
+\index{````~DroneGlobalState@{$\sim$DroneGlobalState}!DroneGlobalState@{DroneGlobalState}}
+\doxysubsubsection{\texorpdfstring{$\sim$DroneGlobalState()}{~DroneGlobalState()}}
+{\footnotesize\ttfamily Drone\+Global\+State\+::$\sim$\+Drone\+Global\+State (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classDroneGlobalState_ab76be660169c15da70d13c866e3165fa}\label{classDroneGlobalState_ab76be660169c15da70d13c866e3165fa}} 
+\index{DroneGlobalState@{DroneGlobalState}!DroneGlobalState@{DroneGlobalState}}
+\index{DroneGlobalState@{DroneGlobalState}!DroneGlobalState@{DroneGlobalState}}
+\doxysubsubsection{\texorpdfstring{DroneGlobalState()}{DroneGlobalState()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily Drone\+Global\+State\+::\+Drone\+Global\+State (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDroneGlobalState}{Drone\+Global\+State}} \&}]{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}, {\ttfamily [delete]}}
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classDroneGlobalState_ac9d96ffc2b6c8c85c90f2ed45c506431}\label{classDroneGlobalState_ac9d96ffc2b6c8c85c90f2ed45c506431}} 
+\index{DroneGlobalState@{DroneGlobalState}!BindController@{BindController}}
+\index{BindController@{BindController}!DroneGlobalState@{DroneGlobalState}}
+\doxysubsubsection{\texorpdfstring{BindController()}{BindController()}}
+{\footnotesize\ttfamily void Drone\+Global\+State\+::\+Bind\+Controller (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classUQuadDroneController}{UQuad\+Drone\+Controller}} $\ast$}]{Controller }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classDroneGlobalState_a9d1e847700530db6d75f8ef25fc00112}\label{classDroneGlobalState_a9d1e847700530db6d75f8ef25fc00112}} 
+\index{DroneGlobalState@{DroneGlobalState}!Get@{Get}}
+\index{Get@{Get}!DroneGlobalState@{DroneGlobalState}}
+\doxysubsubsection{\texorpdfstring{Get()}{Get()}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{classDroneGlobalState}{Drone\+Global\+State}}\& Drone\+Global\+State\+::\+Get (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classDroneGlobalState_a4f5b8f97a64b02d4a6c8423ad207b0b0}\label{classDroneGlobalState_a4f5b8f97a64b02d4a6c8423ad207b0b0}} 
+\index{DroneGlobalState@{DroneGlobalState}!GetDesiredVelocity@{GetDesiredVelocity}}
+\index{GetDesiredVelocity@{GetDesiredVelocity}!DroneGlobalState@{DroneGlobalState}}
+\doxysubsubsection{\texorpdfstring{GetDesiredVelocity()}{GetDesiredVelocity()}}
+{\footnotesize\ttfamily const FVector\& Drone\+Global\+State\+::\+Get\+Desired\+Velocity (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classDroneGlobalState_a6ba1299b1eeba67b6c2771415a3f0bff}\label{classDroneGlobalState_a6ba1299b1eeba67b6c2771415a3f0bff}} 
+\index{DroneGlobalState@{DroneGlobalState}!operator=@{operator=}}
+\index{operator=@{operator=}!DroneGlobalState@{DroneGlobalState}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classDroneGlobalState}{Drone\+Global\+State}}\& Drone\+Global\+State\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDroneGlobalState}{Drone\+Global\+State}} \&}]{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}, {\ttfamily [delete]}}
+
+\mbox{\Hypertarget{classDroneGlobalState_a17bad592a3bea38dbea1e6c7b3beb002}\label{classDroneGlobalState_a17bad592a3bea38dbea1e6c7b3beb002}} 
+\index{DroneGlobalState@{DroneGlobalState}!SetDesiredVelocity@{SetDesiredVelocity}}
+\index{SetDesiredVelocity@{SetDesiredVelocity}!DroneGlobalState@{DroneGlobalState}}
+\doxysubsubsection{\texorpdfstring{SetDesiredVelocity()}{SetDesiredVelocity()}}
+{\footnotesize\ttfamily void Drone\+Global\+State\+::\+Set\+Desired\+Velocity (\begin{DoxyParamCaption}\item[{const FVector \&}]{New\+Velocity }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classDroneGlobalState_a344c80e8c51548d472cdef0d0c319646}\label{classDroneGlobalState_a344c80e8c51548d472cdef0d0c319646}} 
+\index{DroneGlobalState@{DroneGlobalState}!UnbindController@{UnbindController}}
+\index{UnbindController@{UnbindController}!DroneGlobalState@{DroneGlobalState}}
+\doxysubsubsection{\texorpdfstring{UnbindController()}{UnbindController()}}
+{\footnotesize\ttfamily void Drone\+Global\+State\+::\+Unbind\+Controller (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classUQuadDroneController}{UQuad\+Drone\+Controller}} $\ast$}]{Controller }\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classDroneGlobalState_ab92fdb6e9b355f4a66d6dfd2b7cf4bf6}\label{classDroneGlobalState_ab92fdb6e9b355f4a66d6dfd2b7cf4bf6}} 
+\index{DroneGlobalState@{DroneGlobalState}!BoundControllers@{BoundControllers}}
+\index{BoundControllers@{BoundControllers}!DroneGlobalState@{DroneGlobalState}}
+\doxysubsubsection{\texorpdfstring{BoundControllers}{BoundControllers}}
+{\footnotesize\ttfamily TArray$<$\mbox{\hyperlink{classUQuadDroneController}{UQuad\+Drone\+Controller}}$\ast$$>$ Drone\+Global\+State\+::\+Bound\+Controllers\hspace{0.3cm}{\ttfamily [private]}}
+
+\mbox{\Hypertarget{classDroneGlobalState_ac7b108e2edffcc66d54509621830a417}\label{classDroneGlobalState_ac7b108e2edffcc66d54509621830a417}} 
+\index{DroneGlobalState@{DroneGlobalState}!DesiredVelocity@{DesiredVelocity}}
+\index{DesiredVelocity@{DesiredVelocity}!DroneGlobalState@{DroneGlobalState}}
+\doxysubsubsection{\texorpdfstring{DesiredVelocity}{DesiredVelocity}}
+{\footnotesize\ttfamily FVector Drone\+Global\+State\+::\+Desired\+Velocity\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+Source/\+Quad\+Sim\+Core/\+Public/\+Core/\mbox{\hyperlink{DroneGlobalState_8h}{Drone\+Global\+State.\+h}}\item 
+Source/\+Quad\+Sim\+Core/\+Private/\+Core/\mbox{\hyperlink{DroneGlobalState_8cpp}{Drone\+Global\+State.\+cpp}}\end{DoxyCompactItemize}

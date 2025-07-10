@@ -1,0 +1,10 @@
+<map id="Source/QuadSimCore/Public/Pawns" name="Source/QuadSimCore/Public/Pawns">
+<area shape="rect" id="node1" href="dir_ce22cb3c60d0738191d5f390d5664dd8.html" title="Utility" alt="" coords="27,148,99,196"/>
+<area shape="rect" id="node2" href="dir_d0160b9ae7b61127f93e65fd12a90132.html" title="UI" alt="" coords="123,148,195,196"/>
+<area shape="rect" id="node3" href="dir_ef238097f12e295838550b07525c3ebd.html" title="Core" alt="" coords="219,148,291,196"/>
+<area shape="rect" id="node4" href="dir_a6b2c01df542002a0c943059215dc61a.html" title="Pawns" alt="" coords="123,52,195,100"/>
+<area shape="rect" id="edge1-headlabel" href="dir_000011_000013.html" title="1" alt="" coords="100,134,110,149"/>
+<area shape="rect" id="edge2-headlabel" href="dir_000011_000012.html" title="1" alt="" coords="162,122,172,137"/>
+<area shape="rect" id="edge3-headlabel" href="dir_000011_000010.html" title="1" alt="" coords="219,122,229,136"/>
+<area shape="rect" id="clust1" href="dir_a999321301fd866f4e381e0809b47d65.html" title="Public" alt="" coords="16,16,301,207"/>
+</map>
