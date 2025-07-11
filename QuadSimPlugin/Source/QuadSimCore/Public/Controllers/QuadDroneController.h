@@ -5,12 +5,6 @@
 #include "UI/ImGuiUtil.h"
 
 
-// Only include and implement interface if UnrealRosFlight plugin is available
-#if WITH_EDITOR
-	#include "Engine/Engine.h"
-	DEFINE_LOG_CATEGORY_STATIC(LogQuadDroneController, Log, All);
-#endif
-
 class AQuadPawn;
 
 #include "QuadDroneController.generated.h"
@@ -154,6 +148,28 @@ public:
         return &PIDSet;
     }
 
+    // External Control Support (PX4 integration)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "External Control")
+    bool bUseExternalController = false;
+
+    // Apply motor commands from external controller (PX4)
+    UFUNCTION(BlueprintCallable, Category = "External Control")
+    void ApplyMotorCommands(const TArray<float>& MotorCommands);
+
+    // Set external controller state
+    UFUNCTION(BlueprintCallable, Category = "External Control")
+    void SetUseExternalController(bool bUseExternal);
+
+    // Getters for external controller to access state
+    UFUNCTION(BlueprintCallable, Category = "External Control")
+    FVector GetLocalAngularRateDeg() const { return localAngularRateDeg; }
+
+    // Additional getters that PX4 might need
+    UFUNCTION(BlueprintCallable, Category = "External Control")
+    FVector GetCurrentPosition() const;
+
+    UFUNCTION(BlueprintCallable, Category = "External Control") 
+    FRotator GetCurrentRotation() const;
     
 private:
 
