@@ -1,64 +1,97 @@
-// QuadSimPlugin/Source/QuadSimCore/Public/Components/PX4Component.h
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Engine/World.h"
+#include "Sockets.h"
+#include "Common/UdpSocketBuilder.h"
+#include "SocketSubsystem.h"
+#include "Interfaces/IPv4/IPv4Address.h"
 #include "HAL/Runnable.h"
 #include "HAL/RunnableThread.h"
-#include <atomic>
-#include <memory>
-#include <thread>
-
-// MAVSDK includes
-#include <mavsdk/mavsdk.h>
-#include <mavsdk/plugins/telemetry/telemetry.h>
-#include <mavsdk/plugins/action/action.h>
-#include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
-
+#include "HAL/ThreadSafeBool.h"
+#include "HAL/CriticalSection.h"
 #include "PX4Component.generated.h"
 
 // Forward declarations
 class UQuadDroneController;
+class FPX4CommunicationThread;
 
 UENUM(BlueprintType)
 enum class EPX4ControlMode : uint8
 {
     Disabled    UMETA(DisplayName = "Disabled"),
     Position    UMETA(DisplayName = "Position Control"),
-    Velocity    UMETA(DisplayName = "Velocity Control"),
+    Velocity    UMETA(DisplayName = "Velocity Control"), 
     Attitude    UMETA(DisplayName = "Attitude Control"),
     Manual      UMETA(DisplayName = "Manual Control")
 };
 
-UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
+// Communication Thread Class
+class FPX4CommunicationThread : public FRunnable
+{
+public:
+    FPX4CommunicationThread(class UPX4Component* InPX4Component);
+    virtual ~FPX4CommunicationThread();
+
+    // FRunnable interface
+    virtual bool Init() override;
+    virtual uint32 Run() override;
+    virtual void Stop() override;
+    virtual void Exit() override;
+
+    void StartThread();
+    void StopThread();
+    bool IsRunning() const { return Thread != nullptr; }
+
+private:
+    class UPX4Component* PX4Component;
+    FRunnableThread* Thread;
+    FThreadSafeBool bStopRequested;
+    
+    static const int32 TARGET_FREQUENCY_HZ = 100;
+    static const double TARGET_INTERVAL; // Will be 0.01 seconds (10ms)
+};
+
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class QUADSIMCORE_API UPX4Component : public UActorComponent
 {
     GENERATED_BODY()
 
 public:
     UPX4Component();
-    virtual ~UPX4Component();
 
 protected:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
-    virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-        FActorComponentTickFunction* ThisTickFunction) override;
+    virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
     // Configuration
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PX4 Connection")
     bool bUsePX4 = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PX4 Connection")
-    FString ConnectionString = TEXT("tcp://127.0.0.1:4560");
+    FString PX4_IP = TEXT("127.0.0.1");
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PX4 Connection")
+    int32 PX4_Port = 4560;  // Standard PX4 simulator port (TCP)
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PX4 Connection")
+    int32 ControlPortLocal = 14540;  // Local UDP port for MAVLink control
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PX4 Connection")
+    int32 ControlPortRemote = 14580;  // Remote UDP port for MAVLink control
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PX4 Control")
     EPX4ControlMode ControlMode = EPX4ControlMode::Attitude;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PX4 Control")
-    bool bEnableLockstep = false;
+    float StateUpdateRate = 100.0f; // Hz
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PX4 Control")
+    float HeartbeatRate = 2.0f; // Hz - Send heartbeat every 0.5 seconds
 
     // Status
     UPROPERTY(BlueprintReadOnly, Category = "PX4 Status")
@@ -77,50 +110,93 @@ public:
     UFUNCTION(BlueprintCallable, Category = "PX4")
     void DisconnectFromPX4();
 
+    // Thread-safe methods (called by communication thread)
+    void SendHILDataFromThread();
+    void UpdateThreadSafeState();
+    bool IsConnectedToPX4() const;
+    void SendHeartbeat();
+
 private:
-    // MAVSDK objects
-    std::unique_ptr<mavsdk::Mavsdk> MavSDK;
-    std::shared_ptr<mavsdk::System> System;
-    std::shared_ptr<mavsdk::Telemetry> Telemetry;
-    std::shared_ptr<mavsdk::Action> Action;
-    std::shared_ptr<mavsdk::MavlinkPassthrough> Passthrough;
+    // TCP Communication (for initial handshake)
+    FSocket* TCPListenSocket;  // Server socket that listens for connections
+    FSocket* TCPClientSocket;  // Actual connection socket to PX4
+    TSharedPtr<FInternetAddr> PX4TCPAddress;
+    
+    // UDP Communication (for MAVLink messages)
+    FSocket* UDPSendSocket;
+    FSocket* UDPRecvSocket;
+    TSharedPtr<FInternetAddr> PX4UDPAddress;
+    TSharedPtr<FInternetAddr> LocalUDPAddress;
+    
+    // Communication state
+    bool bTCPListening = false;
+    bool bTCPConnected = false;
+    bool bUDPReady = false;
 
-    // Threading
-    std::unique_ptr<std::thread> MAVSDKThread;
-    std::atomic<bool> bShouldStop{ false };
-    std::atomic<bool> bConnected{ false };
+    // MAVLink System IDs
+    uint8 SystemID = 1;
+    uint8 ComponentID = 1;
+    uint8 TargetSystem = 1;
+    uint8 TargetComponent = 1;
+    uint64_t HILTimestamp = 0;
+    const uint64_t HIL_INTERVAL_US = 10000; // 100Hz = 10ms = 10000 microseconds
 
-    // State management
-    FCriticalSection StateMutex;
-    uint64_t SimulationTimeUs = 0;
-    uint64_t HILTimestamp = 10000; // Start at 10ms like PX4 expects
+    // Message sequence counter
+    uint8 MessageSequence = 0;
 
-    // Current state (thread-safe copies)
+    // Timing
+    float HeartbeatTimer = 0.0f;
+    float ConnectionTimeoutTimer = 0.0f;
+    static constexpr float ConnectionTimeout = 10.0f;
+
+    // State Storage (main thread)
     FVector CurrentPosition = FVector::ZeroVector;
     FVector CurrentVelocity = FVector::ZeroVector;
     FRotator CurrentRotation = FRotator::ZeroRotator;
     FVector CurrentAngularVelocity = FVector::ZeroVector;
 
+    // Threading
+    FPX4CommunicationThread* CommunicationThread;
+    mutable FCriticalSection StateMutex; // Protects shared state access
+    
+    // Thread-safe state copies
+    FVector ThreadSafePosition;
+    FVector ThreadSafeVelocity;
+    FRotator ThreadSafeRotation;
+    FVector ThreadSafeAngularVelocity;
+    bool bThreadSafeDataValid;
+
     // QuadDroneController reference
     UPROPERTY()
-    UQuadDroneController* QuadController = nullptr;
+    UQuadDroneController* QuadController;
 
-    // Timing
-    float ConnectionTimeoutTimer = 0.0f;
-    static constexpr float ConnectionTimeout = 10.0f;
-
-    // Methods
-    void RunMAVSDKThread();
+    // MAVLink Communication Functions
+    void SetupTCPServer();
+    void AcceptTCPConnection();
+    void SetupUDPSockets();
+    void CleanupSockets();
+    void SendMAVLinkMessage(const uint8* MessageBuffer, uint16 MessageLength);
+    void ProcessIncomingMAVLinkData();
+    void ParseMAVLinkData(const uint8* Data, int32 DataLength);
+    void SendHILStateQuaternion();
     void SendHILSensor();
-    void ProcessIncomingMessages();
-    void UpdateStateFromGameThread();
+    void SendHILGPS();
+    void SendHILRCInputs();
+    void SendHILActuatorControls();
+    void SendBasicHILData();
+    
+    // MAVLink Message Handlers
+    void HandleActuatorOutputs(const uint8* MessageBuffer, uint16 MessageLength);
+    void HandleHeartbeat(const uint8* MessageBuffer, uint16 MessageLength);
+    
+    // Helper Functions
     UQuadDroneController* FindQuadController();
-
-    // Coordinate conversion
-    void ConvertUnrealToPX4Coordinates(const FVector& UnrealPos, const FVector& UnrealVel,
-        const FRotator& UnrealRot, const FVector& UnrealAngVel,
-        float& OutX, float& OutY, float& OutZ,
-        float& OutVx, float& OutVy, float& OutVz,
-        float& OutQ0, float& OutQ1, float& OutQ2, float& OutQ3,
-        float& OutRollRate, float& OutPitchRate, float& OutYawRate);
+    void UpdateConnectionStatus();
+    FQuat RotatorToQuaternion(const FRotator& Rotator);
+    void ConvertUnrealToPX4Coordinates(const FVector& UnrealPos, const FVector& UnrealVel, 
+                                      const FRotator& UnrealRot, const FVector& UnrealAngVel,
+                                      float& OutX, float& OutY, float& OutZ,
+                                      float& OutVx, float& OutVy, float& OutVz,
+                                      float& OutQ0, float& OutQ1, float& OutQ2, float& OutQ3,
+                                      float& OutRollRate, float& OutPitchRate, float& OutYawRate);
 };

@@ -4,7 +4,9 @@
 #include "Pawns/QuadPawn.h"
 #include "DrawDebugHelpers.h"
 #include "imgui.h"
+#ifndef EXCLUDE_PX4_COMPONENT
 #include "Controllers/PX4Component.h"
+#endif
 #include "UI/ImGuiUtil.h"
 #include "Core/DroneJSONConfig.h"
 #include "Core/DroneManager.h"
@@ -164,6 +166,7 @@ void UQuadDroneController::Update(double a_deltaTime)
     		SetUseExternalController(currentPX4State);
            
     		// If we have a PX4Component, activate/deactivate it
+#ifndef EXCLUDE_PX4_COMPONENT
     		if (dronePawn)
     		{
     			if (auto* PX4Comp = dronePawn->FindComponentByClass<UPX4Component>())
@@ -171,6 +174,7 @@ void UQuadDroneController::Update(double a_deltaTime)
     				PX4Comp->SetPX4Active(currentPX4State);
     			}
     		}
+#endif
     	}
        
     	ImGui::Separator();

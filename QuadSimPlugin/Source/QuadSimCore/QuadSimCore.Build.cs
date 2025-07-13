@@ -1,6 +1,5 @@
 using UnrealBuildTool;
 using System.IO;
-using System;
 
 public class QuadSimCore : ModuleRules
 {
@@ -19,96 +18,29 @@ public class QuadSimCore : ModuleRules
         bEnableExceptions = true;
         CppStandard = CppStandardVersion.Cpp20;
         
-        // Third party paths
-        string ThirdPartyPath = Path.Combine(ModuleDirectory, "..", "..", "ThirdParty");
-        string MAVSDKPath = Path.Combine(ThirdPartyPath, "MAVSDK");
+        // MAVLink configuration - point to the root MAVLink directory
+        string MAVLinkPath = Path.Combine(ModuleDirectory, "..", "..", "ThirdParty", "MAVLink");
         
-        // MAVSDK configuration
-        if (Directory.Exists(MAVSDKPath))
+        if (Directory.Exists(MAVLinkPath))
         {
-            Console.WriteLine("MAVSDK found at: " + MAVSDKPath);
+            // Add the MAVLink root directory to include paths
+            PublicIncludePaths.Add(MAVLinkPath);
             
-            // Add include paths
-            PublicIncludePaths.Add(Path.Combine(MAVSDKPath, "include"));
+            // Define which MAVLink dialect to use (common is the standard one)
+            PublicDefinitions.Add("MAVLINK_DIALECT=common");
             
-            // IMPORTANT: Add MAVLink headers from MAVSDK - correct path is under mavsdk/mavlink
-            string MAVLinkBasePath = Path.Combine(MAVSDKPath, "include", "mavsdk", "mavlink");
-            string MAVLinkCommonPath = Path.Combine(MAVLinkBasePath, "common");
-            
-            if (Directory.Exists(MAVLinkBasePath))
-            {
-                // Add both base mavlink path and common subdirectory
-                PublicIncludePaths.Add(MAVLinkBasePath);
-                PublicIncludePaths.Add(MAVLinkCommonPath);
-                
-                // Also add the mavsdk directory itself for alternative include syntax
-                PublicIncludePaths.Add(Path.Combine(MAVSDKPath, "include", "mavsdk"));
-                
-                Console.WriteLine("MAVLink headers found at: " + MAVLinkBasePath);
-                Console.WriteLine("MAVLink common headers found at: " + MAVLinkCommonPath);
-            }
-            else
-            {
-                // Try legacy location as fallback
-                string MAVLinkLegacyPath = Path.Combine(MAVSDKPath, "include", "mavlink");
-                if (Directory.Exists(MAVLinkLegacyPath))
-                {
-                    PublicIncludePaths.Add(MAVLinkLegacyPath);
-                    Console.WriteLine("MAVLink legacy headers found at: " + MAVLinkLegacyPath);
-                }
-            }
-            
-            // Platform-specific configuration
+            // Disable some warnings that MAVLink headers might trigger
             if (Target.Platform == UnrealTargetPlatform.Win64)
             {
-                string LibPath = Path.Combine(MAVSDKPath, "lib");
-                string BinPath = Path.Combine(MAVSDKPath, "bin");
-                
-                // Add MAVSDK library
-                PublicAdditionalLibraries.Add(Path.Combine(LibPath, "mavsdk.lib"));
-                
-                // Add all required dependencies
-                string[] RequiredLibs = new string[] {
-                    "absl_base.lib",
-                    "absl_strings.lib",
-                    "absl_synchronization.lib",
-                    "absl_time.lib",
-                    "absl_time_zone.lib",
-                    "absl_raw_logging_internal.lib",
-                    "absl_throw_delegate.lib"
-                };
-                
-                foreach (string lib in RequiredLibs)
-                {
-                    string libFile = Path.Combine(LibPath, lib);
-                    if (File.Exists(libFile))
-                    {
-                        PublicAdditionalLibraries.Add(libFile);
-                    }
-                }
-                
-                // Copy DLLs to output
-                if (Directory.Exists(BinPath))
-                {
-                    string[] DllFiles = Directory.GetFiles(BinPath, "*.dll");
-                    foreach (string DllFile in DllFiles)
-                    {
-                        string DllName = Path.GetFileName(DllFile);
-                        RuntimeDependencies.Add(Path.Combine("$(BinaryOutputDir)", DllName), DllFile);
-                    }
-                }
-                
-                // Add Windows-specific definitions
-                PublicDefinitions.Add("_CRT_SECURE_NO_WARNINGS");
-                PublicDefinitions.Add("NOMINMAX");
+                PrivateDefinitions.Add("_CRT_SECURE_NO_WARNINGS");
             }
+            
+            System.Console.WriteLine("MAVLink found at: " + MAVLinkPath);
         }
         else
         {
-            Console.WriteLine("ERROR: MAVSDK not found at: " + MAVSDKPath);
-            Console.WriteLine("Please download pre-built MAVSDK binaries from:");
-            Console.WriteLine("https://github.com/mavlink/MAVSDK/releases");
-            Console.WriteLine("Extract to: " + MAVSDKPath);
+            System.Console.WriteLine("MAVLink headers not found at: " + MAVLinkPath);
+            System.Console.WriteLine("Please ensure MAVLink is downloaded to QuadSimPlugin/ThirdParty/MAVLink/");
         }
     }
 }
