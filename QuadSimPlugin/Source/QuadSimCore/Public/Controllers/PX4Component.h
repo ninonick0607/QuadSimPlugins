@@ -49,8 +49,8 @@ private:
     FRunnableThread* Thread;
     FThreadSafeBool bStopRequested;
     
-    static const int32 TARGET_FREQUENCY_HZ = 100;
-    static const double TARGET_INTERVAL; // Will be 0.01 seconds (10ms)
+    static const int32 TARGET_FREQUENCY_HZ = 100;  // Increase to 250Hz for lockstep
+    static const double TARGET_INTERVAL; // Will be 0.004 seconds (4ms)
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -121,7 +121,7 @@ private:
     FSocket* TCPListenSocket;  // Server socket that listens for connections
     FSocket* TCPClientSocket;  // Actual connection socket to PX4
     TSharedPtr<FInternetAddr> PX4TCPAddress;
-    
+
     // UDP Communication (for MAVLink messages)
     FSocket* UDPSendSocket;
     FSocket* UDPRecvSocket;
@@ -139,7 +139,7 @@ private:
     uint8 TargetSystem = 1;
     uint8 TargetComponent = 1;
     uint64_t HILTimestamp = 0;
-    const uint64_t HIL_INTERVAL_US = 10000; // 100Hz = 10ms = 10000 microseconds
+    const uint64_t HIL_INTERVAL_US = 10000; // 250Hz = 4ms = 4000 microseconds
 
     // Message sequence counter
     uint8 MessageSequence = 0;

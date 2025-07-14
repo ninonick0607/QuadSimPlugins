@@ -57,7 +57,7 @@ uint32 FPX4CommunicationThread::Run()
         double CurrentTime = FPlatformTime::Seconds();
         double DeltaTime = CurrentTime - LastTime;
         
-        // Only send data if enough time has passed (precise 100Hz timing)
+        // Only send data if enough time has passed (precise 250Hz timing)
         if (DeltaTime >= TARGET_INTERVAL)
         {
             // Send HIL data from thread
@@ -66,14 +66,7 @@ uint32 FPX4CommunicationThread::Run()
                 PX4Component->SendHILDataFromThread();
                 MessageCount++;
                 
-                // Send heartbeat periodically from thread as well
-                if (CurrentTime - LastHeartbeatTime >= HeartbeatInterval)
-                {
-                    PX4Component->SendHeartbeat();
-                    LastHeartbeatTime = CurrentTime;
-                }
-                
-                // Log every 1000 messages (10 seconds)
+                // Log every 1000 messages (4 seconds at 250Hz)
                 if (MessageCount % 1000 == 0)
                 {
                     UE_LOG(LogPX4, Log, TEXT("Communication thread: Sent %d HIL messages"), MessageCount);
@@ -130,9 +123,9 @@ UPX4Component::UPX4Component()
     PrimaryComponentTick.bCanEverTick = true;
     PrimaryComponentTick.TickGroup = TG_PostPhysics;
     
-    // CRITICAL: For lockstep mode, use exactly 100Hz
-    StateUpdateRate = 100.0f; // Must match PX4's expected rate
-    HeartbeatRate = 1.0f;     // 1Hz heartbeat is sufficient
+    // CRITICAL: For lockstep mode, use 250Hz
+    StateUpdateRate = 250.0f; // Must match PX4's expected rate
+    HeartbeatRate = 2.0f;     // 2Hz heartbeat is sufficient
     
     // Initialize sockets to nullptr
     TCPListenSocket = nullptr;
@@ -339,7 +332,6 @@ void UPX4Component::SendHILDataFromThread()
     
     if (!bThreadSafeDataValid) 
     {
-        // Use default values if no valid data
         CurrentPosition = FVector::ZeroVector;
         CurrentVelocity = FVector::ZeroVector;
         CurrentRotation = FRotator::ZeroRotator;
@@ -347,17 +339,12 @@ void UPX4Component::SendHILDataFromThread()
     }
     else
     {
-        // Update current state from thread-safe copies
         CurrentPosition = ThreadSafePosition;
         CurrentVelocity = ThreadSafeVelocity;
         CurrentRotation = ThreadSafeRotation;
         CurrentAngularVelocity = ThreadSafeAngularVelocity;
     }
     
-    // Update timestamp
-    HILTimestamp += HIL_INTERVAL_US;
-    
-    // Send HIL messages in precise timing
     SendHILSensor();
     SendHILStateQuaternion();
     
@@ -627,13 +614,41 @@ void UPX4Component::ParseMAVLinkData(const uint8* Data, int32 DataLength)
     {
         if (mavlink_parse_char(MAVLINK_COMM_0, Data[i], &msg, &status))
         {
+            UE_LOG(LogPX4, VeryVerbose, TEXT("Received MAVLink msg ID: %d from sys:%d comp:%d"), 
+       msg.msgid, msg.sysid, msg.compid);
             switch (msg.msgid)
             {
             case MAVLINK_MSG_ID_HEARTBEAT: // ID 0
+                UE_LOG(LogPX4, Warning, TEXT("Got PX4 Heartbeat!"));
+
                 HandleHeartbeat(reinterpret_cast<const uint8*>(&msg), sizeof(msg));
                 break;
             case MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS: // ID 93
                 HandleActuatorOutputs(reinterpret_cast<const uint8*>(&msg), sizeof(msg));
+                break;
+            case MAVLINK_MSG_ID_COMMAND_LONG: // ID 76
+                {
+                    mavlink_command_long_t cmd;
+                    mavlink_msg_command_long_decode(&msg, &cmd);
+                    if (cmd.command == MAV_CMD_SET_MESSAGE_INTERVAL)
+                    {
+                        int32 MessageID = static_cast<int32>(cmd.param1);
+                        float IntervalUs = cmd.param2;
+                        float Frequency = IntervalUs > 0 ? 1000000.0f / IntervalUs : 0.0f;
+                        UE_LOG(LogPX4, Warning, TEXT("PX4 requested message interval for ID %d at %f Hz"), MessageID, Frequency);
+                        
+                        // Send ACK
+                        mavlink_message_t ack_msg;
+                        mavlink_command_ack_t ack;
+                        ack.command = cmd.command;
+                        ack.result = MAV_RESULT_ACCEPTED;
+                        mavlink_msg_command_ack_encode(SystemID, ComponentID, &ack_msg, &ack);
+                        
+                        uint8 buffer[MAVLINK_MAX_PACKET_LEN];
+                        uint16 len = mavlink_msg_to_send_buffer(buffer, &ack_msg);
+                        SendMAVLinkMessage(buffer, len);
+                    }
+                }
                 break;
             default:
                 // Silently ignore unknown messages to avoid spam
@@ -663,6 +678,7 @@ void UPX4Component::SendHeartbeat()
     SendMAVLinkMessage(buffer, len);
 }
 
+
 void UPX4Component::SendHILStateQuaternion()
 {
     mavlink_message_t msg;
@@ -673,8 +689,8 @@ void UPX4Component::SendHILStateQuaternion()
     ConvertUnrealToPX4Coordinates(CurrentPosition, CurrentVelocity, CurrentRotation, CurrentAngularVelocity,
                                  x, y, z, vx, vy, vz, q0, q1, q2, q3, rollRate, pitchRate, yawRate);
     
-    // Use the same timestamp as HIL_SENSOR for consistency
-    hil_state.time_usec = HILTimestamp;
+    // Use the HIL timestamp for consistency
+    hil_state.time_usec = FPlatformTime::Seconds() * 1e6;
     
     // Attitude quaternion (w, x, y, z order in MAVLink)
     hil_state.attitude_quaternion[0] = q0; // w
@@ -714,63 +730,47 @@ void UPX4Component::SendHILStateQuaternion()
     SendMAVLinkMessage(buffer, len);
 }
 
+
 void UPX4Component::SendHILSensor()
 {
     mavlink_message_t msg;
     mavlink_hil_sensor_t hil_sensor;
     
-    // Use the synchronized HIL timestamp
-    hil_sensor.time_usec = HILTimestamp;
+    // Use REAL TIME for non-lockstep
+    hil_sensor.time_usec = FPlatformTime::Seconds() * 1e6;
     
-    // Convert drone orientation to get gravity in body frame
+    // Get drone state
     FQuat DroneQuat = FQuat(CurrentRotation);
-    FVector GravityWorld(0, 0, -9.81f); // Gravity in world frame (NED)
-    FVector GravityBody = DroneQuat.UnrotateVector(GravityWorld); // Transform to body frame
+    FVector GravityWorld(0, 0, -9.81f); // Gravity in NED frame
+    FVector GravityBody = DroneQuat.UnrotateVector(GravityWorld);
     
-    // Accelerometer (m/s^2) - Gravity in body frame plus any accelerations
+    // Accelerometer (m/s^2)
     hil_sensor.xacc = GravityBody.X;    
     hil_sensor.yacc = GravityBody.Y;    
     hil_sensor.zacc = GravityBody.Z;   
     
-    // Gyroscope (rad/s) - Use actual angular velocity from drone
+    // Gyroscope (rad/s)
     hil_sensor.xgyro = FMath::DegreesToRadians(CurrentAngularVelocity.X);
     hil_sensor.ygyro = FMath::DegreesToRadians(CurrentAngularVelocity.Y);
-    hil_sensor.zgyro = FMath::DegreesToRadians(-CurrentAngularVelocity.Z); // Flip for NED
+    hil_sensor.zgyro = FMath::DegreesToRadians(-CurrentAngularVelocity.Z);
     
-    // Magnetometer (Ga) - Earth magnetic field rotated to body frame
-    // Using realistic magnetic field values for mid-latitudes
-    FVector MagWorld(0.2f, 0.0f, -0.4f); // North, East, Down components
+    // Magnetometer (Gauss)
+    FVector MagWorld(0.2f, 0.0f, 0.4f);
     FVector MagBody = DroneQuat.UnrotateVector(MagWorld);
     hil_sensor.xmag = MagBody.X;   
     hil_sensor.ymag = MagBody.Y;   
     hil_sensor.zmag = MagBody.Z;   
     
-    // Barometer - Adjust for altitude
-    float AltitudeMeters = -CurrentPosition.Z / 100.0f; // Convert from cm to m
-    float Pressure = 1013.25f * FMath::Pow(1.0f - (0.0065f * AltitudeMeters) / 288.15f, 5.255f);
-    hil_sensor.abs_pressure = Pressure;
-    hil_sensor.diff_pressure = 0.0f;    // No airspeed
+    // Barometer
+    float AltitudeMeters = -CurrentPosition.Z / 100.0f;
+    float Pressure = 101325.0f * FMath::Pow(1.0f - (0.0065f * AltitudeMeters) / 288.15f, 5.255f);
+    hil_sensor.abs_pressure = Pressure / 100.0f; // Convert to millibar
+    hil_sensor.diff_pressure = 0.0f;
     hil_sensor.pressure_alt = AltitudeMeters;
-    hil_sensor.temperature = 15.0f - (0.0065f * AltitudeMeters); // Temperature lapse rate
+    hil_sensor.temperature = 20.0f;
     
-    // Set sensor ID (0 for primary sensor)
     hil_sensor.id = 0;
-    
-    // Set fields_updated bitmask to indicate which sensors have new data
-    // This tells PX4 which sensor values to use
-    hil_sensor.fields_updated = 
-        (1 << 0) |  // HIL_SENSOR_UPDATED_XACC
-        (1 << 1) |  // HIL_SENSOR_UPDATED_YACC  
-        (1 << 2) |  // HIL_SENSOR_UPDATED_ZACC
-        (1 << 3) |  // HIL_SENSOR_UPDATED_XGYRO
-        (1 << 4) |  // HIL_SENSOR_UPDATED_YGYRO
-        (1 << 5) |  // HIL_SENSOR_UPDATED_ZGYRO
-        (1 << 6) |  // HIL_SENSOR_UPDATED_XMAG
-        (1 << 7) |  // HIL_SENSOR_UPDATED_YMAG
-        (1 << 8) |  // HIL_SENSOR_UPDATED_ZMAG
-        (1 << 9) |  // HIL_SENSOR_UPDATED_ABS_PRESSURE
-        (1 << 11) | // HIL_SENSOR_UPDATED_PRESSURE_ALT
-        (1 << 12);  // HIL_SENSOR_UPDATED_TEMPERATURE
+    hil_sensor.fields_updated = 0x1FFF; // All sensor fields
     
     mavlink_msg_hil_sensor_encode(SystemID, ComponentID, &msg, &hil_sensor);
     
@@ -779,6 +779,7 @@ void UPX4Component::SendHILSensor()
     
     SendMAVLinkMessage(buffer, len);
 }
+
 
 void UPX4Component::SendHILGPS()
 {
@@ -790,8 +791,8 @@ void UPX4Component::SendHILGPS()
     ConvertUnrealToPX4Coordinates(CurrentPosition, CurrentVelocity, CurrentRotation, CurrentAngularVelocity,
                                  x, y, z, vx, vy, vz, q0, q1, q2, q3, rollRate, pitchRate, yawRate);
     
-    // Use synchronized timestamp
-    hil_gps.time_usec = HILTimestamp;
+    // Use HIL timestamp
+    hil_gps.time_usec = FPlatformTime::Seconds() * 1e6;
     hil_gps.lat = 473566094; // Zurich coordinates (degrees * 1E7)
     hil_gps.lon = 85190237;
     hil_gps.alt = static_cast<int32>((-z + 50000) * 10); // mm above sea level
@@ -818,8 +819,8 @@ void UPX4Component::SendHILRCInputs()
     mavlink_message_t msg;
     mavlink_hil_rc_inputs_raw_t hil_rc;
     
-    // Use synchronized timestamp
-    hil_rc.time_usec = HILTimestamp;
+    // Use HIL timestamp
+    hil_rc.time_usec = FPlatformTime::Seconds() * 1e6;
     hil_rc.chan1_raw = 1500; // Roll
     hil_rc.chan2_raw = 1500; // Pitch  
     hil_rc.chan3_raw = 1000; // Throttle (low for safety)
@@ -850,6 +851,10 @@ void UPX4Component::SendBasicHILData()
 
 void UPX4Component::HandleActuatorOutputs(const uint8* MessageBuffer, uint16 MessageLength)
 {
+    if (!bConnectedToPX4 || !bTCPConnected)
+    {
+        return;
+    }
     mavlink_message_t* msg = (mavlink_message_t*)MessageBuffer;
     mavlink_hil_actuator_controls_t actuator_controls;
     mavlink_msg_hil_actuator_controls_decode(msg, &actuator_controls);
@@ -878,6 +883,7 @@ void UPX4Component::HandleActuatorOutputs(const uint8* MessageBuffer, uint16 Mes
         UE_LOG(LogPX4, Log, TEXT("Received motor commands #%d: M1=%.3f, M2=%.3f, M3=%.3f, M4=%.3f"), 
                ActuatorCount, MotorCommands[0], MotorCommands[1], MotorCommands[2], MotorCommands[3]);
     }
+
 }
 
 void UPX4Component::HandleHeartbeat(const uint8* MessageBuffer, uint16 MessageLength)
@@ -886,7 +892,6 @@ void UPX4Component::HandleHeartbeat(const uint8* MessageBuffer, uint16 MessageLe
     ConnectionTimeoutTimer = 0.0f;
     LastHeartbeatTime = GetWorld()->GetTimeSeconds();
     
-    // Parse the heartbeat to check PX4's mode
     mavlink_message_t* msg = (mavlink_message_t*)MessageBuffer;
     mavlink_heartbeat_t heartbeat;
     mavlink_msg_heartbeat_decode(msg, &heartbeat);
@@ -896,9 +901,8 @@ void UPX4Component::HandleHeartbeat(const uint8* MessageBuffer, uint16 MessageLe
     {
         bConnectedToPX4 = true;
         UE_LOG(LogPX4, Warning, TEXT("PX4 connection established - starting communication thread"));
-        UE_LOG(LogPX4, Warning, TEXT("PX4 mode: %d, status: %d"), heartbeat.base_mode, heartbeat.system_status);
         
-        // Initialize HIL timestamp
+        // Initialize HIL timestamp to 0 for lockstep
         HILTimestamp = 0;
         
         // Start the dedicated communication thread
@@ -908,40 +912,9 @@ void UPX4Component::HandleHeartbeat(const uint8* MessageBuffer, uint16 MessageLe
             CommunicationThread->StartThread();
         }
         
-        // Update thread-safe state and send initial HIL data
+        // Send initial data burst to kickstart PX4
         UpdateThreadSafeState();
-        SendHILDataFromThread();
-    }
-    
-    // Log PX4 status changes
-    static uint8_t LastStatus = 255;
-    if (heartbeat.system_status != LastStatus)
-    {
-        UE_LOG(LogPX4, Warning, TEXT("PX4 status changed: %d -> %d"), LastStatus, heartbeat.system_status);
-        LastStatus = heartbeat.system_status;
-        
-        // Log what each status means
-        switch(heartbeat.system_status)
-        {
-        case 0: // MAV_STATE_UNINIT
-            UE_LOG(LogPX4, Warning, TEXT("PX4 Status: UNINIT"));
-            break;
-        case 1: // MAV_STATE_BOOT
-            UE_LOG(LogPX4, Warning, TEXT("PX4 Status: BOOT"));
-            break;
-        case 2: // MAV_STATE_CALIBRATING
-            UE_LOG(LogPX4, Warning, TEXT("PX4 Status: CALIBRATING"));
-            break;
-        case 3: // MAV_STATE_STANDBY
-            UE_LOG(LogPX4, Warning, TEXT("PX4 Status: STANDBY - Ready for takeoff!"));
-            break;
-        case 4: // MAV_STATE_ACTIVE
-            UE_LOG(LogPX4, Warning, TEXT("PX4 Status: ACTIVE"));
-            break;
-        default:
-            UE_LOG(LogPX4, Warning, TEXT("PX4 Status: Unknown (%d)"), heartbeat.system_status);
-            break;
-        }
+        // Don't send burst here - let the thread handle it
     }
 }
 
