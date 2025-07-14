@@ -216,9 +216,9 @@ void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
     }
     
     // Connection timeout handling
-    if (bConnectedToPX4 && ConnectionTimeoutTimer > (ConnectionTimeout * 3))
+    if (bConnectedToPX4 && ConnectionTimeoutTimer > 10.0f) // Increased timeout to 10 seconds
     {
-        UE_LOG(LogPX4, Warning, TEXT("PX4 connection lost - no heartbeat received"));
+        UE_LOG(LogPX4, Warning, TEXT("PX4 connection lost - no heartbeat received for %.1f seconds"), ConnectionTimeoutTimer);
         bConnectedToPX4 = false;
         
         // Stop communication thread
@@ -722,27 +722,36 @@ void UPX4Component::SendHILSensor()
     // Use the synchronized HIL timestamp
     hil_sensor.time_usec = HILTimestamp;
     
-    // MINIMAL SENSOR DATA - Only basic IMU with realistic values
-    // Accelerometer (m/s^2) - Simple gravity only for now
-    hil_sensor.xacc = 0.0f;    // No forward acceleration
-    hil_sensor.yacc = 0.0f;    // No side acceleration  
-    hil_sensor.zacc = 9.81f;   // Gravity pointing down in body frame
+    // Convert drone orientation to get gravity in body frame
+    FQuat DroneQuat = FQuat(CurrentRotation);
+    FVector GravityWorld(0, 0, -9.81f); // Gravity in world frame (NED)
+    FVector GravityBody = DroneQuat.UnrotateVector(GravityWorld); // Transform to body frame
     
-    // Gyroscope (rad/s) - Zero rates for now to keep it simple
-    hil_sensor.xgyro = 0.0f;
-    hil_sensor.ygyro = 0.0f;
-    hil_sensor.zgyro = 0.0f;
+    // Accelerometer (m/s^2) - Gravity in body frame plus any accelerations
+    hil_sensor.xacc = GravityBody.X;    
+    hil_sensor.yacc = GravityBody.Y;    
+    hil_sensor.zacc = GravityBody.Z;   
     
-    // Magnetometer (Ga) - Earth magnetic field (simple)
-    hil_sensor.xmag = 0.2f;   
-    hil_sensor.ymag = 0.0f;   
-    hil_sensor.zmag = 0.4f;   
+    // Gyroscope (rad/s) - Use actual angular velocity from drone
+    hil_sensor.xgyro = FMath::DegreesToRadians(CurrentAngularVelocity.X);
+    hil_sensor.ygyro = FMath::DegreesToRadians(CurrentAngularVelocity.Y);
+    hil_sensor.zgyro = FMath::DegreesToRadians(-CurrentAngularVelocity.Z); // Flip for NED
     
-    // Barometer - Sea level values
-    hil_sensor.abs_pressure = 1013.25f; // Standard atmospheric pressure
+    // Magnetometer (Ga) - Earth magnetic field rotated to body frame
+    // Using realistic magnetic field values for mid-latitudes
+    FVector MagWorld(0.2f, 0.0f, -0.4f); // North, East, Down components
+    FVector MagBody = DroneQuat.UnrotateVector(MagWorld);
+    hil_sensor.xmag = MagBody.X;   
+    hil_sensor.ymag = MagBody.Y;   
+    hil_sensor.zmag = MagBody.Z;   
+    
+    // Barometer - Adjust for altitude
+    float AltitudeMeters = -CurrentPosition.Z / 100.0f; // Convert from cm to m
+    float Pressure = 1013.25f * FMath::Pow(1.0f - (0.0065f * AltitudeMeters) / 288.15f, 5.255f);
+    hil_sensor.abs_pressure = Pressure;
     hil_sensor.diff_pressure = 0.0f;    // No airspeed
-    hil_sensor.pressure_alt = 0.0f;     // Sea level
-    hil_sensor.temperature = 15.0f;     // Standard temperature
+    hil_sensor.pressure_alt = AltitudeMeters;
+    hil_sensor.temperature = 15.0f - (0.0065f * AltitudeMeters); // Temperature lapse rate
     
     // Set sensor ID (0 for primary sensor)
     hil_sensor.id = 0;
