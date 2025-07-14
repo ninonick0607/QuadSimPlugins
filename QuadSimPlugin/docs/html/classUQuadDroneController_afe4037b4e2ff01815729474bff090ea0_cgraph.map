@@ -1,9 +1,0 @@
-<map id="UQuadDroneController::GamepadController" name="UQuadDroneController::GamepadController">
-<area shape="rect" id="node1" title=" " alt="" coords="5,95,175,136"/>
-<area shape="rect" id="node2" href="$classQuadPIDController.html#ad96b9199d7ae1f627a01c0ac888220c8" title=" " alt="" coords="444,99,595,140"/>
-<area shape="rect" id="node4" href="$classUQuadDroneController.html#a1b6bdb6ea17c076aef0c88f374da61fc" title=" " alt="" coords="223,36,396,78"/>
-<area shape="rect" id="node5" href="$classADroneManager.html#a9c3c9b9953ac4f47093c19e72029c41d" title=" " alt="" coords="230,102,389,129"/>
-<area shape="rect" id="node6" href="$classUQuadDroneController.html#ae3c8dc589bca5cf3a44468d093381b5b" title=" " alt="" coords="225,154,394,195"/>
-<area shape="rect" id="node7" href="$classUQuadDroneController.html#a0d38f3052353104ca815856c35a56820" title=" " alt="" coords="225,219,394,260"/>
-<area shape="rect" id="node3" href="$classQuadPIDController.html#ab7e668b1b8cba6bf742e8e5d73e43b87" title=" " alt="" coords="643,99,808,140"/>
-</map>

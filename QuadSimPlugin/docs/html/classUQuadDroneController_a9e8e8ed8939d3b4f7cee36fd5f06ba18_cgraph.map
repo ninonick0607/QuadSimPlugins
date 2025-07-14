@@ -1,5 +1,0 @@
-<map id="UQuadDroneController::SafetyReset" name="UQuadDroneController::SafetyReset">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,175,47"/>
-<area shape="rect" id="node2" href="$classUQuadDroneController.html#a00cfc453e2393678d9591cb8d5e05d65" title=" " alt="" coords="223,5,392,47"/>
-<area shape="rect" id="node3" href="$classQuadPIDController.html#a283be99595ca119de53e4a6cfc910c47" title=" " alt="" coords="440,5,591,47"/>
-</map>

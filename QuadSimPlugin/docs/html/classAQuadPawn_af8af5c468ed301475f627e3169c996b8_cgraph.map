@@ -1,7 +1,0 @@
-<map id="AQuadPawn::ToggleGamepadMode" name="AQuadPawn::ToggleGamepadMode">
-<area shape="rect" id="node1" title=" " alt="" coords="5,46,253,73"/>
-<area shape="rect" id="node2" href="$classUQuadDroneController.html#af86967f106e571deb2b91c6d45db575f" title=" " alt="" coords="301,5,471,47"/>
-<area shape="rect" id="node3" href="$classUQuadDroneController.html#abe10155e4aa1c6a77e67347ca91d2fdc" title=" " alt="" coords="301,71,471,112"/>
-<area shape="rect" id="node4" href="$classAQuadPawn.html#a08a971a005a8dfe3148b82e659731b1b" title=" " alt="" coords="519,37,725,79"/>
-<area shape="rect" id="node5" href="$classQuadPIDController.html#aa21a311e6b52f6d72c19468b85c359b3" title=" " alt="" coords="547,103,697,144"/>
-</map>

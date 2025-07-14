@@ -1,5 +1,0 @@
-<map id="UQuadDroneController::SetFlightMode" name="UQuadDroneController::SetFlightMode">
-<area shape="rect" id="node1" title=" " alt="" coords="5,39,175,80"/>
-<area shape="rect" id="node2" href="$classAQuadPawn.html#a08a971a005a8dfe3148b82e659731b1b" title=" " alt="" coords="223,5,429,47"/>
-<area shape="rect" id="node3" href="$classQuadPIDController.html#aa21a311e6b52f6d72c19468b85c359b3" title=" " alt="" coords="251,71,401,112"/>
-</map>

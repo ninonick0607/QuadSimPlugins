@@ -1,8 +1,0 @@
-<map id="UDroneJSONConfig" name="UDroneJSONConfig">
-<area shape="rect" id="node1" title=" " alt="" coords="627,53,771,79"/>
-<area shape="rect" id="node2" title=" " alt="" coords="425,27,500,54"/>
-<area shape="rect" id="node3" href="$structFDroneConfigData.html" title=" " alt="" coords="392,78,533,105"/>
-<area shape="rect" id="node4" href="$structFDroneConfigData_1_1FObstacleParameters.html" title=" " alt="" coords="9,5,223,47"/>
-<area shape="rect" id="node5" href="$structFDroneConfigData_1_1FControllerParameters.html" title=" " alt="" coords="5,71,227,112"/>
-<area shape="rect" id="node6" href="$structFDroneConfigData_1_1FFlightParameters.html" title=" " alt="" coords="19,136,213,177"/>
-</map>

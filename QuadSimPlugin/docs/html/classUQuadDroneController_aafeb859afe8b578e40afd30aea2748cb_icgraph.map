@@ -1,8 +1,0 @@
-<map id="UQuadDroneController::ResetPID" name="UQuadDroneController::ResetPID">
-<area shape="rect" id="node1" title=" " alt="" coords="745,57,915,98"/>
-<area shape="rect" id="node2" href="$classAQuadPawn.html#a416797652d3e15491d60ee2f3452232c" title=" " alt="" coords="525,5,697,32"/>
-<area shape="rect" id="node3" href="$classUQuadDroneController.html#a370418d3d89f0ab498fc08cb864e1809" title=" " alt="" coords="527,57,696,98"/>
-<area shape="rect" id="node6" href="$classUQuadDroneController.html#a48bc70ee5a68cb56bf4c97e477ec0776" title=" " alt="" coords="527,122,696,163"/>
-<area shape="rect" id="node4" href="$classAROS2Controller.html#acfc71b0111fa95da9e74f177ddd083cc" title=" " alt="" coords="256,57,477,98"/>
-<area shape="rect" id="node5" href="$classAROS2Controller.html#a950f5d2c970783f3687246ecde0a6220" title=" " alt="" coords="5,64,208,91"/>
-</map>
