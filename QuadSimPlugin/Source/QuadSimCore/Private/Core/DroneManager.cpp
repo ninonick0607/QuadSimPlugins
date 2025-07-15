@@ -113,7 +113,7 @@ void ADroneManager::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    // Clean up any invalid drone entries.
+    // Clean up any invalid drone entries
     for (int32 i = AllDrones.Num() - 1; i >= 0; i--)
     {
         if (!AllDrones[i].IsValid())
@@ -122,24 +122,67 @@ void ADroneManager::Tick(float DeltaTime)
         }
     }
 
-
-    // Prepare the drone labels for the ImGui interface.
+    // Prepare the drone labels for the ImGui interface
     ImGui::Begin("Global Drone Manager");
+
     // Swarm vs. Independent mode toggle
     ImGui::Checkbox("Swarm Mode", &bSwarmMode);
-    ImGui::Text("Select which drone to possess:");
-    
+
+    // SPAWN BUTTON - ALWAYS VISIBLE
+    if (ImGui::Button("Spawn Drone"))
+    {
+        // Determine spawn location
+        FVector SpawnLocation;
+        if (LastSpawnLocation.IsZero())
+        {
+            // First drone spawns at default location
+            SpawnLocation = FVector(0.0f, 0.0f, 100.0f);
+        }
+        else
+        {
+            // Subsequent drones spawn offset from last
+            SpawnLocation = LastSpawnLocation + FVector(300.f, 0.f, 0.f);
+            SpawnLocation.Z = LastSpawnLocation.Z;
+        }
+
+        // Default rotation
+        FRotator SpawnRotation = FRotator::ZeroRotator;
+
+        // Try to match rotation of last drone if available
+        if (AllDrones.Num() > 0)
+        {
+            if (AQuadPawn* LastPawn = AllDrones.Last().Get())
+            {
+                SpawnRotation = LastPawn->GetActorRotation();
+            }
+        }
+
+        // Spawn the drone
+        if (AQuadPawn* NewDrone = SpawnDrone(SpawnLocation, SpawnRotation))
+        {
+            UE_LOG(LogTemp, Display, TEXT("Spawned new drone at %s"), *SpawnLocation.ToString());
+            LastSpawnLocation = SpawnLocation;
+        }
+    }
+
+    ImGui::Separator();
+
+    // Drone selection and control UI
     int32 NumDrones = AllDrones.Num();
     if (NumDrones > 0)
     {
+        ImGui::Text("Select which drone to possess:");
+
         // Clamp the selected index to valid range
         if (SelectedDroneIndex < 0 || SelectedDroneIndex >= NumDrones)
         {
             SelectedDroneIndex = 0;
         }
+
         // Display current drone ID
         AQuadPawn* CurrentPawn = AllDrones[SelectedDroneIndex].Get();
         FString CurrentID = CurrentPawn ? CurrentPawn->DroneID : FString::Printf(TEXT("Drone%d"), SelectedDroneIndex + 1);
+
         // Dropdown to select active drone
         if (ImGui::BeginCombo("Active Drone", TCHAR_TO_UTF8(*CurrentID)))
         {
@@ -149,10 +192,12 @@ void ADroneManager::Tick(float DeltaTime)
                 FString DroneID = Drone ? Drone->DroneID : FString::Printf(TEXT("Drone%d"), i + 1);
                 FString Label = FString::Printf(TEXT("%s##%d"), *DroneID, i);
                 bool bSelected = (SelectedDroneIndex == i);
+
                 if (ImGui::Selectable(TCHAR_TO_UTF8(*Label), bSelected))
                 {
                     SelectedDroneIndex = i;
                 }
+
                 if (bSelected)
                 {
                     ImGui::SetItemDefaultFocus();
@@ -160,6 +205,7 @@ void ADroneManager::Tick(float DeltaTime)
             }
             ImGui::EndCombo();
         }
+
         // Possess selected drone
         if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
         {
@@ -169,33 +215,10 @@ void ADroneManager::Tick(float DeltaTime)
                 PC->Possess(NewPawn);
             }
         }
-        // Spawn new drone offset from selected
-        if (ImGui::Button("Spawn Drone"))
-        {
-            // Spawn next drone 3 meters (300 cm) away from last spawn, on the same ground level
-            FVector SpawnLocation = LastSpawnLocation + FVector(300.f, 0.f, 0.f);
-            // Maintain ground (Z) from last spawn
-            SpawnLocation.Z = LastSpawnLocation.Z;
-            // Use rotation of last spawned drone, if available
-            FRotator SpawnRotation = FRotator::ZeroRotator;
-            if (AllDrones.Num() > 0)
-            {
-                if (AQuadPawn* LastPawn = AllDrones.Last().Get())
-                {
-                    SpawnRotation = LastPawn->GetActorRotation();
-                }
-            }
-            // Spawn the drone and update last spawn location
-            if (AQuadPawn* NewDrone = SpawnDrone(SpawnLocation, SpawnRotation))
-            {
-                UE_LOG(LogTemp, Display, TEXT("Spawned new drone at %s"), *SpawnLocation.ToString());
-                LastSpawnLocation = SpawnLocation;
-            }
-        }
     }
     else
     {
-        ImGui::Text("No drones spawned yet.");
+        ImGui::Text("No drones spawned yet. Click 'Spawn Drone' above!");
     }
 
     ImGui::End();
@@ -236,4 +259,49 @@ TArray<AQuadPawn*> ADroneManager::GetDroneList() const
         }
     }
     return DroneList;
+}
+
+// ISimulatable Implementation
+void ADroneManager::SimulationUpdate_Implementation(float FixedDeltaTime)
+{
+    // Update all drones with fixed timestep
+    for (TWeakObjectPtr<AQuadPawn> DronePtr : AllDrones)
+    {
+        if (AQuadPawn* Drone = DronePtr.Get())
+        {
+            if (UQuadDroneController* Controller = Drone->QuadController)
+            {
+                Controller->Update(FixedDeltaTime);
+            }
+        }
+    }
+}
+
+void ADroneManager::ResetRobot_Implementation()
+{
+    // Reset all drones to origin
+    for (TWeakObjectPtr<AQuadPawn> DronePtr : AllDrones)
+    {
+        if (AQuadPawn* Drone = DronePtr.Get())
+        {
+            if (UQuadDroneController* Controller = Drone->QuadController)
+            {
+                Controller->ResetDroneOrigin();
+            }
+        }
+    }
+}
+
+FString ADroneManager::GetRobotState_Implementation()
+{
+    // Return drone count and swarm mode status
+    return FString::Printf(TEXT("{\"drone_count\": %d, \"swarm_mode\": %s}"),
+        AllDrones.Num(),
+        bSwarmMode ? TEXT("true") : TEXT("false"));
+}
+
+void ADroneManager::ApplyCommand_Implementation(const FString& Command)
+{
+    // For future use - parse and apply commands
+    UE_LOG(LogTemp, Display, TEXT("DroneManager received command: %s"), *Command);
 }

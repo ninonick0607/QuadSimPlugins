@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "SimulationCore/Public/Interfaces/ISimulatable.h"
 #include "DroneManager.generated.h"
 
 class AQuadPawn;
@@ -9,7 +10,7 @@ class AQuadPawn;
 enum class EFlightMode : uint8;
 
 UCLASS()
-class QUADSIMCORE_API ADroneManager : public AActor
+class QUADSIMCORE_API ADroneManager : public AActor, public ISimulatable
 {
 	GENERATED_BODY()
 
@@ -48,6 +49,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "Drone Manager")
 	int32 SelectedDroneIndex;
+
+
+    virtual void SimulationUpdate_Implementation(float FixedDeltaTime) override;
+    virtual void ResetRobot_Implementation() override;
+    virtual FString GetRobotState_Implementation() override;
+    virtual void ApplyCommand_Implementation(const FString& Command) override;
 
 protected:
 	virtual void BeginPlay() override;
