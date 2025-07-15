@@ -3,7 +3,10 @@
 #include "SimulationCore/Public/Interfaces/ISimulatable.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "Physics/PhysicsInterfaceCore.h"
 #include "imgui.h"
+#include "Physics/PhysicsInterfaceCore.h"
 
 ASimulationManager::ASimulationManager()
 {
@@ -18,6 +21,10 @@ ASimulationManager::ASimulationManager()
     MaxStepsPerFrame = 10;
     bShowImGuiWindow = true;
     SelectedRobotIndex = 0;
+
+    bStepRequested = false;
+    bIsStepping = false;
+
 }
 
 void ASimulationManager::BeginPlay()
@@ -26,6 +33,19 @@ void ASimulationManager::BeginPlay()
     
     // Create Time Controller
     TimeController = NewObject<UTimeController>(this, TEXT("TimeController"));
+    
+    // Configure physics settings for better control
+    if (UPhysicsSettings* PhysicsSettings = UPhysicsSettings::Get())
+    {
+        // Store original settings
+        OriginalMaxPhysicsStep = PhysicsSettings->MaxPhysicsDeltaTime;
+        OriginalSubstepping = PhysicsSettings->bSubstepping;
+        
+        // Enable substepping for more deterministic physics
+        PhysicsSettings->bSubstepping = true;
+        PhysicsSettings->MaxSubstepDeltaTime = 0.01667f; // 60Hz
+        PhysicsSettings->MaxSubsteps = 6;
+    }
     
     UE_LOG(LogTemp, Warning, TEXT("SimulationManager initialized with mode: %s"), 
            *UEnum::GetValueAsString(CurrentSimulationMode));
@@ -44,39 +64,182 @@ void ASimulationManager::BeginPlay()
 
 void ASimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    // Restore original physics settings
+    if (UPhysicsSettings* PhysicsSettings = UPhysicsSettings::Get())
+    {
+        PhysicsSettings->MaxPhysicsDeltaTime = OriginalMaxPhysicsStep;
+        PhysicsSettings->bSubstepping = OriginalSubstepping;
+    }
+    
     RegisteredRobots.Empty();
     Super::EndPlay(EndPlayReason);
 }
 
+// In SimulationManager.cpp
+
 void ASimulationManager::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-    
-    // Draw ImGui window
-    DrawImGuiWindow();
-    
-    // Handle different simulation modes
-    switch (CurrentSimulationMode)
+
+    // --- Time Dilation and Step Request Logic ---
+
+    // Check if we need to START a manual step
+    if (bIsStepping == false)
     {
-    case ESimulationMode::Realtime:
-        StepSimulation(DeltaTime);
-        break;
-        
-    case ESimulationMode::FastForward:
-        StepSimulation(DeltaTime * TimeController->GetTimeScale());
-        break;
-        
-    case ESimulationMode::Lockstep:
-        if (!bWaitingForExternalCommand)
+        bool bStartStep = false;
+        if (CurrentSimulationMode == ESimulationMode::Paused && bStepRequested)
         {
-            StepSimulation(TimeController->GetFixedDeltaTime());
+            bStartStep = true;
+            bStepRequested = false;
+        }
+        else if (CurrentSimulationMode == ESimulationMode::Lockstep && !bWaitingForExternalCommand)
+        {
+            bStartStep = true;
             bWaitingForExternalCommand = true;
         }
-        break;
+
+        if (bStartStep)
+        {
+            // Un-pause the world to allow one physics tick to execute this frame
+            GetWorld()->GetWorldSettings()->SetTimeDilation(1.0f);
+            bIsStepping = true;
+        }
+    }
+    // Check if we need to END a manual step
+    else // bIsStepping is true
+    {
+        // This is the frame after we set dilation to 1.0. 
+        // The physics step has completed, so re-pause the world.
+        GetWorld()->GetWorldSettings()->SetTimeDilation(0.0001f);
+        bIsStepping = false;
+    }
+
+    // --- Simulation Update Logic ---
+
+    // When we are actively in the middle of a manual step, we must update our simulation.
+    if (bIsStepping)
+    {
+        // Use the fixed delta time for a deterministic update
+        StepSimulation(TimeController->GetFixedDeltaTime());
+    }
+    else if (CurrentSimulationMode == ESimulationMode::Realtime || CurrentSimulationMode == ESimulationMode::FastForward)
+    {
+        // For non-paused modes, run the simulation normally
+        StepSimulation(DeltaTime);
+    }
+    
+    // For FastForward mode, ensure the time dilation is set correctly
+    if (CurrentSimulationMode == ESimulationMode::FastForward)
+    {
+         float TimeScale = TimeController ? TimeController->GetTimeScale() : 1.0f;
+         GetWorld()->GetWorldSettings()->SetTimeDilation(TimeScale);
+    }
+
+    // --- UI Logic ---
+    DrawImGuiWindow();
+}
+
+void ASimulationManager::StepSimulation(float DeltaTime)
+{
+    if (!TimeController)
+    {
+        return;
+    }
+    
+    // For lockstep and paused modes, use fixed timestep directly
+    if (CurrentSimulationMode == ESimulationMode::Lockstep || 
+        CurrentSimulationMode == ESimulationMode::Paused)
+    {
+        ExecuteSimulationStep(TimeController->GetFixedDeltaTime());
+    }
+    else
+    {
+        // For realtime and fast forward, use the accumulator pattern
+        TimeController->AccumulateTime(DeltaTime);
         
-    case ESimulationMode::Paused:
-        // Do nothing - simulation is paused
-        break;
+        int32 StepsExecuted = 0;
+        while (TimeController->ShouldStep() && StepsExecuted < MaxStepsPerFrame)
+        {
+            float FixedDeltaTime = TimeController->GetFixedDeltaTime();
+            ExecuteSimulationStep(FixedDeltaTime);
+            TimeController->ConsumeTime();
+            StepsExecuted++;
+        }
+        
+        if (StepsExecuted >= MaxStepsPerFrame)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Simulation falling behind! Executed max steps (%d) this frame"), 
+                   MaxStepsPerFrame);
+        }
+    }
+}
+
+void ASimulationManager::ExecuteSimulationStep(float FixedDeltaTime)
+{
+    // Update simulation time
+    CurrentSimulationTime += FixedDeltaTime;
+    CurrentStep++;
+    
+    // Update all robots with fixed timestep
+    UpdateAllRobots(FixedDeltaTime);
+}
+
+// void ASimulationManager::ManualPhysicsStep(float FixedDeltaTime)
+// {
+//     if (UWorld* World = GetWorld())
+//     {
+//         // Just use World->Tick to step physics
+//         World->Tick(LEVELTICK_PauseTick, FixedDeltaTime);
+//     }
+// }
+
+void ASimulationManager::UpdateAllRobots(float DeltaTime)
+{
+    for (AActor* Robot : RegisteredRobots)
+    {
+        if (Robot && Robot->GetClass()->ImplementsInterface(USimulatable::StaticClass()))
+        {
+            ISimulatable::Execute_SimulationUpdate(Robot, DeltaTime);
+        }
+    }
+}
+
+void ASimulationManager::SetSimulationMode(ESimulationMode NewMode)
+{
+    if (CurrentSimulationMode != NewMode)
+    {
+        // Restore normal time dilation when leaving non-realtime modes
+        if (CurrentSimulationMode != ESimulationMode::Realtime)
+        {
+            GetWorld()->GetWorldSettings()->SetTimeDilation(1.0f);
+        }
+        
+        CurrentSimulationMode = NewMode;
+        bWaitingForExternalCommand = false;
+        
+        UE_LOG(LogTemp, Display, TEXT("Simulation mode changed to: %s"), 
+               *UEnum::GetValueAsString(NewMode));
+        
+        // Reset time controller when switching modes
+        if (TimeController)
+        {
+            TimeController->Reset();
+        }
+        
+        // Apply initial settings for new mode
+        switch (NewMode)
+        {
+        case ESimulationMode::Paused:
+        case ESimulationMode::Lockstep:
+            GetWorld()->GetWorldSettings()->SetTimeDilation(0.0001f);
+            break;
+        case ESimulationMode::FastForward:
+            GetWorld()->GetWorldSettings()->SetTimeDilation(TimeController->GetTimeScale());
+            break;
+        default:
+            GetWorld()->GetWorldSettings()->SetTimeDilation(1.0f);
+            break;
+        }
     }
 }
 
@@ -109,89 +272,17 @@ void ASimulationManager::UnregisterRobot(AActor* Robot)
     }
 }
 
-void ASimulationManager::StepSimulation(float DeltaTime)
-{
-    if (!TimeController)
-    {
-        return;
-    }
-    
-    // Add time to accumulator
-    TimeController->AccumulateTime(DeltaTime);
-    
-    // Execute fixed timesteps
-    int32 StepsExecuted = 0;
-    while (TimeController->ShouldStep() && StepsExecuted < MaxStepsPerFrame)
-    {
-        float FixedDeltaTime = TimeController->GetFixedDeltaTime();
-        ExecuteSimulationStep(FixedDeltaTime);
-        TimeController->ConsumeTime();
-        StepsExecuted++;
-    }
-    
-    // Warn if we're falling behind
-    if (StepsExecuted >= MaxStepsPerFrame)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Simulation falling behind! Executed max steps (%d) this frame"), 
-               MaxStepsPerFrame);
-    }
-}
-
-void ASimulationManager::ExecuteSimulationStep(float FixedDeltaTime)
-{
-    // Update simulation time
-    CurrentSimulationTime += FixedDeltaTime;
-    CurrentStep++;
-    
-    // Update all robots with fixed timestep
-    UpdateAllRobots(FixedDeltaTime);
-    
-    // // Step physics if in lockstep mode
-    // if (CurrentSimulationMode == ESimulationMode::Lockstep)
-    // {
-    //     if (UWorld* World = GetWorld())
-    //     {
-    //         // This ensures physics runs for exactly one fixed timestep
-    //         World->GetPhysicsScene()->StartFrame();
-    //         World->GetPhysicsScene()->EndFrame();
-    //     }
-    // }
-}
-
-void ASimulationManager::UpdateAllRobots(float DeltaTime)
-{
-    for (AActor* Robot : RegisteredRobots)
-    {
-        if (Robot && Robot->GetClass()->ImplementsInterface(USimulatable::StaticClass()))
-        {
-            ISimulatable::Execute_SimulationUpdate(Robot, DeltaTime);
-        }
-    }
-}
-
-void ASimulationManager::SetSimulationMode(ESimulationMode NewMode)
-{
-    if (CurrentSimulationMode != NewMode)
-    {
-        CurrentSimulationMode = NewMode;
-        bWaitingForExternalCommand = false;
-        
-        UE_LOG(LogTemp, Display, TEXT("Simulation mode changed to: %s"), 
-               *UEnum::GetValueAsString(NewMode));
-        
-        // Reset time controller when switching modes
-        if (TimeController)
-        {
-            TimeController->Reset();
-        }
-    }
-}
-
 void ASimulationManager::SetTimeScale(float NewTimeScale)
 {
     if (TimeController)
     {
         TimeController->SetTimeScale(NewTimeScale);
+        
+        // Update time dilation if in fast forward mode
+        if (CurrentSimulationMode == ESimulationMode::FastForward)
+        {
+            GetWorld()->GetWorldSettings()->SetTimeDilation(NewTimeScale);
+        }
     }
 }
 
@@ -219,23 +310,12 @@ void ASimulationManager::ResetSimulation()
 
 void ASimulationManager::PausePhysics()
 {
-    if (UWorld* World = GetWorld())
-    {
-        // Use time dilation to effectively pause physics
-        World->GetWorldSettings()->SetTimeDilation(0.0001f);
-        
-        UE_LOG(LogTemp, Display, TEXT("Physics paused via time dilation"));
-    }
+    SetSimulationMode(ESimulationMode::Paused);
 }
+
 void ASimulationManager::ResumePhysics()
 {
-    if (UWorld* World = GetWorld())
-    {
-        // Restore normal time dilation
-        World->GetWorldSettings()->SetTimeDilation(1.0f);
-        
-        UE_LOG(LogTemp, Display, TEXT("Physics resumed"));
-    }
+    SetSimulationMode(ESimulationMode::Realtime);
 }
 
 void ASimulationManager::RequestSimulationStep()
@@ -244,6 +324,11 @@ void ASimulationManager::RequestSimulationStep()
     {
         bWaitingForExternalCommand = false;
         UE_LOG(LogTemp, Verbose, TEXT("External step command received"));
+    }
+    else if (CurrentSimulationMode == ESimulationMode::Paused)
+    {
+        // Setting the flag instead of calling the functions directly
+        bStepRequested = true;
     }
 }
 
@@ -270,6 +355,10 @@ void ASimulationManager::DrawImGuiWindow()
     ImGui::Text("Episode: %d, Step: %d", CurrentEpisode, CurrentStep);
     ImGui::Text("Registered Robots: %d", RegisteredRobots.Num());
     
+    // Show current time dilation
+    float CurrentTimeDilation = GetWorld()->GetWorldSettings()->TimeDilation;
+    ImGui::Text("Time Dilation: %.3f", CurrentTimeDilation);
+    
     ImGui::Separator();
     
     // Mode Selection
@@ -281,7 +370,7 @@ void ASimulationManager::DrawImGuiWindow()
         SetSimulationMode((ESimulationMode)currentMode);
     }
     
-    // Time Scale (for Fast Forward mode)
+    // Mode-specific controls
     if (CurrentSimulationMode == ESimulationMode::FastForward)
     {
         float timeScale = TimeController ? TimeController->GetTimeScale() : 1.0f;
@@ -299,6 +388,7 @@ void ASimulationManager::DrawImGuiWindow()
         {
             TimeController->SetFixedTimestep(FMath::Clamp(fixedTimestep, 0.001f, 0.1f));
         }
+        ImGui::Text("Frequency: %.1f Hz", 1.0f / fixedTimestep);
     }
     
     ImGui::Separator();
@@ -322,10 +412,6 @@ void ASimulationManager::DrawImGuiWindow()
         if (ImGui::Button("Step"))
         {
             RequestSimulationStep();
-            if (CurrentSimulationMode == ESimulationMode::Paused)
-            {
-                StepSimulation(TimeController->GetFixedDeltaTime());
-            }
         }
         
         if (CurrentSimulationMode == ESimulationMode::Lockstep)

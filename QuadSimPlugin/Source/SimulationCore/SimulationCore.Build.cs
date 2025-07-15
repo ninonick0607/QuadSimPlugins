@@ -10,7 +10,7 @@ public class SimulationCore : ModuleRules
             "Core",
             "CoreUObject",
             "Engine",
-            "ImGui"  // For time control UI
+            "ImGui",
         });
         
         // We'll add QuadSimCore dependency later if needed

@@ -20,6 +20,7 @@
 #include "Components/ChildActorComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "SimulationCore/Public/Interfaces/ISimulatable.h" // Add this for interface check
 
 #define EPSILON 0.0001f
 // At the top of QuadPawn.cpp
@@ -245,8 +246,26 @@ void AQuadPawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AQuadPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	UpdateControl(DeltaTime);
 
+	// Check if SimulationManager is controlling updates
+	bool bSimulationControlled = false;
+	if (UWorld* World = GetWorld())
+	{
+		// If time dilation is very low, we're being controlled by SimulationManager
+		float TimeDilation = World->GetWorldSettings()->TimeDilation;
+		if (TimeDilation < 0.01f)
+		{
+			bSimulationControlled = true;
+		}
+	}
+
+	// Only update controller if NOT controlled by SimulationManager
+	if (!bSimulationControlled)
+	{
+		UpdateControl(DeltaTime);
+	}
+
+	// Visual updates (propellers) should always happen
 	for (int32 i = 0; i < Propellers.Num(); i++)
 	{
 		if (Propellers[i])
@@ -259,12 +278,13 @@ void AQuadPawn::Tick(float DeltaTime)
 				DirectionMultiplier = MotorClockwiseDirections[i] ? -1.0f : 1.0f;
 			}
 			float DegreesPerSecond = PropellerRPMs[i] * 6.0f;
-            float DeltaRotation = DegreesPerSecond * DeltaTime * DirectionMultiplier;
+			float DeltaRotation = DegreesPerSecond * DeltaTime * DirectionMultiplier;
 			Propellers[i]->AddLocalRotation(FRotator(0.f, DeltaRotation, 0.f));
 		}
 	}
 
 	UpdateGroundCameraTracking();
+
 	if (bHasCollidedWithObstacle)
 	{
 		float CurrentTime = GetWorld()->GetTimeSeconds();

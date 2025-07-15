@@ -3,6 +3,7 @@
 #include "Controllers/QuadDroneController.h"
 #include "Pawns/QuadPawn.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "imgui.h"
@@ -136,7 +137,7 @@ void ADroneManager::Tick(float DeltaTime)
         if (LastSpawnLocation.IsZero())
         {
             // First drone spawns at default location
-            SpawnLocation = FVector(0.0f, 0.0f, 100.0f);
+            SpawnLocation = FVector(-1270.0f, -1320.0f, 180.0f);
         }
         else
         {
@@ -279,14 +280,27 @@ void ADroneManager::SimulationUpdate_Implementation(float FixedDeltaTime)
 
 void ADroneManager::ResetRobot_Implementation()
 {
-    // Reset all drones to origin
+    // Find the Player Start actor
+    AActor* PlayerStartActor = UGameplayStatics::GetActorOfClass(GetWorld(), APlayerStart::StaticClass());
+    FTransform ResetTransform = FTransform::Identity; // Default to origin (0,0,0)
+
+    if (PlayerStartActor)
+    {
+        ResetTransform = PlayerStartActor->GetActorTransform();
+    }
+
+    // Reset all drones to the PlayerStart location
     for (TWeakObjectPtr<AQuadPawn> DronePtr : AllDrones)
     {
         if (AQuadPawn* Drone = DronePtr.Get())
         {
+            // Teleport the drone to the reset location
+            Drone->SetActorTransform(ResetTransform, false, nullptr, ETeleportType::ResetPhysics);
+
+            // Also call your controller's reset logic for other things (like motor values)
             if (UQuadDroneController* Controller = Drone->QuadController)
             {
-                Controller->ResetDroneOrigin();
+                Controller->ResetDroneOrigin(); // A new function that doesn't change position
             }
         }
     }

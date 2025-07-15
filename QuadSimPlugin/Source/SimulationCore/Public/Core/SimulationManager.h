@@ -118,14 +118,21 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Simulation")
     int32 MaxStepsPerFrame;
 
+    // Physics settings backup
+    float OriginalMaxPhysicsStep;
+    bool OriginalSubstepping;
+
 private:
     void ExecuteSimulationStep(float FixedDeltaTime);
     void UpdateAllRobots(float DeltaTime);
+    //void ManualPhysicsStep(float FixedDeltaTime);
     
     // ImGui
     void DrawImGuiWindow();
     bool bShowImGuiWindow;
-    
+    bool bStepRequested; 
+    bool bIsStepping; 
+
     // Selected robot for UI
     int32 SelectedRobotIndex;
 };
