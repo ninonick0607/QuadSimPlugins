@@ -137,7 +137,7 @@ void ADroneManager::Tick(float DeltaTime)
         if (LastSpawnLocation.IsZero())
         {
             // First drone spawns at default location
-            SpawnLocation = FVector(-1270.0f, -1320.0f, 180.0f);
+            SpawnLocation = GetActorLocation();
         }
         else
         {

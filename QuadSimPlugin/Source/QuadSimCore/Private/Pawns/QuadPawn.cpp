@@ -4,9 +4,8 @@
 #include "Camera/CameraComponent.h"
 #include "Math/UnrealMathUtility.h"
 #include "Core/DroneJSONConfig.h"
-#include "EngineUtils.h"
+#include "GameFramework/PlayerStart.h"
 #include "Blueprint/UserWidget.h"
-#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/Engine.h"
@@ -397,21 +396,24 @@ void AQuadPawn::ToggleImguiInput()
 	UGameplayStatics::GetPlayerController(GetWorld(), 0)->ConsoleCommand("ImGui.ToggleInput");
 }
 
+
 void AQuadPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
 	PlayerInputComponent->BindAction("ToggleImGui", IE_Pressed, this, &AQuadPawn::ToggleImguiInput);
 	PlayerInputComponent->BindAction("ReloadJSON", IE_Pressed, this, &AQuadPawn::ReloadJSONConfig);
+	PlayerInputComponent->BindAction("GP_ToggleFlightMode", IE_Pressed, this, &AQuadPawn::ToggleGamepadMode);
 
 	PlayerInputComponent->BindAxis("GP_Throttle", this, &AQuadPawn::OnThrottleAxis);
 	PlayerInputComponent->BindAxis("GP_Yaw",      this, &AQuadPawn::OnYawAxis);
 	PlayerInputComponent->BindAxis("GP_Pitch",    this, &AQuadPawn::OnPitchAxis);
 	PlayerInputComponent->BindAxis("GP_Roll",     this, &AQuadPawn::OnRollAxis);
-
-	PlayerInputComponent->BindAction("GP_ToggleFlightMode", IE_Pressed,
-							this, &AQuadPawn::ToggleGamepadMode);
+	
+	PlayerInputComponent->BindAction("GP_SwitchCamera", IE_Pressed, this, &AQuadPawn::SwitchCamera);
+	PlayerInputComponent->BindAction("GP_ResetRotation", IE_Pressed, this, &AQuadPawn::ResetRotation);
+	PlayerInputComponent->BindAction("GP_ResetPosition", IE_Pressed, this, &AQuadPawn::ResetPosition);
 }
-
 void AQuadPawn::OnThrottleAxis(float Value) { GamepadInputs.Throttle = Value; }
 void AQuadPawn::OnYawAxis(float Value)      { GamepadInputs.Yaw      = Value; }
 void AQuadPawn::OnPitchAxis(float Value)    { GamepadInputs.Pitch    = Value; }
@@ -490,5 +492,64 @@ void AQuadPawn::UpdateHUD()
 	}
 }
 
+void AQuadPawn::ResetRotation()
+{
+	if (DroneBody)
+	{
+		const FRotator CurrentRotation = GetActorRotation();
+		const FRotator UprightRotation(0.0f, CurrentRotation.Yaw, 0.0f);
 
+		SetActorRotation(UprightRotation);
+
+		DroneBody->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		DroneBody->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+        
+		if (QuadController)
+		{
+			QuadController->ResetPID();
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("Drone rotation reset."));
+	}
+}
+
+void AQuadPawn::ResetPosition()
+{
+	if (GetWorld())
+	{
+		AActor* PlayerStart = UGameplayStatics::GetActorOfClass(GetWorld(), APlayerStart::StaticClass());
+
+		if (PlayerStart)
+		{
+
+			SetActorTransform(PlayerStart->GetActorTransform(), false, nullptr, ETeleportType::TeleportPhysics);
+
+			if (QuadController)
+			{
+				QuadController->ResetPID();
+			}
+
+			UE_LOG(LogTemp, Log, TEXT("Drone position reset to PlayerStart."));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Could not reset position: No PlayerStart actor found in the level."));
+		}
+	}
+}
+void AQuadPawn::SetExternalAttitudeCommand(float InRoll, float InPitch)
+{
+	if (QuadController)
+	{
+		// IMPORTANT: We must also tell the controller to enter a mode
+		// that will actually use these angle commands.
+		QuadController->SetFlightMode(EFlightMode::AngleControl);
+
+		// Now, pass the desired angles to the controller.
+		QuadController->SetDesiredRollAngle(InRoll);
+		QuadController->SetDesiredPitchAngle(InPitch);
+        
+		UE_LOG(LogTemp, Log, TEXT("QuadPawn: Passed external attitude to controller (Roll: %.2f, Pitch: %.2f)"), InRoll, InPitch);
+	}
+}
 

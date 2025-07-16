@@ -11,8 +11,7 @@
 #include "Components/ChildActorComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Components/SceneCaptureComponent2D.h" // Add this include
-#include "Engine/TextureRenderTarget2D.h" // Ensure this is included
+#include "SimulationCore/Public/Interfaces/ISimulatable.h"
 #include "QuadPawn.generated.h"
 
 // Forward Declarations
@@ -53,7 +52,7 @@ struct FGamepadInputs
 
 
 UCLASS()
-class QUADSIMCORE_API AQuadPawn : public APawn 
+class QUADSIMCORE_API AQuadPawn : public APawn , public ISimulatable
 {
 	GENERATED_BODY()
 
@@ -129,7 +128,9 @@ public:
 	void SwitchCamera();
 	void ToggleImguiInput();
 	void ReloadJSONConfig();
-
+	void ResetRotation();
+	void ResetPosition();
+	
 	UFUNCTION(BlueprintPure, Category = "Drone State")
 	float GetMass();
 
@@ -152,7 +153,8 @@ public:
     TArray<FVector> GenerateFigureEightWaypoints() const;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Input")
 	FGamepadInputs GamepadInputs;
-
+	UFUNCTION(BlueprintCallable, Category = "ROS Control")
+	void SetExternalAttitudeCommand(float InRoll, float InPitch);
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -165,12 +167,7 @@ protected:
 	
 
     UFUNCTION()
-    void OnDroneHit(
-       UPrimitiveComponent* HitComponent,
-       AActor* OtherActor,
-       UPrimitiveComponent* OtherComp,
-       FVector NormalImpulse,
-       const FHitResult& Hit);
+    void OnDroneHit(UPrimitiveComponent* HitComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,FVector NormalImpulse,const FHitResult& Hit);
 
 	void OnThrottleAxis(float Value);
 	void OnYawAxis     (float Value);
@@ -182,8 +179,6 @@ protected:
 	ECameraMode CurrentCameraMode;
 	void ResetGroundCameraPosition();
 	void UpdateGroundCameraTracking();
-
-
 
 private:
 	void UpdateControl(float DeltaTime);
