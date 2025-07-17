@@ -265,15 +265,13 @@ TArray<AQuadPawn*> ADroneManager::GetDroneList() const
 // ISimulatable Implementation
 void ADroneManager::SimulationUpdate_Implementation(float FixedDeltaTime)
 {
-    // Update all drones with fixed timestep
     for (TWeakObjectPtr<AQuadPawn> DronePtr : AllDrones)
     {
         if (AQuadPawn* Drone = DronePtr.Get())
         {
-            if (UQuadDroneController* Controller = Drone->QuadController)
-            {
-                Controller->Update(FixedDeltaTime);
-            }
+            Drone->bIsSimulationControlled = true;
+            Drone->UpdateControl(FixedDeltaTime);
+            Drone->bIsSimulationControlled = false;
         }
     }
 }

@@ -13,7 +13,7 @@ ASimulationManager::ASimulationManager()
     PrimaryActorTick.bCanEverTick = true;
     PrimaryActorTick.TickGroup = TG_PrePhysics;
     
-    CurrentSimulationMode = ESimulationMode::Realtime;
+    CurrentSimulationMode = ESimulationMode::Lockstep;
     CurrentSimulationTime = 0.0f;
     CurrentEpisode = 0;
     CurrentStep = 0;
@@ -81,61 +81,38 @@ void ASimulationManager::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    // --- Time Dilation and Step Request Logic ---
-
-    // Check if we need to START a manual step
-    if (bIsStepping == false)
+    // Handle different simulation modes
+    switch (CurrentSimulationMode)
     {
-        bool bStartStep = false;
-        if (CurrentSimulationMode == ESimulationMode::Paused && bStepRequested)
+    case ESimulationMode::Realtime:
+        // Normal real-time simulation
+        StepSimulation(DeltaTime);
+        break;
+        
+    case ESimulationMode::FastForward:
+        // Accelerated simulation
+        StepSimulation(DeltaTime);
+        break;
+        
+    case ESimulationMode::Paused:
+        // Only step when requested
+        if (bStepRequested)
         {
-            bStartStep = true;
+            ExecuteSimulationStep(TimeController->GetFixedDeltaTime());
             bStepRequested = false;
         }
-        else if (CurrentSimulationMode == ESimulationMode::Lockstep && !bWaitingForExternalCommand)
+        break;
+        
+    case ESimulationMode::Lockstep:
+        // Step once, then wait for external command
+        if (!bWaitingForExternalCommand)
         {
-            bStartStep = true;
+            ExecuteSimulationStep(TimeController->GetFixedDeltaTime());
             bWaitingForExternalCommand = true;
         }
-
-        if (bStartStep)
-        {
-            // Un-pause the world to allow one physics tick to execute this frame
-            GetWorld()->GetWorldSettings()->SetTimeDilation(1.0f);
-            bIsStepping = true;
-        }
-    }
-    // Check if we need to END a manual step
-    else // bIsStepping is true
-    {
-        // This is the frame after we set dilation to 1.0. 
-        // The physics step has completed, so re-pause the world.
-        GetWorld()->GetWorldSettings()->SetTimeDilation(0.0001f);
-        bIsStepping = false;
-    }
-
-    // --- Simulation Update Logic ---
-
-    // When we are actively in the middle of a manual step, we must update our simulation.
-    if (bIsStepping)
-    {
-        // Use the fixed delta time for a deterministic update
-        StepSimulation(TimeController->GetFixedDeltaTime());
-    }
-    else if (CurrentSimulationMode == ESimulationMode::Realtime || CurrentSimulationMode == ESimulationMode::FastForward)
-    {
-        // For non-paused modes, run the simulation normally
-        StepSimulation(DeltaTime);
+        break;
     }
     
-    // For FastForward mode, ensure the time dilation is set correctly
-    if (CurrentSimulationMode == ESimulationMode::FastForward)
-    {
-         float TimeScale = TimeController ? TimeController->GetTimeScale() : 1.0f;
-         GetWorld()->GetWorldSettings()->SetTimeDilation(TimeScale);
-    }
-
-    // --- UI Logic ---
     DrawImGuiWindow();
 }
 
@@ -320,11 +297,15 @@ void ASimulationManager::ResumePhysics()
 
 void ASimulationManager::RequestSimulationStep()
 {
-    if (CurrentSimulationMode == ESimulationMode::Lockstep && bWaitingForExternalCommand)
-    {
-        bWaitingForExternalCommand = false;
-        UE_LOG(LogTemp, Verbose, TEXT("External step command received"));
-    }
+	UE_LOG(LogTemp, Warning, TEXT("RequestSimulationStep called - Mode: %s, Waiting: %s"), 
+		   *UEnum::GetValueAsString(CurrentSimulationMode),
+		   bWaitingForExternalCommand ? TEXT("YES") : TEXT("NO"));
+           
+	if (CurrentSimulationMode == ESimulationMode::Lockstep && bWaitingForExternalCommand)
+	{
+		bWaitingForExternalCommand = false;
+		UE_LOG(LogTemp, Warning, TEXT("Lockstep step approved - advancing simulation"));
+	}
     else if (CurrentSimulationMode == ESimulationMode::Paused)
     {
         // Setting the flag instead of calling the functions directly

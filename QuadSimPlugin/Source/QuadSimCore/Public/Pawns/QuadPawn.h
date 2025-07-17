@@ -52,7 +52,7 @@ struct FGamepadInputs
 
 
 UCLASS()
-class QUADSIMCORE_API AQuadPawn : public APawn , public ISimulatable
+class QUADSIMCORE_API AQuadPawn : public APawn
 {
 	GENERATED_BODY()
 
@@ -155,6 +155,11 @@ public:
 	FGamepadInputs GamepadInputs;
 	UFUNCTION(BlueprintCallable, Category = "ROS Control")
 	void SetExternalAttitudeCommand(float InRoll, float InPitch);
+
+	UPROPERTY()
+	bool bIsSimulationControlled = false;
+	
+	void UpdateControl(float DeltaTime);
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -181,7 +186,6 @@ protected:
 	void UpdateGroundCameraTracking();
 
 private:
-	void UpdateControl(float DeltaTime);
 	float LastCollisionTime;
 	float CollisionTimeout = 0.2f;
 	bool bWaypointModeSelected;

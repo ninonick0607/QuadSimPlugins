@@ -12,6 +12,7 @@
 
 // Include the common dialect of MAVLink
 #include "common/mavlink.h"
+#include "Core/SimulationManager.h"
 
 #pragma warning(pop)
 
@@ -19,10 +20,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogPX4, Log, All);
 
 // Static member definition
 const double FPX4CommunicationThread::TARGET_INTERVAL = 1.0 / FPX4CommunicationThread::TARGET_FREQUENCY_HZ;
-
-// ========================================
-// Communication Thread Implementation
-// ========================================
 
 FPX4CommunicationThread::FPX4CommunicationThread(UPX4Component* InPX4Component)
     : PX4Component(InPX4Component)
@@ -44,46 +41,25 @@ bool FPX4CommunicationThread::Init()
 
 uint32 FPX4CommunicationThread::Run()
 {
-    UE_LOG(LogPX4, Warning, TEXT("PX4 Communication thread started - running at %d Hz"), TARGET_FREQUENCY_HZ);
-    
-    // High precision timing
-    double LastTime = FPlatformTime::Seconds();
-    double LastHeartbeatTime = FPlatformTime::Seconds();
-    int32 MessageCount = 0;
-    const double HeartbeatInterval = 0.5; // Send heartbeat every 0.5 seconds (2Hz)
+    UE_LOG(LogPX4, Warning, TEXT("PX4 Communication thread started"));
     
     while (!bStopRequested)
     {
-        double CurrentTime = FPlatformTime::Seconds();
-        double DeltaTime = CurrentTime - LastTime;
-        
-        // Only send data if enough time has passed (precise 250Hz timing)
-        if (DeltaTime >= TARGET_INTERVAL)
+        if (PX4Component && PX4Component->IsConnectedToPX4())
         {
-            // Send HIL data from thread
-            if (PX4Component && PX4Component->IsConnectedToPX4())
+            // In lockstep mode, only send when simulation has advanced
+            if (PX4Component->ShouldSendHILData())
             {
                 PX4Component->SendHILDataFromThread();
-                MessageCount++;
-                
-                // Log every 1000 messages (4 seconds at 250Hz)
-                if (MessageCount % 1000 == 0)
-                {
-                    UE_LOG(LogPX4, Log, TEXT("Communication thread: Sent %d HIL messages"), MessageCount);
-                }
             }
-            
-            LastTime = CurrentTime;
         }
         
-        // Small sleep to prevent excessive CPU usage while maintaining precision
-        FPlatformProcess::Sleep(0.001f); // 1ms sleep
+        // Small sleep to prevent CPU spinning
+        FPlatformProcess::Sleep(0.001f); // 1ms
     }
     
-    UE_LOG(LogPX4, Warning, TEXT("PX4 Communication thread stopping"));
     return 0;
 }
-
 void FPX4CommunicationThread::Stop()
 {
     bStopRequested = true;
@@ -142,6 +118,16 @@ void UPX4Component::BeginPlay()
 {
     Super::BeginPlay();
     
+	UE_LOG(LogPX4, Warning, TEXT("PX4Component BeginPlay - Component exists!"));
+    
+	SimulationManager = ASimulationManager::Get(GetWorld());
+    
+	if (SimulationManager)
+	{
+		bLockstepMode = (SimulationManager->GetSimulationMode() == ESimulationMode::Lockstep);
+		UE_LOG(LogPX4, Warning, TEXT("PX4Component - Lockstep mode: %s"), bLockstepMode ? TEXT("YES") : TEXT("NO"));
+	}
+    
     UE_LOG(LogPX4, Warning, TEXT("PX4Component BeginPlay started"));
     
     // Try to find the QuadDroneController
@@ -178,7 +164,8 @@ void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
     
     if (!bUsePX4) return;
-    
+	UpdateLockstepMode();
+
     // Check for incoming TCP connections if we're listening
     if (bTCPListening && !bTCPConnected)
     {
@@ -227,6 +214,8 @@ void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 
 void UPX4Component::SetPX4Active(bool bActive)
 {
+	UE_LOG(LogPX4, Warning, TEXT("SetPX4Active called with: %s"), bActive ? TEXT("true") : TEXT("false"));
+
     if (bActive && !bUsePX4)
     {
         bUsePX4 = true;
@@ -328,6 +317,10 @@ void UPX4Component::UpdateThreadSafeState()
 
 void UPX4Component::SendHILDataFromThread()
 {
+	if (bLockstepMode && bWaitingForActuatorControls)
+	{
+		return;
+	}
     FScopeLock Lock(&StateMutex);
     
     if (!bThreadSafeDataValid) 
@@ -347,14 +340,21 @@ void UPX4Component::SendHILDataFromThread()
     
     SendHILSensor();
     SendHILStateQuaternion();
-    
-    // Send GPS and RC at lower rate (10Hz)
-    static int32 GPSCounter = 0;
-    if (++GPSCounter % 10 == 0)
-    {
-        SendHILGPS();
-        SendHILRCInputs();
-    }
+
+	if (bLockstepMode)
+	{
+		bWaitingForActuatorControls = true;
+	}
+	
+	if (!bLockstepMode)
+	{
+		static int32 GPSCounter = 0;
+		if (++GPSCounter % 10 == 0)
+		{
+			SendHILGPS();
+			SendHILRCInputs();
+		}
+	}
 }
 
 void UPX4Component::SetupTCPServer()
@@ -663,9 +663,17 @@ void UPX4Component::SendHeartbeat()
     mavlink_message_t msg;
     mavlink_heartbeat_t heartbeat;
     
-    heartbeat.type = MAV_TYPE_GCS; // Simulators identify as GCS
-    heartbeat.autopilot = MAV_AUTOPILOT_INVALID; // No autopilot for simulator
-    heartbeat.base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | MAV_MODE_FLAG_HIL_ENABLED;
+	heartbeat.type = MAV_TYPE_GCS;
+	heartbeat.autopilot = MAV_AUTOPILOT_INVALID;
+	heartbeat.base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | MAV_MODE_FLAG_HIL_ENABLED;
+    
+	// Add MANUAL_INPUT flag for lockstep mode
+	if (bLockstepMode)
+	{
+		heartbeat.base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+	}
+
+	
     heartbeat.custom_mode = 0;
     heartbeat.system_status = MAV_STATE_ACTIVE;
     heartbeat.mavlink_version = MAVLINK_VERSION;
@@ -684,13 +692,23 @@ void UPX4Component::SendHILStateQuaternion()
     mavlink_message_t msg;
     mavlink_hil_state_quaternion_t hil_state;
     
+    if (SimulationManager && bLockstepMode)
+    {
+        hil_state.time_usec = SimulationManager->GetSimulationTimeMicroseconds();
+    }
+    else
+    {
+        hil_state.time_usec = FPlatformTime::Seconds() * 1e6;
+    }
+    
+    LastSentTimestamp = hil_state.time_usec;
+    
     // Convert coordinates from Unreal to PX4 (NED) coordinate system
     float x, y, z, vx, vy, vz, q0, q1, q2, q3, rollRate, pitchRate, yawRate;
     ConvertUnrealToPX4Coordinates(CurrentPosition, CurrentVelocity, CurrentRotation, CurrentAngularVelocity,
                                  x, y, z, vx, vy, vz, q0, q1, q2, q3, rollRate, pitchRate, yawRate);
     
     // Use the HIL timestamp for consistency
-    hil_state.time_usec = FPlatformTime::Seconds() * 1e6;
     
     // Attitude quaternion (w, x, y, z order in MAVLink)
     hil_state.attitude_quaternion[0] = q0; // w
@@ -735,9 +753,15 @@ void UPX4Component::SendHILSensor()
 {
     mavlink_message_t msg;
     mavlink_hil_sensor_t hil_sensor;
-    
-    // Use REAL TIME for non-lockstep
-    hil_sensor.time_usec = FPlatformTime::Seconds() * 1e6;
+
+    if (SimulationManager && bLockstepMode)
+    {
+        hil_sensor.time_usec = SimulationManager->GetSimulationTimeMicroseconds();
+    }
+    else
+    {
+        hil_sensor.time_usec = FPlatformTime::Seconds() * 1e6;
+    }
     
     // Get drone state
     FQuat DroneQuat = FQuat(CurrentRotation);
@@ -792,8 +816,16 @@ void UPX4Component::SendHILGPS()
                                  x, y, z, vx, vy, vz, q0, q1, q2, q3, rollRate, pitchRate, yawRate);
     
     // Use HIL timestamp
-    hil_gps.time_usec = FPlatformTime::Seconds() * 1e6;
-    hil_gps.lat = 473566094; // Zurich coordinates (degrees * 1E7)
+	if (SimulationManager && bLockstepMode)
+	{
+		hil_gps.time_usec = SimulationManager->GetSimulationTimeMicroseconds();
+	}
+	else
+	{
+		hil_gps.time_usec = FPlatformTime::Seconds() * 1e6;
+	}
+	
+	hil_gps.lat = 473566094; // Zurich coordinates (degrees * 1E7)
     hil_gps.lon = 85190237;
     hil_gps.alt = static_cast<int32>((-z + 50000) * 10); // mm above sea level
     hil_gps.eph = 100; // GPS HDOP horizontal dilution of position (cm)
@@ -820,8 +852,15 @@ void UPX4Component::SendHILRCInputs()
     mavlink_hil_rc_inputs_raw_t hil_rc;
     
     // Use HIL timestamp
-    hil_rc.time_usec = FPlatformTime::Seconds() * 1e6;
-    hil_rc.chan1_raw = 1500; // Roll
+	if (SimulationManager && bLockstepMode)
+	{
+		hil_rc.time_usec = SimulationManager->GetSimulationTimeMicroseconds();
+	}
+	else
+	{
+		hil_rc.time_usec = FPlatformTime::Seconds() * 1e6;
+	}
+	hil_rc.chan1_raw = 1500; // Roll
     hil_rc.chan2_raw = 1500; // Pitch  
     hil_rc.chan3_raw = 1000; // Throttle (low for safety)
     hil_rc.chan4_raw = 1500; // Yaw
@@ -883,7 +922,19 @@ void UPX4Component::HandleActuatorOutputs(const uint8* MessageBuffer, uint16 Mes
         UE_LOG(LogPX4, Log, TEXT("Received motor commands #%d: M1=%.3f, M2=%.3f, M3=%.3f, M4=%.3f"), 
                ActuatorCount, MotorCommands[0], MotorCommands[1], MotorCommands[2], MotorCommands[3]);
     }
-
+	
+	UE_LOG(LogPX4, Warning, TEXT("HandleActuatorOutputs - bLockstepMode: %s, SimManager valid: %s"), 
+		   bLockstepMode ? TEXT("YES") : TEXT("NO"),
+		   SimulationManager ? TEXT("YES") : TEXT("NO"));
+    
+	if (bLockstepMode && SimulationManager)
+	{
+		UE_LOG(LogPX4, VeryVerbose, TEXT("Lockstep: Received actuator controls, requesting simulation step"));
+		bWaitingForActuatorControls = false;
+        
+		// Notify simulation manager that PX4 has responded
+		SimulationManager->RequestSimulationStep();
+	}
 }
 
 void UPX4Component::HandleHeartbeat(const uint8* MessageBuffer, uint16 MessageLength)
@@ -896,26 +947,32 @@ void UPX4Component::HandleHeartbeat(const uint8* MessageBuffer, uint16 MessageLe
     mavlink_heartbeat_t heartbeat;
     mavlink_msg_heartbeat_decode(msg, &heartbeat);
     
-    // Mark as truly connected when we receive data from PX4
-    if (!bConnectedToPX4)
-    {
-        bConnectedToPX4 = true;
-        UE_LOG(LogPX4, Warning, TEXT("PX4 connection established - starting communication thread"));
+	if (!bConnectedToPX4)
+	{
+		bConnectedToPX4 = true;
+		UE_LOG(LogPX4, Warning, TEXT("PX4 connection established - starting communication thread"));
         
-        // Initialize HIL timestamp to 0 for lockstep
-        HILTimestamp = 0;
+		// Start the dedicated communication thread
+		if (!CommunicationThread)
+		{
+			CommunicationThread = new FPX4CommunicationThread(this);
+			CommunicationThread->StartThread();
+		}
         
-        // Start the dedicated communication thread
-        if (!CommunicationThread)
-        {
-            CommunicationThread = new FPX4CommunicationThread(this);
-            CommunicationThread->StartThread();
-        }
+		// Send complete initial HIL data set
+		UpdateThreadSafeState();
         
-        // Send initial data burst to kickstart PX4
-        UpdateThreadSafeState();
-        // Don't send burst here - let the thread handle it
-    }
+		// Send ALL required HIL messages for lockstep
+		UE_LOG(LogPX4, Warning, TEXT("Sending initial HIL data burst"));
+		SendHILSensor();
+		SendHILStateQuaternion();
+		SendHILGPS();
+		SendHILRCInputs();
+        
+		// Reset heartbeat timer
+		HeartbeatTimer = 0.0f;
+		ConnectionTimeoutTimer = 0.0f;
+	}
 }
 
 UQuadDroneController* UPX4Component::FindQuadController()
@@ -971,4 +1028,32 @@ void UPX4Component::ConvertUnrealToPX4Coordinates(const FVector& UnrealPos, cons
     OutRollRate = UnrealAngVel.X;   // Roll rate (same axis)
     OutPitchRate = UnrealAngVel.Y;  // Pitch rate (same axis)
     OutYawRate = -UnrealAngVel.Z;   // Yaw rate (flip for coordinate conversion)
+}
+
+bool UPX4Component::ShouldSendHILData() const
+{
+	if (!SimulationManager || !bLockstepMode)
+	{
+		return true;
+	}
+    
+	uint64_t CurrentSimTime = SimulationManager->GetSimulationTimeMicroseconds();
+	return CurrentSimTime > LastSentTimestamp || LastSentTimestamp == 0;
+}
+void UPX4Component::UpdateLockstepMode()
+{
+	if (SimulationManager)
+	{
+		bool bNewLockstepMode = (SimulationManager->GetSimulationMode() == ESimulationMode::Lockstep);
+		if (bNewLockstepMode != bLockstepMode)
+		{
+			bLockstepMode = bNewLockstepMode;
+			UE_LOG(LogPX4, Warning, TEXT("PX4Component lockstep mode changed to: %s"), 
+				   bLockstepMode ? TEXT("ENABLED") : TEXT("DISABLED"));
+                   
+			// Reset synchronization state
+			bWaitingForActuatorControls = false;
+			LastSentTimestamp = 1000;
+		}
+	}
 }

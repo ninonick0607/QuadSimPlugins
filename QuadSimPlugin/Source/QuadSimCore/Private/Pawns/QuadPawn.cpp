@@ -246,25 +246,13 @@ void AQuadPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// Check if SimulationManager is controlling updates
-	bool bSimulationControlled = false;
-	if (UWorld* World = GetWorld())
-	{
-		// If time dilation is very low, we're being controlled by SimulationManager
-		float TimeDilation = World->GetWorldSettings()->TimeDilation;
-		if (TimeDilation < 0.01f)
-		{
-			bSimulationControlled = true;
-		}
-	}
-
-	// Only update controller if NOT controlled by SimulationManager
-	if (!bSimulationControlled)
+	// Only update controller if NOT being controlled by SimulationManager
+	if (!bIsSimulationControlled)
 	{
 		UpdateControl(DeltaTime);
 	}
 
-	// Visual updates (propellers) should always happen
+	// Visual updates (propellers) should always happen regardless
 	for (int32 i = 0; i < Propellers.Num(); i++)
 	{
 		if (Propellers[i])
