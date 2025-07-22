@@ -8,6 +8,7 @@
 #include "Engine/World.h"
 #include "GameFramework/PlayerStart.h"
 #include "QuadSimPlayerController.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 // The AQuadSimGameMode constructor remains the same.
 AQuadSimGameMode::AQuadSimGameMode()
@@ -18,7 +19,39 @@ AQuadSimGameMode::AQuadSimGameMode()
 void AQuadSimGameMode::BeginPlay()
 {
     Super::BeginPlay();
-
+	if (GEngine)
+	{
+		// Remove frame rate limits
+		GEngine->bUseFixedFrameRate = false;
+		GEngine->bSmoothFrameRate = false;
+        
+		// Set console variables for unlimited FPS
+		static const auto CVarMaxFPS = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS"));
+		if (CVarMaxFPS)
+		{
+			CVarMaxFPS->Set(0); // 0 = unlimited
+		}
+        
+		// Disable VSync
+		static const auto CVarVSync = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
+		if (CVarVSync)
+		{
+			CVarVSync->Set(0);
+		}
+        
+		UE_LOG(LogTemp, Warning, TEXT("Frame rate limits removed for PX4 compatibility"));
+	}
+    
+	// Configure physics for consistent simulation
+	if (UPhysicsSettings* PhysicsSettings = UPhysicsSettings::Get())
+	{
+		// Enable substepping for more consistent physics
+		PhysicsSettings->bSubstepping = true;
+		PhysicsSettings->MaxSubstepDeltaTime = 0.01667f; // 60Hz substeps
+		PhysicsSettings->MaxSubsteps = 6;
+        
+		UE_LOG(LogTemp, Warning, TEXT("Physics substepping enabled"));
+	}
     if (UWorld* World = GetWorld())
     {
         // Default spawn location in case no PlayerStart is found

@@ -44,44 +44,59 @@ bool FPX4CommunicationThread::Init()
 
 uint32 FPX4CommunicationThread::Run()
 {
-    UE_LOG(LogPX4, Warning, TEXT("PX4 Communication thread started - running at %d Hz"), TARGET_FREQUENCY_HZ);
+	UE_LOG(LogPX4, Warning, TEXT("PX4 Communication thread started - running at %d Hz"), TARGET_FREQUENCY_HZ);
     
-    // High precision timing
-    double LastTime = FPlatformTime::Seconds();
-    double LastHeartbeatTime = FPlatformTime::Seconds();
-    int32 MessageCount = 0;
-    const double HeartbeatInterval = 0.5; // Send heartbeat every 0.5 seconds (2Hz)
+	double LastTime = FPlatformTime::Seconds();
+	double LastHeartbeatTime = FPlatformTime::Seconds();
+	int32 MessageCount = 0;
+	const double HeartbeatInterval = 0.5; // 2Hz heartbeat
     
-    while (!bStopRequested)
-    {
-        double CurrentTime = FPlatformTime::Seconds();
-        double DeltaTime = CurrentTime - LastTime;
+	// Use high precision timing
+	const double TargetInterval = 1.0 / 250.0; // 4ms
+    
+	while (!bStopRequested)
+	{
+		double StartTime = FPlatformTime::Seconds();
         
-        // Only send data if enough time has passed (precise 250Hz timing)
-        if (DeltaTime >= TARGET_INTERVAL)
-        {
-            // Send HIL data from thread
-            if (PX4Component && PX4Component->IsConnectedToPX4())
-            {
-                PX4Component->SendHILDataFromThread();
-                MessageCount++;
-                
-                // Log every 1000 messages (4 seconds at 250Hz)
-                if (MessageCount % 1000 == 0)
-                {
-                    UE_LOG(LogPX4, Log, TEXT("Communication thread: Sent %d HIL messages"), MessageCount);
-                }
-            }
+		if (PX4Component && PX4Component->IsConnectedToPX4())
+		{
+			// Update state from main thread
+			PX4Component->UpdateThreadSafeState();
             
-            LastTime = CurrentTime;
-        }
+			// Send HIL data
+			PX4Component->SendHILDataFromThread();
+            
+			// Send heartbeat from thread too
+			if (StartTime - LastHeartbeatTime >= HeartbeatInterval)
+			{
+				PX4Component->SendHeartbeat();
+				LastHeartbeatTime = StartTime;
+			}
+            
+			MessageCount++;
+			if (MessageCount % 250 == 0) // Log every second
+			{
+				UE_LOG(LogPX4, VeryVerbose, TEXT("Thread: Sent %d messages, rate: %.1f Hz"), 
+					   MessageCount, MessageCount / (StartTime - LastTime));
+			}
+		}
         
-        // Small sleep to prevent excessive CPU usage while maintaining precision
-        FPlatformProcess::Sleep(0.001f); // 1ms sleep
-    }
+		// Precise sleep to maintain 250Hz
+		double ElapsedTime = FPlatformTime::Seconds() - StartTime;
+		double SleepTime = TargetInterval - ElapsedTime;
+        
+		if (SleepTime > 0)
+		{
+			FPlatformProcess::Sleep(SleepTime);
+		}
+		else if (MessageCount % 100 == 0)
+		{
+			UE_LOG(LogPX4, Warning, TEXT("Communication thread falling behind! Took %.2fms, target: %.2fms"), 
+				   ElapsedTime * 1000.0, TargetInterval * 1000.0);
+		}
+	}
     
-    UE_LOG(LogPX4, Warning, TEXT("PX4 Communication thread stopping"));
-    return 0;
+	return 0;
 }
 
 void FPX4CommunicationThread::Stop()
@@ -99,8 +114,7 @@ void FPX4CommunicationThread::StartThread()
     if (!Thread && !bStopRequested)
     {
         bStopRequested = false;
-        Thread = FRunnableThread::Create(this, TEXT("PX4CommunicationThread"), 0, TPri_AboveNormal);
-    }
+    	Thread = FRunnableThread::Create(this, TEXT("PX4CommunicationThread"), 0, TPri_TimeCritical);    }
 }
 
 void FPX4CommunicationThread::StopThread()
@@ -191,6 +205,21 @@ void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
     // Update timers
     HeartbeatTimer += DeltaTime;
     ConnectionTimeoutTimer += DeltaTime;
+	if (bConnectedToPX4 && bUseLockstep)
+	{
+		// In lockstep mode, send one set of sensor data per frame
+		UpdateCurrentState(); // Get latest state
+		SendHILSensor();
+		SendHILStateQuaternion();
+        
+		// Send GPS/RC less frequently
+		static int32 SubFrameCounter = 0;
+		if (++SubFrameCounter % 4 == 0) // Every 4th frame
+		{
+			SendHILGPS();
+			SendHILRCInputs();
+		}
+	}
     
     // Process incoming MAVLink data
     ProcessIncomingMAVLinkData();
@@ -266,6 +295,21 @@ void UPX4Component::ConnectToPX4()
         UE_LOG(LogPX4, Warning, TEXT("TCP server listening on port %d - waiting for PX4 to connect..."), PX4_Port);
         UE_LOG(LogPX4, Warning, TEXT("Start PX4 with: make px4_sitl none_iris"));
     }
+
+	if (bUseLockstep)
+	{
+		UE_LOG(LogPX4, Warning, TEXT("Using LOCKSTEP mode - PX4 will sync with Unreal frame rate"));
+		// Don't start the communication thread
+	}
+	else
+	{
+		// Start thread for real-time mode
+		if (!CommunicationThread)
+		{
+			CommunicationThread = new FPX4CommunicationThread(this);
+			CommunicationThread->StartThread();
+		}
+	}
 }
 
 void UPX4Component::DisconnectFromPX4()
@@ -328,33 +372,40 @@ void UPX4Component::UpdateThreadSafeState()
 
 void UPX4Component::SendHILDataFromThread()
 {
-    FScopeLock Lock(&StateMutex);
+	FScopeLock Lock(&StateMutex);
     
-    if (!bThreadSafeDataValid) 
-    {
-        CurrentPosition = FVector::ZeroVector;
-        CurrentVelocity = FVector::ZeroVector;
-        CurrentRotation = FRotator::ZeroRotator;
-        CurrentAngularVelocity = FVector::ZeroVector;
-    }
-    else
-    {
-        CurrentPosition = ThreadSafePosition;
-        CurrentVelocity = ThreadSafeVelocity;
-        CurrentRotation = ThreadSafeRotation;
-        CurrentAngularVelocity = ThreadSafeAngularVelocity;
-    }
+	if (!bThreadSafeDataValid) 
+	{
+		CurrentPosition = FVector::ZeroVector;
+		CurrentVelocity = FVector::ZeroVector;
+		CurrentRotation = FRotator::ZeroRotator;
+		CurrentAngularVelocity = FVector::ZeroVector;
+	}
+	else
+	{
+		CurrentPosition = ThreadSafePosition;
+		CurrentVelocity = ThreadSafeVelocity;
+		CurrentRotation = ThreadSafeRotation;
+		CurrentAngularVelocity = ThreadSafeAngularVelocity;
+	}
     
-    SendHILSensor();
-    SendHILStateQuaternion();
+	// Send sensor data EVERY cycle at 250Hz
+	SendHILSensor();
+	SendHILStateQuaternion();
     
-    // Send GPS and RC at lower rate (10Hz)
-    static int32 GPSCounter = 0;
-    if (++GPSCounter % 10 == 0)
-    {
-        SendHILGPS();
-        SendHILRCInputs();
-    }
+	// Send GPS at 50Hz (every 5 cycles instead of 10)
+	static int32 GPSCounter = 0;
+	if (++GPSCounter % 5 == 0)  // Was % 10
+	{
+		SendHILGPS();
+	}
+    
+	// Send RC at 50Hz
+	static int32 RCCounter = 0;
+	if (++RCCounter % 5 == 0)  // Was % 10
+	{
+		SendHILRCInputs();
+	}
 }
 
 void UPX4Component::SetupTCPServer()
@@ -413,10 +464,18 @@ void UPX4Component::AcceptTCPConnection()
         if (TCPClientSocket)
         {
             // Set socket options on the accepted connection
-            TCPClientSocket->SetNonBlocking(true);
-            TCPClientSocket->SetNoDelay(true); // Disable Nagle's algorithm for low latency
-            
-            bTCPConnected = true;
+        	TCPClientSocket->SetNonBlocking(true);
+        	TCPClientSocket->SetNoDelay(true); // Disable Nagle's algorithm
+        
+        	// Set send buffer size for lower latency
+        	int32 SendBufferSize = 32768; // 32KB
+        	TCPClientSocket->SetSendBufferSize(SendBufferSize, SendBufferSize);
+        
+        	// Set receive buffer size
+        	int32 RecvBufferSize = 32768; // 32KB
+        	TCPClientSocket->SetReceiveBufferSize(RecvBufferSize, RecvBufferSize);
+        
+        	bTCPConnected = true;
             ConnectionTimeoutTimer = 0.0f;
             
             // Store the PX4 address
@@ -552,56 +611,75 @@ void UPX4Component::CleanupSockets()
 
 void UPX4Component::SendMAVLinkMessage(const uint8* MessageBuffer, uint16 MessageLength)
 {
-    if (!TCPClientSocket || !bTCPConnected)
-    {
-        return; // Silently fail to avoid spam from thread
-    }
+	if (!TCPClientSocket || !bTCPConnected)
+	{
+		return;
+	}
     
-    int32 BytesSent = 0;
-    bool bSent = TCPClientSocket->Send(MessageBuffer, MessageLength, BytesSent);
+	// Set socket to blocking mode temporarily for critical messages
+	TCPClientSocket->SetNonBlocking(false);
     
-    if (!bSent || BytesSent != MessageLength)
-    {
-        static int32 FailCount = 0;
-        if (++FailCount % 100 == 0) // Log every 100th failure
-        {
-            UE_LOG(LogPX4, Warning, TEXT("Failed to send MAVLink message via TCP: %d bytes sent of %d (failure #%d)"), 
-                   BytesSent, MessageLength, FailCount);
-        }
-    }
+	int32 TotalBytesSent = 0;
+	const uint8* DataToSend = MessageBuffer;
+	int32 BytesRemaining = MessageLength;
+    
+	// Ensure we send ALL bytes
+	while (BytesRemaining > 0)
+	{
+		int32 BytesSent = 0;
+		bool bSent = TCPClientSocket->Send(DataToSend + TotalBytesSent, BytesRemaining, BytesSent);
+        
+		if (!bSent || BytesSent <= 0)
+		{
+			ConsecutiveSendFailures++;
+			if (ConsecutiveSendFailures > 10)
+			{
+				UE_LOG(LogPX4, Error, TEXT("Failed to send MAVLink message after %d failures - closing connection"), 
+					   ConsecutiveSendFailures);
+				bTCPConnected = false;
+				bConnectedToPX4 = false;
+			}
+			break;
+		}
+        
+		TotalBytesSent += BytesSent;
+		BytesRemaining -= BytesSent;
+		ConsecutiveSendFailures = 0;
+	}
+    
+	// Restore non-blocking mode
+	TCPClientSocket->SetNonBlocking(true);
 }
 
+// Switch to non-blocking recv with immediate data sending:
 void UPX4Component::ProcessIncomingMAVLinkData()
 {
-    // Process TCP data if connected
-    if (TCPClientSocket && bTCPConnected)
-    {
-        uint32 PendingDataSize = 0;
-        if (TCPClientSocket->HasPendingData(PendingDataSize) && PendingDataSize > 0)
-        {
-            TArray<uint8> ReceivedData;
-            ReceivedData.SetNumUninitialized(FMath::Min(PendingDataSize, 65507u));
-            int32 BytesRead = 0;
-            
-            bool bReceived = TCPClientSocket->Recv(ReceivedData.GetData(), ReceivedData.Num(), BytesRead);
-            
-            if (bReceived && BytesRead > 0)
-            {
-                ParseMAVLinkData(ReceivedData.GetData(), BytesRead);
-            }
-            else if (!bReceived)
-            {
-                // Check if connection was closed
-                ESocketConnectionState State = TCPClientSocket->GetConnectionState();
-                if (State != SCS_Connected)
-                {
-                    UE_LOG(LogPX4, Warning, TEXT("PX4 TCP connection lost"));
-                    bTCPConnected = false;
-                    bConnectedToPX4 = false;
-                }
-            }
-        }
-    }
+	if (!TCPClientSocket || !bTCPConnected) return;
+    
+	// Set timeout for recv
+	ESocketReceiveFlags::Type ReceiveFlags;
+	uint8 TempBuffer[4096]; // Larger buffer
+	int32 BytesRead = 0;
+    
+	// Non-blocking receive with peek first
+	if (TCPClientSocket->Recv(TempBuffer, sizeof(TempBuffer), BytesRead, 
+							  ESocketReceiveFlags::Peek))
+	{
+		if (BytesRead > 0)
+		{
+			// Actually read the data
+			TCPClientSocket->Recv(TempBuffer, BytesRead, BytesRead);
+			ParseMAVLinkData(TempBuffer, BytesRead);
+		}
+	}
+    
+	// Check socket health
+	ESocketConnectionState State = TCPClientSocket->GetConnectionState();
+	if (State != SCS_Connected)
+	{
+		UE_LOG(LogPX4, Error, TEXT("TCP socket in bad state: %d"), (int32)State);
+		bTCPConnected = false;
+	}
 }
 
 void UPX4Component::ParseMAVLinkData(const uint8* Data, int32 DataLength)
@@ -614,8 +692,8 @@ void UPX4Component::ParseMAVLinkData(const uint8* Data, int32 DataLength)
     {
         if (mavlink_parse_char(MAVLINK_COMM_0, Data[i], &msg, &status))
         {
-            UE_LOG(LogPX4, VeryVerbose, TEXT("Received MAVLink msg ID: %d from sys:%d comp:%d"), 
-       msg.msgid, msg.sysid, msg.compid);
+            UE_LOG(LogPX4, VeryVerbose, TEXT("Received MAVLink msg ID: %d from sys:%d comp:%d"), msg.msgid, msg.sysid, msg.compid);
+        	UE_LOG(LogPX4, VeryVerbose, TEXT("RX: msgid=%d, seq=%d, sysid=%d, compid=%d"), msg.msgid, msg.seq, msg.sysid, msg.compid);
             switch (msg.msgid)
             {
             case MAVLINK_MSG_ID_HEARTBEAT: // ID 0
@@ -681,8 +759,18 @@ void UPX4Component::SendHeartbeat()
 
 void UPX4Component::SendHILStateQuaternion()
 {
-    mavlink_message_t msg;
-    mavlink_hil_state_quaternion_t hil_state;
+	mavlink_message_t msg;
+	mavlink_hil_state_quaternion_t hil_state;
+    
+	if (bUseLockstep)
+	{
+		// Use the SAME counter value as SendHILSensor
+		hil_state.time_usec = LockstepCounter * 4000;
+	}
+	else
+	{
+		hil_state.time_usec = GetSynchronizedTimestamp();
+	}
     
     // Convert coordinates from Unreal to PX4 (NED) coordinate system
     float x, y, z, vx, vy, vz, q0, q1, q2, q3, rollRate, pitchRate, yawRate;
@@ -690,7 +778,6 @@ void UPX4Component::SendHILStateQuaternion()
                                  x, y, z, vx, vy, vz, q0, q1, q2, q3, rollRate, pitchRate, yawRate);
     
     // Use the HIL timestamp for consistency
-    hil_state.time_usec = FPlatformTime::Seconds() * 1e6;
     
     // Attitude quaternion (w, x, y, z order in MAVLink)
     hil_state.attitude_quaternion[0] = q0; // w
@@ -733,45 +820,72 @@ void UPX4Component::SendHILStateQuaternion()
 
 void UPX4Component::SendHILSensor()
 {
-    mavlink_message_t msg;
-    mavlink_hil_sensor_t hil_sensor;
+	mavlink_message_t msg;
+	mavlink_hil_sensor_t hil_sensor;
     
-    // Use REAL TIME for non-lockstep
-    hil_sensor.time_usec = FPlatformTime::Seconds() * 1e6;
+	if (bUseLockstep)
+	{
+		// In lockstep mode, use incremental timestamps
+		LockstepCounter++;
+		hil_sensor.time_usec = LockstepCounter * 4000; // 4ms per step = 250Hz
+	}
+	else
+	{
+		// Real-time mode
+		hil_sensor.time_usec = GetSynchronizedTimestamp();
+	}
     
     // Get drone state
     FQuat DroneQuat = FQuat(CurrentRotation);
-    FVector GravityWorld(0, 0, -9.81f); // Gravity in NED frame
+    FVector GravityWorld(0, 0, -9.81f);
     FVector GravityBody = DroneQuat.UnrotateVector(GravityWorld);
     
-    // Accelerometer (m/s^2)
-    hil_sensor.xacc = GravityBody.X;    
-    hil_sensor.yacc = GravityBody.Y;    
-    hil_sensor.zacc = GravityBody.Z;   
+    // Accelerometer (m/s^2) - includes gravity
+    hil_sensor.xacc = GravityBody.X;
+    hil_sensor.yacc = GravityBody.Y;
+    hil_sensor.zacc = GravityBody.Z;
     
-    // Gyroscope (rad/s)
+    // Gyroscope (rad/s) - use actual angular velocity
     hil_sensor.xgyro = FMath::DegreesToRadians(CurrentAngularVelocity.X);
     hil_sensor.ygyro = FMath::DegreesToRadians(CurrentAngularVelocity.Y);
     hil_sensor.zgyro = FMath::DegreesToRadians(-CurrentAngularVelocity.Z);
     
-    // Magnetometer (Gauss)
-    FVector MagWorld(0.2f, 0.0f, 0.4f);
+    // Magnetometer (Gauss) - simulate earth's magnetic field
+    FVector MagWorld(0.2f, 0.0f, 0.4f); // Typical values
     FVector MagBody = DroneQuat.UnrotateVector(MagWorld);
-    hil_sensor.xmag = MagBody.X;   
-    hil_sensor.ymag = MagBody.Y;   
-    hil_sensor.zmag = MagBody.Z;   
+    hil_sensor.xmag = MagBody.X;
+    hil_sensor.ymag = MagBody.Y;
+    hil_sensor.zmag = MagBody.Z;
     
-    // Barometer
-    float AltitudeMeters = -CurrentPosition.Z / 100.0f;
+    // Barometer - proper atmospheric model
+    float AltitudeMeters = -CurrentPosition.Z / 100.0f; // Convert cm to m
     float Pressure = 101325.0f * FMath::Pow(1.0f - (0.0065f * AltitudeMeters) / 288.15f, 5.255f);
-    hil_sensor.abs_pressure = Pressure / 100.0f; // Convert to millibar
-    hil_sensor.diff_pressure = 0.0f;
+    hil_sensor.abs_pressure = Pressure / 100.0f; // Pa to mbar
+    hil_sensor.diff_pressure = 0.0f; // No airspeed for multirotor
     hil_sensor.pressure_alt = AltitudeMeters;
-    hil_sensor.temperature = 20.0f;
+    hil_sensor.temperature = 20.0f + (AltitudeMeters * -0.0065f); // Temperature lapse
+    
+    // Set sensor validity flags
+    hil_sensor.fields_updated = 
+        (1 << 0) |  // xacc
+        (1 << 1) |  // yacc
+        (1 << 2) |  // zacc
+        (1 << 3) |  // xgyro
+        (1 << 4) |  // ygyro
+        (1 << 5) |  // zgyro
+        (1 << 6) |  // xmag
+        (1 << 7) |  // ymag
+        (1 << 8) |  // zmag
+        (1 << 9) |  // abs_pressure
+        (1 << 10) | // diff_pressure
+        (1 << 11) | // pressure_alt
+        (1 << 12);  // temperature
     
     hil_sensor.id = 0;
-    hil_sensor.fields_updated = 0x1FFF; // All sensor fields
-    
+	if (bUseLockstep)
+	{
+		hil_sensor.fields_updated |= (1 << 31); // Lockstep flag
+	}
     mavlink_msg_hil_sensor_encode(SystemID, ComponentID, &msg, &hil_sensor);
     
     uint8 buffer[MAVLINK_MAX_PACKET_LEN];
@@ -897,25 +1011,27 @@ void UPX4Component::HandleHeartbeat(const uint8* MessageBuffer, uint16 MessageLe
     mavlink_msg_heartbeat_decode(msg, &heartbeat);
     
     // Mark as truly connected when we receive data from PX4
-    if (!bConnectedToPX4)
-    {
-        bConnectedToPX4 = true;
-        UE_LOG(LogPX4, Warning, TEXT("PX4 connection established - starting communication thread"));
+	if (!bConnectedToPX4)
+	{
+		bConnectedToPX4 = true;
         
-        // Initialize HIL timestamp to 0 for lockstep
-        HILTimestamp = 0;
+		if (bUseLockstep)
+		{
+			UE_LOG(LogPX4, Warning, TEXT("PX4 connection established - using LOCKSTEP mode"));
+			// DON'T start thread in lockstep mode
+		}
+		else
+		{
+			UE_LOG(LogPX4, Warning, TEXT("PX4 connection established - starting communication thread"));
+			if (!CommunicationThread)
+			{
+				CommunicationThread = new FPX4CommunicationThread(this);
+				CommunicationThread->StartThread();
+			}
+		}
         
-        // Start the dedicated communication thread
-        if (!CommunicationThread)
-        {
-            CommunicationThread = new FPX4CommunicationThread(this);
-            CommunicationThread->StartThread();
-        }
-        
-        // Send initial data burst to kickstart PX4
-        UpdateThreadSafeState();
-        // Don't send burst here - let the thread handle it
-    }
+		UpdateThreadSafeState();
+	}
 }
 
 UQuadDroneController* UPX4Component::FindQuadController()
@@ -971,4 +1087,46 @@ void UPX4Component::ConvertUnrealToPX4Coordinates(const FVector& UnrealPos, cons
     OutRollRate = UnrealAngVel.X;   // Roll rate (same axis)
     OutPitchRate = UnrealAngVel.Y;  // Pitch rate (same axis)
     OutYawRate = -UnrealAngVel.Z;   // Yaw rate (flip for coordinate conversion)
+}
+
+uint64 UPX4Component::GetSynchronizedTimestamp()
+{
+	FScopeLock Lock(&TimestampMutex);
+    
+	// Use a base timestamp and increment it consistently
+	if (BaseTimestamp == 0)
+	{
+		BaseTimestamp = FPlatformTime::Cycles64();
+	}
+    
+	// Calculate elapsed time since base
+	uint64 CurrentCycles = FPlatformTime::Cycles64();
+	double ElapsedSeconds = FPlatformTime::ToSeconds64(CurrentCycles - BaseTimestamp);
+    
+	// Return microseconds since start
+	return static_cast<uint64>(ElapsedSeconds * 1000000.0);
+}
+
+void UPX4Component::UpdateCurrentState()
+{
+	if (AQuadPawn* QuadPawn = Cast<AQuadPawn>(GetOwner()))
+	{
+		CurrentPosition = QuadPawn->GetActorLocation();
+		CurrentVelocity = QuadPawn->GetVelocity();
+		CurrentRotation = QuadPawn->GetActorRotation();
+        
+		if (!QuadController)
+		{
+			QuadController = FindQuadController();
+		}
+        
+		if (QuadController)
+		{
+			CurrentAngularVelocity = QuadController->GetLocalAngularRateDeg();
+		}
+		else
+		{
+			CurrentAngularVelocity = FVector::ZeroVector;
+		}
+	}
 }

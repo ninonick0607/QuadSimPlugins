@@ -49,7 +49,7 @@ private:
     FRunnableThread* Thread;
     FThreadSafeBool bStopRequested;
     
-    static const int32 TARGET_FREQUENCY_HZ = 100;  // Increase to 250Hz for lockstep
+    static const int32 TARGET_FREQUENCY_HZ = 250;  // Increase to 250Hz for lockstep
     static const double TARGET_INTERVAL; // Will be 0.004 seconds (4ms)
 };
 
@@ -199,4 +199,21 @@ private:
                                       float& OutVx, float& OutVy, float& OutVz,
                                       float& OutQ0, float& OutQ1, float& OutQ2, float& OutQ3,
                                       float& OutRollRate, float& OutPitchRate, float& OutYawRate);
+	void UpdateCurrentState();
+
+	uint64 BaseTimestamp = 0;
+	uint64 TimestampOffset = 0;
+	FCriticalSection TimestampMutex;
+    
+	// Add heartbeat to communication thread
+	double LastHeartbeatSentTime = 0.0;
+    
+	// Track send failures
+	int32 ConsecutiveSendFailures = 0;
+    
+	// Get synchronized timestamp
+	uint64 GetSynchronizedTimestamp();
+
+	bool bUseLockstep = true;
+	uint64 LockstepCounter = 0;
 };
