@@ -86,29 +86,28 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Simulation")
     void StartNewEpisode();
-
-    UFUNCTION(BlueprintCallable, Category = "Simulation")
-    bool IsControllingSimulation() const 
-    { 
-        return CurrentSimulationMode != ESimulationMode::Realtime; 
-    }
+	UFUNCTION(BlueprintCallable, Category = "Simulation")
+	
+	bool IsControllingSimulation() const 
+	{ 
+		return CurrentSimulationMode != ESimulationMode::Realtime; 
+	}
     
-    // Get simulation time in microseconds (for PX4)
-    UFUNCTION(BlueprintCallable, Category = "Simulation")
-    double GetSimulationTimeMicroseconds() const 
-    { 
-        return CurrentSimulationTime * 1000000.0; 
-    }
+	// Get simulation time in microseconds (for PX4)
+	UFUNCTION(BlueprintCallable, Category = "Simulation")
+	double GetSimulationTimeMicroseconds() const 
+	{ 
+		return CurrentSimulationTime * 1000000.0; 
+	}
     
-    // Static helper to find SimulationManager in world
-    static ASimulationManager* Get(UWorld* World)
-    {
-        if (!World) return nullptr;
-        TArray<AActor*> Found;
-        UGameplayStatics::GetAllActorsOfClass(World, ASimulationManager::StaticClass(), Found);
-        return Found.Num() > 0 ? Cast<ASimulationManager>(Found[0]) : nullptr;
-    }
-    
+	// Static helper to find SimulationManager in world
+	static ASimulationManager* Get(UWorld* World)
+	{
+		if (!World) return nullptr;
+		TArray<AActor*> Found;
+		UGameplayStatics::GetAllActorsOfClass(World, ASimulationManager::StaticClass(), Found);
+		return Found.Num() > 0 ? Cast<ASimulationManager>(Found[0]) : nullptr;
+	}
 protected:
     // Robot Registry
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Simulation")

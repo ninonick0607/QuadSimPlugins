@@ -265,15 +265,21 @@ TArray<AQuadPawn*> ADroneManager::GetDroneList() const
 // ISimulatable Implementation
 void ADroneManager::SimulationUpdate_Implementation(float FixedDeltaTime)
 {
-    for (TWeakObjectPtr<AQuadPawn> DronePtr : AllDrones)
-    {
-        if (AQuadPawn* Drone = DronePtr.Get())
-        {
-            Drone->bIsSimulationControlled = true;
-            Drone->UpdateControl(FixedDeltaTime);
-            Drone->bIsSimulationControlled = false;
-        }
-    }
+	// Update all drones with fixed timestep
+	for (TWeakObjectPtr<AQuadPawn> DronePtr : AllDrones)
+	{
+		if (AQuadPawn* Drone = DronePtr.Get())
+		{
+			// Set flag to prevent double-update from Tick
+			Drone->bIsSimulationControlled = true;
+            
+			// Call UpdateControl directly on the pawn with fixed timestep
+			Drone->UpdateControl(FixedDeltaTime);
+            
+			// Clear flag
+			Drone->bIsSimulationControlled = false;
+		}
+	}
 }
 
 void ADroneManager::ResetRobot_Implementation()

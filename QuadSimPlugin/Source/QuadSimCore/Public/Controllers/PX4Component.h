@@ -115,11 +115,7 @@ public:
     void UpdateThreadSafeState();
     bool IsConnectedToPX4() const;
     void SendHeartbeat();
-    // Add method to check if we should send data
-    bool ShouldSendHILData() const;
-	
-	UFUNCTION(BlueprintCallable, Category = "PX4")
-	void UpdateLockstepMode();
+
 private:
     // TCP Communication (for initial handshake)
     FSocket* TCPListenSocket;  // Server socket that listens for connections
@@ -197,18 +193,10 @@ private:
     UQuadDroneController* FindQuadController();
     void UpdateConnectionStatus();
     FQuat RotatorToQuaternion(const FRotator& Rotator);
-    void ConvertUnrealToPX4Coordinates(const FVector& UnrealPos, const FVector& UnrealVel, const FRotator& UnrealRot, const FVector& UnrealAngVel,float& OutX, float& OutY, float& OutZ,float& OutVx, float& OutVy, float& OutVz,float& OutQ0, float& OutQ1, float& OutQ2, float& OutQ3,float& OutRollRate, float& OutPitchRate, float& OutYawRate);
-
-    UPROPERTY()
-    class ASimulationManager* SimulationManager;
-    
-    // Lockstep mode flag
-    bool bLockstepMode = false;
-    
-    // Lockstep synchronization
-    bool bWaitingForActuatorControls = false;
-    uint64_t LastSentTimestamp = 0;
-    
-
-
+    void ConvertUnrealToPX4Coordinates(const FVector& UnrealPos, const FVector& UnrealVel, 
+                                      const FRotator& UnrealRot, const FVector& UnrealAngVel,
+                                      float& OutX, float& OutY, float& OutZ,
+                                      float& OutVx, float& OutVy, float& OutVz,
+                                      float& OutQ0, float& OutQ1, float& OutQ2, float& OutQ3,
+                                      float& OutRollRate, float& OutPitchRate, float& OutYawRate);
 };

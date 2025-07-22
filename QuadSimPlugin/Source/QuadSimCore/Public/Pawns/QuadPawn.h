@@ -156,9 +156,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ROS Control")
 	void SetExternalAttitudeCommand(float InRoll, float InPitch);
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Simulation")
 	bool bIsSimulationControlled = false;
-	
+    
+	// Make UpdateControl public so DroneManager can call it
 	void UpdateControl(float DeltaTime);
 protected:
 	virtual void BeginPlay() override;

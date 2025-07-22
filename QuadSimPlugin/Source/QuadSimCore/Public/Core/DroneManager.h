@@ -25,7 +25,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Drone Manager")
 	TArray<AQuadPawn*> GetDroneList() const;
-	
+
+    
     // Register a quad-drone controller for global flight mode broadcasts
     void RegisterDroneController(class UQuadDroneController* Controller);
 
@@ -61,10 +62,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drone Manager")
 	TSubclassOf<AQuadPawn> QuadPawnClass;
-	
+
+
 	UPROPERTY(VisibleAnywhere, Category = "Drone Manager")
 	TArray<TWeakObjectPtr<AQuadPawn>> AllDrones;
 
+    
 private:
     // Whether swarm mode is enabled.
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Swarm", meta=(AllowPrivateAccess="true"))

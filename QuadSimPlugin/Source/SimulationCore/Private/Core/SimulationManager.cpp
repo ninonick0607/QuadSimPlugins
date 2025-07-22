@@ -13,7 +13,7 @@ ASimulationManager::ASimulationManager()
     PrimaryActorTick.bCanEverTick = true;
     PrimaryActorTick.TickGroup = TG_PrePhysics;
     
-    CurrentSimulationMode = ESimulationMode::Lockstep;
+    CurrentSimulationMode = ESimulationMode::Realtime;
     CurrentSimulationTime = 0.0f;
     CurrentEpisode = 0;
     CurrentStep = 0;
@@ -79,43 +79,42 @@ void ASimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ASimulationManager::Tick(float DeltaTime)
 {
-    Super::Tick(DeltaTime);
+	Super::Tick(DeltaTime);
 
-    // Handle different simulation modes
-    switch (CurrentSimulationMode)
-    {
-    case ESimulationMode::Realtime:
-        // Normal real-time simulation
-        StepSimulation(DeltaTime);
-        break;
+	// Handle different simulation modes
+	switch (CurrentSimulationMode)
+	{
+	case ESimulationMode::Realtime:
+		// Normal real-time simulation
+		StepSimulation(DeltaTime);
+		break;
         
-    case ESimulationMode::FastForward:
-        // Accelerated simulation
-        StepSimulation(DeltaTime);
-        break;
+	case ESimulationMode::FastForward:
+		// Accelerated simulation
+		StepSimulation(DeltaTime);
+		break;
         
-    case ESimulationMode::Paused:
-        // Only step when requested
-        if (bStepRequested)
-        {
-            ExecuteSimulationStep(TimeController->GetFixedDeltaTime());
-            bStepRequested = false;
-        }
-        break;
+	case ESimulationMode::Paused:
+		// Only step when requested
+		if (bStepRequested)
+		{
+			ExecuteSimulationStep(TimeController->GetFixedDeltaTime());
+			bStepRequested = false;
+		}
+		break;
         
-    case ESimulationMode::Lockstep:
-        // Step once, then wait for external command
-        if (!bWaitingForExternalCommand)
-        {
-            ExecuteSimulationStep(TimeController->GetFixedDeltaTime());
-            bWaitingForExternalCommand = true;
-        }
-        break;
-    }
+	case ESimulationMode::Lockstep:
+		// Step once, then wait for external command
+		if (!bWaitingForExternalCommand)
+		{
+			ExecuteSimulationStep(TimeController->GetFixedDeltaTime());
+			bWaitingForExternalCommand = true;
+		}
+		break;
+	}
     
-    DrawImGuiWindow();
+	DrawImGuiWindow();
 }
-
 void ASimulationManager::StepSimulation(float DeltaTime)
 {
     if (!TimeController)
@@ -160,15 +159,6 @@ void ASimulationManager::ExecuteSimulationStep(float FixedDeltaTime)
     // Update all robots with fixed timestep
     UpdateAllRobots(FixedDeltaTime);
 }
-
-// void ASimulationManager::ManualPhysicsStep(float FixedDeltaTime)
-// {
-//     if (UWorld* World = GetWorld())
-//     {
-//         // Just use World->Tick to step physics
-//         World->Tick(LEVELTICK_PauseTick, FixedDeltaTime);
-//     }
-// }
 
 void ASimulationManager::UpdateAllRobots(float DeltaTime)
 {
@@ -297,15 +287,11 @@ void ASimulationManager::ResumePhysics()
 
 void ASimulationManager::RequestSimulationStep()
 {
-	UE_LOG(LogTemp, Warning, TEXT("RequestSimulationStep called - Mode: %s, Waiting: %s"), 
-		   *UEnum::GetValueAsString(CurrentSimulationMode),
-		   bWaitingForExternalCommand ? TEXT("YES") : TEXT("NO"));
-           
-	if (CurrentSimulationMode == ESimulationMode::Lockstep && bWaitingForExternalCommand)
-	{
-		bWaitingForExternalCommand = false;
-		UE_LOG(LogTemp, Warning, TEXT("Lockstep step approved - advancing simulation"));
-	}
+    if (CurrentSimulationMode == ESimulationMode::Lockstep && bWaitingForExternalCommand)
+    {
+        bWaitingForExternalCommand = false;
+        UE_LOG(LogTemp, Verbose, TEXT("External step command received"));
+    }
     else if (CurrentSimulationMode == ESimulationMode::Paused)
     {
         // Setting the flag instead of calling the functions directly
