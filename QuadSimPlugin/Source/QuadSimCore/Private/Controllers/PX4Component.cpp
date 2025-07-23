@@ -1046,7 +1046,8 @@ void UPX4Component::SendHILSensor()
                hil_sensor.xmag, hil_sensor.ymag, hil_sensor.zmag,
                hil_sensor.abs_pressure);
     }
-    
+	UE_LOG(LogPX4, Warning, TEXT("Actually sending HIL_SENSOR with timestamp %llu"), hil_sensor.time_usec);
+
     SendMAVLinkMessage(buffer, len);
 	static int32 SensorMsgCount = 0;
 	if (++SensorMsgCount <= 5 || (SensorMsgCount % 50 == 0))
@@ -1152,10 +1153,19 @@ void UPX4Component::HandleActuatorOutputs(const uint8* MessageBuffer, uint16 Mes
     {
         return;
     }
+	if (!IsInGameThread())
+	{
+		UE_LOG(LogPX4, Error, TEXT("HandleActuatorOutputs called from wrong thread!"));
+		return;
+	}
     mavlink_message_t* msg = (mavlink_message_t*)MessageBuffer;
     mavlink_hil_actuator_controls_t actuator_controls;
     mavlink_msg_hil_actuator_controls_decode(msg, &actuator_controls);
-    
+	if (!QuadController || !GetOwner() || !GetOwner()->GetWorld())
+	{
+		UE_LOG(LogPX4, Warning, TEXT("Cannot apply actuator commands - invalid state"));
+		return;
+	}
     // Convert actuator controls to motor commands
     TArray<float> MotorCommands;
     MotorCommands.SetNum(4);

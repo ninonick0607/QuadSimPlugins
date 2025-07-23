@@ -8,6 +8,7 @@
 #include "Engine/World.h"
 #include "imgui.h"
 #include "Engine/Engine.h"
+#include "Controllers/PX4Component.h"
 
 // Static accessor for the DroneManager in the world
 ADroneManager* ADroneManager::Get(UWorld* World)
@@ -262,7 +263,6 @@ TArray<AQuadPawn*> ADroneManager::GetDroneList() const
     return DroneList;
 }
 
-// ISimulatable Implementation
 void ADroneManager::SimulationUpdate_Implementation(float FixedDeltaTime)
 {
 	// Update all drones with fixed timestep
@@ -270,12 +270,18 @@ void ADroneManager::SimulationUpdate_Implementation(float FixedDeltaTime)
 	{
 		if (AQuadPawn* Drone = DronePtr.Get())
 		{
-			// Set flag to prevent double-update from Tick
-			Drone->bIsSimulationControlled = true;
+			// Make sure PX4Component updates are synchronized
+			if (UPX4Component* PX4Comp = Drone->FindComponentByClass<UPX4Component>())
+			{
+				if (PX4Comp->bIsActive())
+				{
+					PX4Comp->SimulationUpdate(FixedDeltaTime);
+				}
+			}
             
-			// Call UpdateControl directly on the pawn with fixed timestep
+			// Then update control
+			Drone->bIsSimulationControlled = true;
 			Drone->UpdateControl(FixedDeltaTime);
-			// Clear flag
 			Drone->bIsSimulationControlled = false;
 		}
 	}

@@ -134,6 +134,16 @@ public:
 	// Frame-independent update for the communication thread
 	void ThreadSimulationStep();
 private:
+	struct FMotorCommand
+	{
+		TArray<float> Commands;
+		double Timestamp;
+	};
+    
+	FCriticalSection MotorCommandMutex;
+	TQueue<FMotorCommand, EQueueMode::Mpsc> PendingMotorCommands;
+
+	
     // TCP Communication (for initial handshake)
     FSocket* TCPListenSocket;  // Server socket that listens for connections
     FSocket* TCPClientSocket;  // Actual connection socket to PX4
