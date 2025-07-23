@@ -118,6 +118,7 @@ public:
     void UpdateThreadSafeState();
     bool IsConnectedToPX4() const;
     void SendHeartbeat();
+	void SimulationUpdate(float FixedDeltaTime);
 
 private:
     // TCP Communication (for initial handshake)
@@ -197,12 +198,7 @@ private:
     UQuadDroneController* FindQuadController();
     void UpdateConnectionStatus();
     FQuat RotatorToQuaternion(const FRotator& Rotator);
-    void ConvertUnrealToPX4Coordinates(const FVector& UnrealPos, const FVector& UnrealVel, 
-                                      const FRotator& UnrealRot, const FVector& UnrealAngVel,
-                                      float& OutX, float& OutY, float& OutZ,
-                                      float& OutVx, float& OutVy, float& OutVz,
-                                      float& OutQ0, float& OutQ1, float& OutQ2, float& OutQ3,
-                                      float& OutRollRate, float& OutPitchRate, float& OutYawRate);
+    void ConvertUnrealToPX4Coordinates(const FVector& UnrealPos, const FVector& UnrealVel, const FRotator& UnrealRot, const FVector& UnrealAngVel,float& OutX, float& OutY, float& OutZ,float& OutVx, float& OutVy, float& OutVz,float& OutQ0, float& OutQ1, float& OutQ2, float& OutQ3,float& OutRollRate, float& OutPitchRate, float& OutYawRate);
 	void UpdateCurrentState();
 
 	uint64 BaseTimestamp = 0;
@@ -222,5 +218,6 @@ private:
 	uint64 LockstepCounter = 1;
 
 	mavlink_system_t mavlink_system = {1, 1}; // system_id = 1, component_id = 1
+	uint64 SimulationStepCounter = 0;
 
 };

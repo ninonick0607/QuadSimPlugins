@@ -193,94 +193,66 @@ void UPX4Component::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-    Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
     
-    if (!bUsePX4) return;
+	if (!bUsePX4) return;
     
-    // Check for incoming TCP connections if we're listening
-    if (bTCPListening && !bTCPConnected)
-    {
-        AcceptTCPConnection();
-    }
-    
-    // Only proceed if we have an active connection
-    if (!TCPClientSocket) 
-    {
-        return;
-    }
-    
-    // Process incoming MAVLink data FIRST
-    ProcessIncomingMAVLinkData();
-    
-    // Update timers
-    HeartbeatTimer += DeltaTime;
-    
-    // Only update connection timeout if we're expecting heartbeats
-    if (bTCPConnected && bConnectedToPX4)
-    {
-        ConnectionTimeoutTimer += DeltaTime;
-    }
-    
-    // Send sensor data in lockstep mode
-	if (bTCPConnected && bUseLockstep)
+	// Only handle TCP connection acceptance in Tick
+	if (bTCPListening && !bTCPConnected)
 	{
-		// Log every 50 frames
-		if (LockstepCounter % 50 == 0)
-		{
-			UE_LOG(LogPX4, Warning, TEXT("Lockstep[%llu]: timestamp=%llu us, fps=%.1f"), 
-				   LockstepCounter, LockstepCounter * 4000, 1.0f / DeltaTime);
-		}
-        
-		UpdateCurrentState();
-        
-		// CRITICAL: Send messages in the correct order
-		SendHILSensor();
-        
-		// Force TCP flush after HIL_SENSOR
-		if (TCPClientSocket)
-		{
-			int32 BytesSent = 0;
-			TCPClientSocket->Send(nullptr, 0, BytesSent);
-		}
-        
-		// Small delay to ensure PX4 processes HIL_SENSOR first
-		FPlatformProcess::Sleep(0.001f); // 1ms
-        
-		SendHILStateQuaternion();
-		SendHILGPS();
-		SendHILRCInputs();
-        
-		// Force final flush
-		if (TCPClientSocket)
-		{
-			int32 BytesSent = 0;
-			TCPClientSocket->Send(nullptr, 0, BytesSent);
-		}
-        
-		LockstepCounter++;
+		AcceptTCPConnection();
 	}
     
-    // Send heartbeat
-    if (bTCPConnected && HeartbeatTimer >= (1.0f / HeartbeatRate))
-    {
-        SendHeartbeat();
-        HeartbeatTimer = 0.0f;
-    }
+	// Process incoming data
+	if (TCPClientSocket)
+	{
+		ProcessIncomingMAVLinkData();
+	}
     
-    // Connection timeout - only check if we've received at least one heartbeat
-    if (bConnectedToPX4 && ConnectionTimeoutTimer > 30.0f)
-    {
-        UE_LOG(LogPX4, Warning, TEXT("PX4 connection timeout after %.1fs"), ConnectionTimeoutTimer);
-        bConnectedToPX4 = false;
-        bTCPConnected = false;
+
+}
+
+void UPX4Component::SimulationUpdate(float FixedDeltaTime)
+{
+	if (!bTCPConnected || !bUseLockstep) return;
+    
+	// Update state from drone
+	UpdateCurrentState();
+    
+	// Calculate how many sensor updates we need to send
+	// If FixedDeltaTime is 0.01 (100Hz) and we need 250Hz, send 2-3 updates
+	const float SensorUpdateInterval = 0.004f; // 250Hz = 4ms
+	int32 UpdatesNeeded = FMath::RoundToInt(FixedDeltaTime / SensorUpdateInterval);
+	UpdatesNeeded = FMath::Max(1, UpdatesNeeded);
+    
+	for (int32 i = 0; i < UpdatesNeeded; i++)
+	{
+		// Increment counter for each sensor update
+		SimulationStepCounter++;
         
-        if (CommunicationThread)
-        {
-            CommunicationThread->StopThread();
-            delete CommunicationThread;
-            CommunicationThread = nullptr;
-        }
-    }
+		// Update timestamp for this step
+		LockstepCounter = SimulationStepCounter;
+        
+		// Send sensor data
+		SendHILSensor();
+		SendHILStateQuaternion();
+        
+		// Send GPS and RC at lower rates
+		if (SimulationStepCounter % 5 == 0) // 50Hz
+		{
+			SendHILGPS();
+			SendHILRCInputs();
+		}
+	}
+    
+	// Send heartbeat occasionally
+	static float HeartbeatAccumulator = 0.0f;
+	HeartbeatAccumulator += FixedDeltaTime;
+	if (HeartbeatAccumulator >= 0.5f) // 2Hz
+	{
+		SendHeartbeat();
+		HeartbeatAccumulator = 0.0f;
+	}
 }
 
 

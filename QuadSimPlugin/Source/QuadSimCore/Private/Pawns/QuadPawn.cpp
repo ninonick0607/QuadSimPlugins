@@ -20,7 +20,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "SimulationCore/Public/Interfaces/ISimulatable.h" // Add this for interface check
-
+#include "Controllers/PX4Component.h"
 #define EPSILON 0.0001f
 // At the top of QuadPawn.cpp
 
@@ -157,6 +157,9 @@ AQuadPawn::AQuadPawn()
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
 	NavigationComponent = CreateDefaultSubobject<UNavigationComponent>(TEXT("NavigationComponent"));
 
+	// Create PX4 component
+	PX4Component = CreateDefaultSubobject<UPX4Component>(TEXT("PX4Component"));
+	
 }
 
 void AQuadPawn::BeginPlay()
@@ -289,6 +292,7 @@ void AQuadPawn::UpdateControl(float DeltaTime)
 	{	
 		QuadController->Update(DeltaTime);
 	}
+	UpdatePX4(DeltaTime);
 
 	if (NavigationComponent)
 	{
@@ -539,5 +543,16 @@ void AQuadPawn::SetExternalAttitudeCommand(float InRoll, float InPitch)
         
 		UE_LOG(LogTemp, Log, TEXT("QuadPawn: Passed external attitude to controller (Roll: %.2f, Pitch: %.2f)"), InRoll, InPitch);
 	}
+}
+
+void AQuadPawn::UpdatePX4(float FixedDeltaTime)
+{
+#ifndef EXCLUDE_PX4_COMPONENT
+	if (PX4Component && PX4Component->IsActive())
+	{
+		// Update PX4 state and send sensor data
+		PX4Component->SimulationUpdate(FixedDeltaTime);
+	}
+#endif
 }
 

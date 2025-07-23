@@ -19,7 +19,7 @@ class UQuadDroneController;
 class UImGuiUtil;
 class UThrusterComponent;
 class UQuadHUDWidget;
-
+class UPX4Component;
 // Enum to track camera state
 UENUM(BlueprintType)
 enum class ECameraMode : uint8
@@ -62,10 +62,11 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+    	void UpdatePX4(float FixedDeltaTime);
 
 	// --- Drone Components ---
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UStaticMeshComponent* DroneBody;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UStaticMeshComponent* DroneBody;
 
 	// --- Camera Components ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -99,10 +100,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TArray<UStaticMeshComponent*> Propellers;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    TArray<UThrusterComponent*> Thrusters;
- 	
-
+        UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+        TArray<UThrusterComponent*> Thrusters;
 
 	// --- Drone Configuration ---
 	UPROPERTY(EditDefaultsOnly, Category = "Drone Configuration")
@@ -145,12 +144,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Collision")
 	void ResetCollisionStatus();
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Navigation")
-    UNavigationComponent* NavigationComponent;
-
-    // Generate a figure-8 waypoint list around the pawn's current position
-    UFUNCTION(BlueprintCallable, Category = "Navigation")
-    TArray<FVector> GenerateFigureEightWaypoints() const;
+        UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Navigation")
+        UNavigationComponent* NavigationComponent;
+    
+        // Generate a figure-8 waypoint list around the pawn's current position
+        UFUNCTION(BlueprintCallable, Category = "Navigation")
+        TArray<FVector> GenerateFigureEightWaypoints() const;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Input")
 	FGamepadInputs GamepadInputs;
 	UFUNCTION(BlueprintCallable, Category = "ROS Control")
@@ -170,6 +169,8 @@ protected:
 	UPROPERTY()
 	UQuadHUDWidget* HUDWidgetInstance;
 	void UpdateHUD();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PX4")
+	UPX4Component* PX4Component;
 	
 
     UFUNCTION()
