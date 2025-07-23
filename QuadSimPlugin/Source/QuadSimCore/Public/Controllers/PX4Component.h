@@ -129,7 +129,8 @@ public:
 	bool bIsActive() const { return bUsePX4 && bConnectedToPX4; }
 	void SendLockstepData(uint64 StepNumber);
 	bool IsLockstepMode() const { return bUseLockstep; }
-	
+	void ProcessIncomingMAVLinkData();
+
 	// Frame-independent update for the communication thread
 	void ThreadSimulationStep();
 private:
@@ -192,7 +193,6 @@ private:
     void SetupUDPSockets();
     void CleanupSockets();
     void SendMAVLinkMessage(const uint8* MessageBuffer, uint16 MessageLength);
-    void ProcessIncomingMAVLinkData();
     void ParseMAVLinkData(const uint8* Data, int32 DataLength);
     void SendHILStateQuaternion();
     void SendHILSensor();

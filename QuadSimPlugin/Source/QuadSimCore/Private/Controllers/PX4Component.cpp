@@ -45,57 +45,42 @@ bool FPX4CommunicationThread::Init()
 uint32 FPX4CommunicationThread::Run()
 {
 	UE_LOG(LogPX4, Warning, TEXT("PX4 Communication thread started - running at %d Hz"), TARGET_FREQUENCY_HZ);
-    
+
+	// Precise timing for the 250Hz loop
 	double LastTime = FPlatformTime::Seconds();
-	double LastHeartbeatTime = FPlatformTime::Seconds();
-	int32 MessageCount = 0;
-	const double HeartbeatInterval = 0.5; // 2Hz heartbeat
-    
-	// Use high precision timing
-	const double TargetInterval = 1.0 / 250.0; // 4ms
-    
+	const double TargetInterval = 1.0 / static_cast<double>(TARGET_FREQUENCY_HZ); // 4ms
+
 	while (!bStopRequested)
 	{
 		double StartTime = FPlatformTime::Seconds();
-        
+
 		if (PX4Component && PX4Component->IsConnectedToPX4())
 		{
-			// Update state from main thread
+			// Update the drone's state from the main game thread
 			PX4Component->UpdateThreadSafeState();
+
+			// Handle the simulation step (sends HIL data, heartbeats, etc.)
+			PX4Component->ThreadSimulationStep();
             
-			// Send HIL data
-			PX4Component->SendHILDataFromThread();
-            
-			// Send heartbeat from thread too
-			if (StartTime - LastHeartbeatTime >= HeartbeatInterval)
-			{
-				PX4Component->SendHeartbeat();
-				LastHeartbeatTime = StartTime;
-			}
-            
-			MessageCount++;
-			if (MessageCount % 250 == 0) // Log every second
-			{
-				UE_LOG(LogPX4, VeryVerbose, TEXT("Thread: Sent %d messages, rate: %.1f Hz"), 
-					   MessageCount, MessageCount / (StartTime - LastTime));
-			}
+			// Process any data received from PX4
+			PX4Component->ProcessIncomingMAVLinkData();
 		}
-        
-		// Precise sleep to maintain 250Hz
+
+		// Precise sleep to maintain the target frequency (e.g., 250Hz)
 		double ElapsedTime = FPlatformTime::Seconds() - StartTime;
 		double SleepTime = TargetInterval - ElapsedTime;
-        
+
 		if (SleepTime > 0)
 		{
-			FPlatformProcess::Sleep(SleepTime);
+			FPlatformProcess::Sleep(static_cast<float>(SleepTime));
 		}
-		else if (MessageCount % 100 == 0)
+		else if (PX4Component && PX4Component->IsConnectedToPX4())
 		{
-			UE_LOG(LogPX4, Warning, TEXT("Communication thread falling behind! Took %.2fms, target: %.2fms"), 
-				   ElapsedTime * 1000.0, TargetInterval * 1000.0);
+			// Log if we are falling behind schedule
+			UE_LOG(LogPX4, Warning, TEXT("Communication thread fell behind schedule by %.2f ms"), -SleepTime * 1000.0);
 		}
 	}
-    
+
 	return 0;
 }
 
@@ -1405,46 +1390,40 @@ void UPX4Component::SetLockstepMode(bool bEnabled)
 
 void UPX4Component::ThreadSimulationStep()
 {
-	FScopeLock Lock(&LockstepMutex);
-	
-	// Check if enough time has passed for next lockstep update
-	double CurrentTime = FPlatformTime::Seconds();
-	if (CurrentTime - LastLockstepTime < LOCKSTEP_INTERVAL)
-	{
-		return; // Not time yet
-	}
-	
-	LastLockstepTime = CurrentTime;
-	
-	// Update state from drone
-	UpdateThreadSafeState();
-	
-	// Get current state
-	FScopeLock StateLock(&StateMutex);
-	if (bThreadSafeDataValid)
-	{
-		CurrentPosition = ThreadSafePosition;
-		CurrentVelocity = ThreadSafeVelocity;
-		CurrentRotation = ThreadSafeRotation;
-		CurrentAngularVelocity = ThreadSafeAngularVelocity;
-	}
-	
-	// Increment lockstep counter
-	LockstepCounter++;
+	// This function is now called directly from the communications thread's 250Hz loop.
+	// It is responsible for sending all periodic HIL data.
+
+	FScopeLock Lock(&StateMutex);
+	if (!bThreadSafeDataValid) return; // Don't send if we don't have fresh data
+
+	// --- Update local state from the thread-safe copies ---
+	CurrentPosition = ThreadSafePosition;
+	CurrentVelocity = ThreadSafeVelocity;
+	CurrentRotation = ThreadSafeRotation;
+	CurrentAngularVelocity = ThreadSafeAngularVelocity;
+    
+	// --- Increment Counters ---
+	// The timestamp is based on the lockstep counter, advancing by 4000us (4ms) each step.
+	LockstepCounter++; 
 	SimulationStepCounter++;
-	
-	// Send sensor data at 250Hz
+
+	// --- Send High-Frequency Data (250Hz) ---
+	// These must be sent on every single step.
 	SendHILSensor();
 	SendHILStateQuaternion();
-	
-	// Send GPS and RC at 50Hz
-	if (SimulationStepCounter % 5 == 0)
+
+	// --- Send Lower-Frequency Data ---
+	// Send GPS and RC inputs at 50Hz (every 5 steps).
+	if (SimulationStepCounter % 5 == 0) 
 	{
 		SendHILGPS();
 		SendHILRCInputs();
 	}
-	
-	// Process any incoming MAVLink data
-	ProcessIncomingMAVLinkData();
+    
+	// --- Send Heartbeat (2Hz) ---
+	// Send a heartbeat every 125 steps (250Hz / 2Hz = 125).
+	if (SimulationStepCounter % 125 == 0)
+	{
+		SendHeartbeat();
+	}
 }
-
