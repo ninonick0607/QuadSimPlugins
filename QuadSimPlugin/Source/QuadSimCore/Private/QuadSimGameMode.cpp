@@ -29,9 +29,8 @@ void AQuadSimGameMode::BeginPlay()
 		static const auto CVarMaxFPS = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS"));
 		if (CVarMaxFPS)
 		{
-			CVarMaxFPS->Set(0); // 0 = unlimited
+			CVarMaxFPS->Set(60); // 60 FPS for stable lockstep
 		}
-        
 		// Disable VSync
 		static const auto CVarVSync = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
 		if (CVarVSync)

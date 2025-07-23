@@ -11,6 +11,9 @@
 #include "HAL/RunnableThread.h"
 #include "HAL/ThreadSafeBool.h"
 #include "HAL/CriticalSection.h"
+
+#include <mavlink_types.h>
+
 #include "PX4Component.generated.h"
 
 // Forward declarations
@@ -184,7 +187,8 @@ private:
     void SendHILRCInputs();
     void SendHILActuatorControls();
     void SendBasicHILData();
-    
+	void SendMinimalTestSensor();
+
     // MAVLink Message Handlers
     void HandleActuatorOutputs(const uint8* MessageBuffer, uint16 MessageLength);
     void HandleHeartbeat(const uint8* MessageBuffer, uint16 MessageLength);
@@ -215,5 +219,8 @@ private:
 	uint64 GetSynchronizedTimestamp();
 
 	bool bUseLockstep = true;
-	uint64 LockstepCounter = 0;
+	uint64 LockstepCounter = 1;
+
+	mavlink_system_t mavlink_system = {1, 1}; // system_id = 1, component_id = 1
+
 };
