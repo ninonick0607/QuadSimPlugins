@@ -222,34 +222,43 @@ void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
     }
     
     // Send sensor data in lockstep mode
-    if (bTCPConnected && bUseLockstep)
-    {
-        // Log every 50 frames
-        if (LockstepCounter % 50 == 0)
-        {
-            UE_LOG(LogPX4, Warning, TEXT("Lockstep[%llu]: timestamp=%llu us, fps=%.1f"), 
-                   LockstepCounter, LockstepCounter * 4000, 1.0f / DeltaTime);
-        }
+	if (bTCPConnected && bUseLockstep)
+	{
+		// Log every 50 frames
+		if (LockstepCounter % 50 == 0)
+		{
+			UE_LOG(LogPX4, Warning, TEXT("Lockstep[%llu]: timestamp=%llu us, fps=%.1f"), 
+				   LockstepCounter, LockstepCounter * 4000, 1.0f / DeltaTime);
+		}
         
-        UpdateCurrentState();
+		UpdateCurrentState();
         
-        // Send all HIL messages
-        SendHILSensor();
-        SendHILStateQuaternion();
-        SendHILGPS();
-        SendHILRCInputs();
+		// CRITICAL: Send messages in the correct order
+		SendHILSensor();
         
-        // CRITICAL: Force TCP to send data immediately
-        // This is a platform-specific call, but it ensures data is sent
-        if (TCPClientSocket)
-        {
-            // Force the socket to send any buffered data
-            int32 BytesSent = 0;
-            TCPClientSocket->Send(nullptr, 0, BytesSent); // Empty send to flush
-        }
+		// Force TCP flush after HIL_SENSOR
+		if (TCPClientSocket)
+		{
+			int32 BytesSent = 0;
+			TCPClientSocket->Send(nullptr, 0, BytesSent);
+		}
         
-        LockstepCounter++;
-    }
+		// Small delay to ensure PX4 processes HIL_SENSOR first
+		FPlatformProcess::Sleep(0.001f); // 1ms
+        
+		SendHILStateQuaternion();
+		SendHILGPS();
+		SendHILRCInputs();
+        
+		// Force final flush
+		if (TCPClientSocket)
+		{
+			int32 BytesSent = 0;
+			TCPClientSocket->Send(nullptr, 0, BytesSent);
+		}
+        
+		LockstepCounter++;
+	}
     
     // Send heartbeat
     if (bTCPConnected && HeartbeatTimer >= (1.0f / HeartbeatRate))
@@ -273,6 +282,41 @@ void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
         }
     }
 }
+
+
+// if (bTCPConnected && bUseLockstep)
+// {
+// 	SendHeartbeat();
+// 	HeartbeatTimer = 0.0f;
+// 	// Log every 50 frames
+// 	if (LockstepCounter % 50 == 0)
+// 	{
+// 		UE_LOG(LogPX4, Warning, TEXT("Lockstep[%llu]: timestamp=%llu us, fps=%.1f"), 
+// 			   LockstepCounter, LockstepCounter * 4000, 1.0f / DeltaTime);
+// 	}
+//         
+// 	UpdateCurrentState();
+//         
+// 	// Send all HIL messages
+// 	SendHILSensor();
+// 	SendHILStateQuaternion();
+// 	SendHILGPS();
+// 	SendHILRCInputs();
+//         
+// 	// CRITICAL: Force TCP to send data immediately
+// 	// This is a platform-specific call, but it ensures data is sent
+// 	if (TCPClientSocket)
+// 	{
+// 		// Force the socket to send any buffered data
+// 		int32 BytesSent = 0;
+// 		TCPClientSocket->Send(nullptr, 0, BytesSent); // Empty send to flush
+// 	}
+//         
+// 	LockstepCounter++;
+// }
+//
+
+
 void UPX4Component::SetPX4Active(bool bActive)
 {
     if (bActive && !bUsePX4)
@@ -674,44 +718,47 @@ void UPX4Component::SendMAVLinkMessage(const uint8* MessageBuffer, uint16 Messag
                msgid, msgid, MessageLength, Count);
     }
     
-    // Try to send
-    int32 TotalBytesSent = 0;
-    const uint8* DataToSend = MessageBuffer;
-    int32 BytesRemaining = MessageLength;
+	int32 TotalBytesSent = 0;
+	const uint8* DataToSend = MessageBuffer;
+	int32 BytesRemaining = MessageLength;
     
-    // Set socket to blocking mode temporarily
-    TCPClientSocket->SetNonBlocking(false);
+	// Use non-blocking send
+	TCPClientSocket->SetNonBlocking(true);
     
-    while (BytesRemaining > 0)
-    {
-        int32 BytesSent = 0;
-        bool bSent = TCPClientSocket->Send(DataToSend + TotalBytesSent, BytesRemaining, BytesSent);
+	while (BytesRemaining > 0)
+	{
+		int32 BytesSent = 0;
+		bool bSent = TCPClientSocket->Send(DataToSend + TotalBytesSent, BytesRemaining, BytesSent);
         
-        if (!bSent || BytesSent <= 0)
-        {
-            ConsecutiveSendFailures++;
+		if (!bSent || BytesSent <= 0)
+		{
+			// Check if it's just EWOULDBLOCK (temporary)
+			ESocketErrors LastError = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetLastErrorCode();
+			if (LastError == SE_EWOULDBLOCK)
+			{
+				// Socket buffer full, wait a bit
+				FPlatformProcess::Sleep(0.0001f);
+				continue;
+			}
             
-            // Get socket error for debugging
-            ESocketErrors LastError = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetLastErrorCode();
-            UE_LOG(LogPX4, Error, TEXT("Failed to send MAVLink message ID=%d, error=%d, failures=%d"), 
-                   msgid, (int32)LastError, ConsecutiveSendFailures);
-            
-            if (ConsecutiveSendFailures > 10)
-            {
-                UE_LOG(LogPX4, Error, TEXT("Too many send failures - closing connection"));
-                bTCPConnected = false;
-                bConnectedToPX4 = false;
-            }
-            break;
-        }
+			ConsecutiveSendFailures++;
+			UE_LOG(LogPX4, Error, TEXT("Failed to send MAVLink message ID=%d, error=%s, failures=%d"), 
+				   msgid, ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetSocketError(LastError), 
+				   ConsecutiveSendFailures);
+			break;
+		}
         
-        TotalBytesSent += BytesSent;
-        BytesRemaining -= BytesSent;
-        ConsecutiveSendFailures = 0;
-    }
+		TotalBytesSent += BytesSent;
+		BytesRemaining -= BytesSent;
+		ConsecutiveSendFailures = 0;
+	}
     
-    // Restore non-blocking mode
-    TCPClientSocket->SetNonBlocking(true);
+	// Log successful sends for debugging
+	if (BytesRemaining == 0 && (MessageCounts[msgid] <= 3))
+	{
+		UE_LOG(LogPX4, Warning, TEXT("Successfully sent %d bytes for msg ID=%d"), 
+			   TotalBytesSent, msgid);
+	}
 }
 
 // Switch to non-blocking recv with immediate data sending:
@@ -835,23 +882,23 @@ void UPX4Component::SendHeartbeat()
 	mavlink_message_t msg;
 	mavlink_heartbeat_t heartbeat;
     
-	heartbeat.type = MAV_TYPE_GCS; // Simulator acts as GCS
+	heartbeat.type = MAV_TYPE_GCS; // Or try MAV_TYPE_ONBOARD_CONTROLLER
 	heartbeat.autopilot = MAV_AUTOPILOT_INVALID;
 	heartbeat.base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | 
 						 MAV_MODE_FLAG_HIL_ENABLED |
-						 MAV_MODE_FLAG_SAFETY_ARMED; // Add ARMED flag
+						 MAV_MODE_FLAG_SAFETY_ARMED |
+						 MAV_MODE_FLAG_TEST_ENABLED; // Add test mode
 	heartbeat.custom_mode = 0;
 	heartbeat.system_status = MAV_STATE_ACTIVE;
-	heartbeat.mavlink_version = MAVLINK_VERSION; // Should be 3 for MAVLink 2.0
+	heartbeat.mavlink_version = 3; // MAVLink 2.0
     
-	// Use MAVLink 2.0 if available
-	mavlink_msg_heartbeat_encode_chan(SystemID, ComponentID, MAVLINK_COMM_0, &msg, &heartbeat);
+	mavlink_msg_heartbeat_encode(SystemID, ComponentID, &msg, &heartbeat);
     
 	uint8 buffer[MAVLINK_MAX_PACKET_LEN];
 	uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
     
-	UE_LOG(LogPX4, VeryVerbose, TEXT("Sending heartbeat: ver=%d, len=%d"), 
-		   MAVLINK_VERSION, len);
+	UE_LOG(LogPX4, Warning, TEXT("Sending heartbeat: type=%d, base_mode=0x%X, len=%d"), 
+		   heartbeat.type, heartbeat.base_mode, len);
     
 	SendMAVLinkMessage(buffer, len);
 }
