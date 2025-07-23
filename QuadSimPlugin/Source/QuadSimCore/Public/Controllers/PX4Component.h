@@ -95,6 +95,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PX4 Control")
     float HeartbeatRate = 2.0f; // Hz - Send heartbeat every 0.5 seconds
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PX4 Control", meta = (DisplayName = "Use Lockstep Mode"))
+    bool bUseLockstepMode = true;
 
     // Status
     UPROPERTY(BlueprintReadOnly, Category = "PX4 Status")
@@ -112,6 +115,10 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "PX4")
     void DisconnectFromPX4();
+    
+    // Lockstep control
+    UFUNCTION(BlueprintCallable, Category = "PX4")
+    void SetLockstepMode(bool bEnabled);
 
     // Thread-safe methods (called by communication thread)
     void SendHILDataFromThread();
@@ -119,7 +126,12 @@ public:
     bool IsConnectedToPX4() const;
     void SendHeartbeat();
 	void SimulationUpdate(float FixedDeltaTime);
-
+	bool bIsActive() const { return bUsePX4 && bConnectedToPX4; }
+	void SendLockstepData(uint64 StepNumber);
+	bool IsLockstepMode() const { return bUseLockstep; }
+	
+	// Frame-independent update for the communication thread
+	void ThreadSimulationStep();
 private:
     // TCP Communication (for initial handshake)
     FSocket* TCPListenSocket;  // Server socket that listens for connections
@@ -219,5 +231,10 @@ private:
 
 	mavlink_system_t mavlink_system = {1, 1}; // system_id = 1, component_id = 1
 	uint64 SimulationStepCounter = 0;
+	
+	// Thread-safe lockstep timing
+	FCriticalSection LockstepMutex;
+	double LastLockstepTime = 0.0;
+	const double LOCKSTEP_INTERVAL = 0.004; // 4ms = 250Hz
 
 };

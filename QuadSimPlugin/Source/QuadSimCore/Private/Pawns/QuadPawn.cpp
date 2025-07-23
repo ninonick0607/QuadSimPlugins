@@ -292,8 +292,6 @@ void AQuadPawn::UpdateControl(float DeltaTime)
 	{	
 		QuadController->Update(DeltaTime);
 	}
-	UpdatePX4(DeltaTime);
-
 	if (NavigationComponent)
 	{
 		NavigationComponent->UpdateNavigation(GetActorLocation());
@@ -544,15 +542,3 @@ void AQuadPawn::SetExternalAttitudeCommand(float InRoll, float InPitch)
 		UE_LOG(LogTemp, Log, TEXT("QuadPawn: Passed external attitude to controller (Roll: %.2f, Pitch: %.2f)"), InRoll, InPitch);
 	}
 }
-
-void AQuadPawn::UpdatePX4(float FixedDeltaTime)
-{
-#ifndef EXCLUDE_PX4_COMPONENT
-	if (PX4Component && PX4Component->IsActive())
-	{
-		// Update PX4 state and send sensor data
-		PX4Component->SimulationUpdate(FixedDeltaTime);
-	}
-#endif
-}
-

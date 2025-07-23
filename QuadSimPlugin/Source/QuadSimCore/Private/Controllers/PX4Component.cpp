@@ -114,7 +114,14 @@ void FPX4CommunicationThread::StartThread()
     if (!Thread && !bStopRequested)
     {
         bStopRequested = false;
-    	Thread = FRunnableThread::Create(this, TEXT("PX4CommunicationThread"), 0, TPri_TimeCritical);    }
+        // Create thread with highest priority and increased stack size for real-time performance
+        Thread = FRunnableThread::Create(this, TEXT("PX4CommunicationThread"), 1024 * 1024, TPri_TimeCritical);
+        
+        if (Thread)
+        {
+            UE_LOG(LogPX4, Warning, TEXT("PX4 communication thread created with TimeCritical priority"));
+        }
+    }
 }
 
 void FPX4CommunicationThread::StopThread()
@@ -153,14 +160,21 @@ UPX4Component::UPX4Component()
 
 	mavlink_system.sysid = SystemID;
 	mavlink_system.compid = ComponentID;
+
+	// Use editor property for lockstep mode
+	bUseLockstep = bUseLockstepMode;
+	LockstepCounter = 1;
 }
 
 void UPX4Component::BeginPlay()
 {
     Super::BeginPlay();
-	UE_LOG(LogPX4, Warning, TEXT("PX4Component BeginPlay - SystemID=%d, ComponentID=%d"), 
-	   SystemID, ComponentID);
-    UE_LOG(LogPX4, Warning, TEXT("PX4Component BeginPlay started"));
+    
+    // Sync lockstep mode from editor property
+    bUseLockstep = bUseLockstepMode;
+    
+	UE_LOG(LogPX4, Warning, TEXT("PX4Component BeginPlay - SystemID=%d, ComponentID=%d, Lockstep=%s"), 
+	   SystemID, ComponentID, bUseLockstep ? TEXT("Enabled") : TEXT("Disabled"));
     
     // Try to find the QuadDroneController
     QuadController = FindQuadController();
@@ -212,6 +226,7 @@ void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 
 }
 
+// In PX4Component.cpp - SimulationUpdate
 void UPX4Component::SimulationUpdate(float FixedDeltaTime)
 {
 	if (!bTCPConnected || !bUseLockstep) return;
@@ -220,7 +235,6 @@ void UPX4Component::SimulationUpdate(float FixedDeltaTime)
 	UpdateCurrentState();
     
 	// Calculate how many sensor updates we need to send
-	// If FixedDeltaTime is 0.01 (100Hz) and we need 250Hz, send 2-3 updates
 	const float SensorUpdateInterval = 0.004f; // 250Hz = 4ms
 	int32 UpdatesNeeded = FMath::RoundToInt(FixedDeltaTime / SensorUpdateInterval);
 	UpdatesNeeded = FMath::Max(1, UpdatesNeeded);
@@ -334,17 +348,17 @@ void UPX4Component::ConnectToPX4()
 	if (bUseLockstep)
 	{
 		UE_LOG(LogPX4, Warning, TEXT("Using LOCKSTEP mode - PX4 will sync with Unreal frame rate"));
-		// Don't start the communication thread
 	}
-	else
-	{
-		// Start thread for real-time mode
-		if (!CommunicationThread)
-		{
-			CommunicationThread = new FPX4CommunicationThread(this);
-			CommunicationThread->StartThread();
-		}
-	}
+    if (!CommunicationThread)
+    {
+        CommunicationThread = new FPX4CommunicationThread(this);
+        CommunicationThread->StartThread();
+        UE_LOG(LogPX4, Warning, TEXT("Started PX4 communication thread:"));
+        UE_LOG(LogPX4, Warning, TEXT("  - Mode: %s"), bUseLockstep ? TEXT("LOCKSTEP") : TEXT("REALTIME"));
+        UE_LOG(LogPX4, Warning, TEXT("  - Frequency: 250Hz (4ms interval)"));
+        UE_LOG(LogPX4, Warning, TEXT("  - Priority: TimeCritical"));
+        UE_LOG(LogPX4, Warning, TEXT("  - Frame-independent: YES"));
+    }
 }
 
 void UPX4Component::DisconnectFromPX4()
@@ -407,6 +421,12 @@ void UPX4Component::UpdateThreadSafeState()
 
 void UPX4Component::SendHILDataFromThread()
 {
+	// In lockstep mode, this is handled by ThreadSimulationStep
+	if (bUseLockstep)
+	{
+		return;
+	}
+	
 	FScopeLock Lock(&StateMutex);
     
 	if (!bThreadSafeDataValid) 
@@ -1043,6 +1063,12 @@ void UPX4Component::SendHILSensor()
     }
     
     SendMAVLinkMessage(buffer, len);
+	static int32 SensorMsgCount = 0;
+	if (++SensorMsgCount <= 5 || (SensorMsgCount % 50 == 0))
+	{
+		UE_LOG(LogPX4, Warning, TEXT("Sending HIL_SENSOR #%d: time=%llu us, fields=0x%X"), 
+			   SensorMsgCount, hil_sensor.time_usec, hil_sensor.fields_updated);
+	}
 }
 
 
@@ -1349,5 +1375,76 @@ void UPX4Component::SendMinimalTestSensor()
 	}
     
 	SendMAVLinkMessage(buffer, len);
+}
+
+void UPX4Component::SetLockstepMode(bool bEnabled)
+{
+	FScopeLock Lock(&LockstepMutex);
+	
+	if (bUseLockstep != bEnabled)
+	{
+		bUseLockstep = bEnabled;
+		
+		UE_LOG(LogPX4, Warning, TEXT("PX4 lockstep mode %s"), bEnabled ? TEXT("enabled") : TEXT("disabled"));
+		
+		// Reset timing when switching modes
+		LastLockstepTime = 0.0;
+		LockstepCounter = 1;
+		SimulationStepCounter = 0;
+		
+		if (bEnabled)
+		{
+			UE_LOG(LogPX4, Warning, TEXT("Lockstep mode: PX4 will run at fixed 250Hz independent of frame rate"));
+		}
+		else
+		{
+			UE_LOG(LogPX4, Warning, TEXT("Realtime mode: PX4 will run at 250Hz with best-effort timing"));
+		}
+	}
+}
+
+void UPX4Component::ThreadSimulationStep()
+{
+	FScopeLock Lock(&LockstepMutex);
+	
+	// Check if enough time has passed for next lockstep update
+	double CurrentTime = FPlatformTime::Seconds();
+	if (CurrentTime - LastLockstepTime < LOCKSTEP_INTERVAL)
+	{
+		return; // Not time yet
+	}
+	
+	LastLockstepTime = CurrentTime;
+	
+	// Update state from drone
+	UpdateThreadSafeState();
+	
+	// Get current state
+	FScopeLock StateLock(&StateMutex);
+	if (bThreadSafeDataValid)
+	{
+		CurrentPosition = ThreadSafePosition;
+		CurrentVelocity = ThreadSafeVelocity;
+		CurrentRotation = ThreadSafeRotation;
+		CurrentAngularVelocity = ThreadSafeAngularVelocity;
+	}
+	
+	// Increment lockstep counter
+	LockstepCounter++;
+	SimulationStepCounter++;
+	
+	// Send sensor data at 250Hz
+	SendHILSensor();
+	SendHILStateQuaternion();
+	
+	// Send GPS and RC at 50Hz
+	if (SimulationStepCounter % 5 == 0)
+	{
+		SendHILGPS();
+		SendHILRCInputs();
+	}
+	
+	// Process any incoming MAVLink data
+	ProcessIncomingMAVLinkData();
 }
 

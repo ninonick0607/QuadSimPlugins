@@ -62,7 +62,6 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
-    	void UpdatePX4(float FixedDeltaTime);
 
 	// --- Drone Components ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

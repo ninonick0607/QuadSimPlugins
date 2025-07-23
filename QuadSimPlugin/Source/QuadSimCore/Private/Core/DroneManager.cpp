@@ -275,7 +275,6 @@ void ADroneManager::SimulationUpdate_Implementation(float FixedDeltaTime)
             
 			// Call UpdateControl directly on the pawn with fixed timestep
 			Drone->UpdateControl(FixedDeltaTime);
-            
 			// Clear flag
 			Drone->bIsSimulationControlled = false;
 		}
