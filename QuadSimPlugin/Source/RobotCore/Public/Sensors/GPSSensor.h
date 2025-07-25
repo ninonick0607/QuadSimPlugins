@@ -17,13 +17,16 @@ public:
 	UGPSSensor();
 	float SensorNoise();
 	void UpdateSensor(float DeltaTime, bool bNoise );
-	FVector ReadCurrentGPS();
-	
-	FVector GetLastGPS(){return LastGPS;}
+	FVector SampleRawGPS() const;
+	FVector GetLastGPS() const { return LastGPS; }
 	
 private:
-	float UpdateRate = 250.0f;
-	float AccumalatedTime = 0.0f;
+	float UpdateRate = 10.0f;          
+	float AccumulatedTime = 0.0f;      
+
+	float LatLonNoiseStdDev = 20.f;    
+	float AltNoiseStdDev    = 40.f;    
+
 	FVector LastGPS;
 	
 };

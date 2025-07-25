@@ -15,6 +15,7 @@
 #include "QuadPawn.generated.h"
 
 class UGPSSensor;
+class UIMUSensor;
 // Forward Declarations
 class UQuadDroneController;
 class UImGuiUtil;
@@ -67,10 +68,13 @@ public:
 	// --- Drone Components ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* DroneBody;
-
+	// Sensor Components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UGPSSensor* GPSSensor;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UIMUSensor* IMUSensor;	
+
 	// --- Camera Components ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	USpringArmComponent* SpringArm;

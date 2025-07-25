@@ -22,6 +22,7 @@
 #include "SimulationCore/Public/Interfaces/ISimulatable.h" // Add this for interface check
 #include "Controllers/PX4Component.h"
 #include "Sensors/GPSSensor.h"
+#include "Sensors/IMUSensor.h"
 #define EPSILON 0.0001f
 // At the top of QuadPawn.cpp
 
@@ -102,6 +103,10 @@ AQuadPawn::AQuadPawn()
 	GPSSensor = CreateDefaultSubobject<UGPSSensor>(TEXT("GPSSensor"));
 	GPSSensor->SetupAttachment(DroneBody);
 	GPSSensor->SetActive(true);
+
+	IMUSensor = CreateDefaultSubobject<UIMUSensor>(TEXT("IMUSensor"));
+	IMUSensor->SetupAttachment(DroneBody);
+	IMUSensor->SetActive(true);
 	
 	CameraFPV = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraFPV"));
 	CameraFPV->SetupAttachment(DroneBody,TEXT("FPVCam"));
@@ -208,6 +213,10 @@ void AQuadPawn::BeginPlay()
 		QuadController = NewObject<UQuadDroneController>(this, TEXT("QuadDroneController"));
 		QuadController->Initialize(this);
 	}
+	if (IMUSensor)
+	{
+		IMUSensor->Initialize();  
+	}
 	UE_LOG(LogTemp, Warning, TEXT("Debug SetController: QuadController=%p"), QuadController);
 	
 	
@@ -298,6 +307,7 @@ void AQuadPawn::UpdateControl(float DeltaTime)
 		QuadController->Update(DeltaTime);
 	}
 	GPSSensor->UpdateSensor(DeltaTime,true);
+	IMUSensor->UpdateSensor(DeltaTime,true);
 	if (NavigationComponent)
 	{
 		NavigationComponent->UpdateNavigation(GetActorLocation());

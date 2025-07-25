@@ -1,65 +1,63 @@
 #include "Sensors/GPSSensor.h"
 
+// EVERYTHING IN CM 
+
+UGPSSensor::UGPSSensor()
+{
+
+	PrimaryComponentTick.bCanEverTick = false;
+	LastGPS = FVector::ZeroVector;
+}
+
+FVector UGPSSensor::SampleRawGPS() const
+{
+	return GetComponentLocation();
+}
+
+void UGPSSensor::UpdateSensor(float DeltaTime, bool bNoise)
+{
+	AccumulatedTime += DeltaTime;
+	const float Period = 1.f / UpdateRate;
+
+	if (AccumulatedTime < Period)
+		return;
+	AccumulatedTime -= Period;
+
+	FVector Pos = SampleRawGPS();
+
+	if (bNoise)
+	{
+		Pos.X += SensorNoise() * LatLonNoiseStdDev;
+		Pos.Y += SensorNoise() * LatLonNoiseStdDev;
+		Pos.Z += SensorNoise() * AltNoiseStdDev;
+	}
+	LastGPS = Pos;
+}
 
 float UGPSSensor::SensorNoise()
 {
-	static float V1, V2, S;
+	// Box–Muller
 	static bool bPhase = true;
+	static float V1, V2, S;
 	float X;
 
-	if (bPhase) 
+	if (bPhase)
 	{
 		do {
-			float U1 = FMath::FRand(); 
+			float U1 = FMath::FRand();
 			float U2 = FMath::FRand();
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || FMath::Abs(S) < 1e-8f);
+			V1 = 2.f * U1 - 1.f;
+			V2 = 2.f * U2 - 1.f;
+			S  = V1 * V1 + V2 * V2;
+		} while (S >= 1.f || S < KINDA_SMALL_NUMBER);
 
-		X = V1 * FMath::Sqrt(-2.0f * FMath::Loge(S) / S);
-	} 
-	else 
+		X = V1 * FMath::Sqrt(-2.f * FMath::Loge(S) / S);
+	}
+	else
 	{
-		X = V2 * FMath::Sqrt(-2.0f * FMath::Loge(S) / S);
+		X = V2 * FMath::Sqrt(-2.f * FMath::Loge(S) / S);
 	}
 
 	bPhase = !bPhase;
 	return X;
 }
-
-UGPSSensor::UGPSSensor()
-{
-
-	PrimaryComponentTick.bCanEverTick = true;
-	LastGPS = FVector::ZeroVector;
-}
-
-FVector UGPSSensor::ReadCurrentGPS()
-{
-	FVector CurrentGPS = GetComponentLocation();
-	return CurrentGPS;
-}
-
-void UGPSSensor::UpdateSensor(float DeltaTime, bool bNoise )
-{
-	AccumalatedTime += DeltaTime;
-	float UpdatePeriod = 1.0f / UpdateRate;
-
-	if (AccumalatedTime >= UpdatePeriod)
-	{
-		AccumalatedTime -= UpdatePeriod;
-		LastGPS = ReadCurrentGPS();
-		
-		float LatLonNoiseMeters = 5.f; 
-		float AltNoiseMeters = 10.f;
-
-		if (bNoise)
-		{
-			LastGPS.X += SensorNoise()*LatLonNoiseMeters;
-			LastGPS.Y += SensorNoise()*LatLonNoiseMeters;
-			LastGPS.Z += SensorNoise()*AltNoiseMeters;
-		}
-	}
-}
-
