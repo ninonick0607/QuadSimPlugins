@@ -202,13 +202,23 @@ void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 		AcceptTCPConnection();
 	}
     
-	// Process incoming data
-	if (TCPClientSocket)
+	// Process queued motor commands from the communication thread
+	if (bConnectedToPX4 && QuadController)
 	{
-		ProcessIncomingMAVLinkData();
+		FMotorCommand Command;
+		while (PendingMotorCommands.Dequeue(Command))
+		{
+			// Now we're safely on the game thread
+			QuadController->ApplyMotorCommands(Command.Commands);
+            
+			// Optional: log if commands are getting backed up
+			if (!PendingMotorCommands.IsEmpty())
+			{
+				UE_LOG(LogPX4, Warning, TEXT("Motor command queue depth: %d"), 
+					   PendingMotorCommands.IsEmpty() ? 0 : 1);
+			}
+		}
 	}
-    
-
 }
 
 // In PX4Component.cpp - SimulationUpdate
@@ -992,7 +1002,7 @@ void UPX4Component::SendHILSensor()
     hil_sensor.zmag = MagBody.Z;
     
     // Barometer - sea level pressure
-    float AltitudeMeters = -CurrentPosition.Z / 100.0f; // Convert cm to m
+	float AltitudeMeters = (-CurrentPosition.Z / 100.0f) + 5.0f; // Add 5m offset to ensure positive altitude
     float SeaLevelPressure = 101325.0f; // Pa
     float Temperature = 15.0f; // Celsius
     
@@ -1073,9 +1083,9 @@ void UPX4Component::SendHILGPS()
 	hil_gps.lat = 473977372; // Zurich * 1e7
 	hil_gps.lon = 85455939;
     
-	float alt_m = -CurrentPosition.Z / 100.0f; // Convert to meters
-	hil_gps.alt = (int32_t)((500.0f + alt_m) * 1000); // mm above sea level
-    
+	float alt_m = (-CurrentPosition.Z / 100.0f) + 5.0f; // Same offset as barometer
+	hil_gps.alt = (int32_t)((500.0f + alt_m) * 1000);
+	
 	// GPS accuracy
 	hil_gps.eph = 100; // HDOP * 100
 	hil_gps.epv = 100; // VDOP * 100
@@ -1149,50 +1159,39 @@ void UPX4Component::SendBasicHILData()
 
 void UPX4Component::HandleActuatorOutputs(const uint8* MessageBuffer, uint16 MessageLength)
 {
-    if (!bConnectedToPX4 || !bTCPConnected)
-    {
-        return;
-    }
-	if (!IsInGameThread())
+	if (!bConnectedToPX4 || !bTCPConnected)
 	{
-		UE_LOG(LogPX4, Error, TEXT("HandleActuatorOutputs called from wrong thread!"));
 		return;
 	}
-    mavlink_message_t* msg = (mavlink_message_t*)MessageBuffer;
-    mavlink_hil_actuator_controls_t actuator_controls;
-    mavlink_msg_hil_actuator_controls_decode(msg, &actuator_controls);
-	if (!QuadController || !GetOwner() || !GetOwner()->GetWorld())
+    
+	mavlink_message_t* msg = (mavlink_message_t*)MessageBuffer;
+	mavlink_hil_actuator_controls_t actuator_controls;
+	mavlink_msg_hil_actuator_controls_decode(msg, &actuator_controls);
+    
+	// Convert actuator controls to motor commands
+	FMotorCommand NewCommand;
+	NewCommand.Commands.SetNum(4);
+	NewCommand.Timestamp = FPlatformTime::Seconds();
+    
+	// PX4 sends normalized values (-1 to 1), convert to (0 to 1) for thrust
+	for (int32 i = 0; i < 4 && i < 16; i++)
 	{
-		UE_LOG(LogPX4, Warning, TEXT("Cannot apply actuator commands - invalid state"));
-		return;
+		// Clamp and normalize from [-1,1] to [0,1]
+		float NormalizedValue = FMath::Clamp((actuator_controls.controls[i] + 1.0f) * 0.5f, 0.0f, 1.0f);
+		NewCommand.Commands[i] = NormalizedValue;
 	}
-    // Convert actuator controls to motor commands
-    TArray<float> MotorCommands;
-    MotorCommands.SetNum(4);
     
-    // PX4 sends normalized values (-1 to 1), convert to (0 to 1) for thrust
-    for (int32 i = 0; i < 4 && i < 16; i++)
-    {
-        // Clamp and normalize from [-1,1] to [0,1]
-        float NormalizedValue = FMath::Clamp((actuator_controls.controls[i] + 1.0f) * 0.5f, 0.0f, 1.0f);
-        MotorCommands[i] = NormalizedValue;
-    }
+	// Queue the command for game thread processing
+	PendingMotorCommands.Enqueue(NewCommand);
     
-    // Apply motor commands to QuadController
-    if (QuadController)
-    {
-        QuadController->ApplyMotorCommands(MotorCommands);
-    }
-    
-    static int32 ActuatorCount = 0;
-    if (++ActuatorCount % 100 == 0) // Log every 100th message
-    {
-        UE_LOG(LogPX4, Log, TEXT("Received motor commands #%d: M1=%.3f, M2=%.3f, M3=%.3f, M4=%.3f"), 
-               ActuatorCount, MotorCommands[0], MotorCommands[1], MotorCommands[2], MotorCommands[3]);
-    }
-
+	static int32 ActuatorCount = 0;
+	if (++ActuatorCount % 100 == 0) // Log every 100th message
+	{
+		UE_LOG(LogPX4, Log, TEXT("Queued motor commands #%d: M1=%.3f, M2=%.3f, M3=%.3f, M4=%.3f"), 
+			   ActuatorCount, NewCommand.Commands[0], NewCommand.Commands[1], 
+			   NewCommand.Commands[2], NewCommand.Commands[3]);
+	}
 }
-
 void UPX4Component::HandleHeartbeat(const uint8* MessageBuffer, uint16 MessageLength)
 {
 	mavlink_message_t* msg = (mavlink_message_t*)MessageBuffer;
@@ -1314,62 +1313,6 @@ void UPX4Component::UpdateCurrentState()
 			CurrentAngularVelocity = FVector::ZeroVector;
 		}
 	}
-}
-
-void UPX4Component::SendMinimalTestSensor()
-{
-	mavlink_message_t msg;
-	mavlink_hil_sensor_t hil_sensor;
-    
-	// Zero out the entire structure
-	memset(&hil_sensor, 0, sizeof(hil_sensor));
-    
-	// Set minimal required fields
-	hil_sensor.time_usec = LockstepCounter * 4000;
-    
-	// Basic IMU data (drone at rest)
-	hil_sensor.xacc = 0.0f;
-	hil_sensor.yacc = 0.0f; 
-	hil_sensor.zacc = -9.81f; // Gravity
-    
-	hil_sensor.xgyro = 0.0f;
-	hil_sensor.ygyro = 0.0f;
-	hil_sensor.zgyro = 0.0f;
-    
-	// Basic magnetometer (earth field)
-	hil_sensor.xmag = 0.2f;
-	hil_sensor.ymag = 0.0f;
-	hil_sensor.zmag = 0.4f;
-    
-	// Basic barometer (sea level)
-	hil_sensor.abs_pressure = 1013.25f; // mbar at sea level
-	hil_sensor.pressure_alt = 0.0f;
-	hil_sensor.temperature = 20.0f;
-    
-	// CRITICAL: Set ALL the required fields in fields_updated
-	hil_sensor.fields_updated = 0x1FFF; // All fields valid (bits 0-12)
-    
-	if (bUseLockstep)
-	{
-		hil_sensor.fields_updated |= (1 << 31); // Set lockstep flag
-	}
-    
-	hil_sensor.id = 0;
-    
-	// Encode and send
-	mavlink_msg_hil_sensor_encode_chan(SystemID, ComponentID, MAVLINK_COMM_0, &msg, &hil_sensor);
-    
-	uint8 buffer[MAVLINK_MAX_PACKET_LEN];
-	uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
-    
-	static int32 TestCounter = 0;
-	if (++TestCounter % 50 == 0)
-	{
-		UE_LOG(LogPX4, Warning, TEXT("Sending test HIL_SENSOR: time=%llu, fields=0x%X, len=%d"), 
-			   hil_sensor.time_usec, hil_sensor.fields_updated, len);
-	}
-    
-	SendMAVLinkMessage(buffer, len);
 }
 
 void UPX4Component::SetLockstepMode(bool bEnabled)

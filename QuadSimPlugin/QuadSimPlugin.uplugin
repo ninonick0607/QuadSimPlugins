@@ -19,6 +19,11 @@
       "Name": "SimulationCore",
       "Type": "Runtime",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "RobotCore",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
     }
   ],
 

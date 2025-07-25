@@ -12,6 +12,7 @@
 #include "Misc/DateTime.h"
 #include "Core/DroneManager.h"
 #include "Interfaces/IPluginManager.h"
+#include "Sensors/GPSSensor.h"
 
 UImGuiUtil::UImGuiUtil()
 	: DronePawn(nullptr)
@@ -58,7 +59,7 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, float deltaTime)
     TArray<float>& ThrustsVal = DronePawn->QuadController->Thrusts;
     FVector currentVelocity = DronePawn->QuadController->GetCurrentLocalVelocity();
     FVector currentAngularVelocity = DronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
-    FVector currLoc = DronePawn->GetActorLocation();
+    FVector currLoc = DronePawn->GPSSensor->GetLastGPS()/100.f;
     FRotator currentRotation = DronePawn->GetActorRotation();
     
     double desiredRollAngle = DronePawn->QuadController->GetDesiredRoll();

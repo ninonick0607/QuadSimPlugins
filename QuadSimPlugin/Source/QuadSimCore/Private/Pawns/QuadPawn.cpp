@@ -21,6 +21,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "SimulationCore/Public/Interfaces/ISimulatable.h" // Add this for interface check
 #include "Controllers/PX4Component.h"
+#include "Sensors/GPSSensor.h"
 #define EPSILON 0.0001f
 // At the top of QuadPawn.cpp
 
@@ -96,6 +97,11 @@ AQuadPawn::AQuadPawn()
     DroneBody->SetNotifyRigidBodyCollision(true);
     DroneBody->SetGenerateOverlapEvents(true);
     DroneBody->SetCollisionProfileName(UCollisionProfile::PhysicsActor_ProfileName);
+
+	// SENSORS
+	GPSSensor = CreateDefaultSubobject<UGPSSensor>(TEXT("GPSSensor"));
+	GPSSensor->SetupAttachment(DroneBody);
+	GPSSensor->SetActive(true);
 	
 	CameraFPV = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraFPV"));
 	CameraFPV->SetupAttachment(DroneBody,TEXT("FPVCam"));
@@ -115,8 +121,7 @@ AQuadPawn::AQuadPawn()
 	
 	CameraGroundTrack = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraGroundTrack"));
 	CameraGroundTrack->bAutoActivate = false;
-
-
+	
 	// Third-Person Capture (attaches to the spring arm like the main TP camera)
 	TPCaptureComponent = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("TPCaptureComponent"));
 	TPCaptureComponent->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
@@ -292,6 +297,7 @@ void AQuadPawn::UpdateControl(float DeltaTime)
 	{	
 		QuadController->Update(DeltaTime);
 	}
+	GPSSensor->UpdateSensor(DeltaTime,true);
 	if (NavigationComponent)
 	{
 		NavigationComponent->UpdateNavigation(GetActorLocation());

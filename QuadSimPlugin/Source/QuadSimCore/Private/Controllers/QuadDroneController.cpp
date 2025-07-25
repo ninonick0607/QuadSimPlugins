@@ -4,6 +4,8 @@
 #include "Pawns/QuadPawn.h"
 #include "DrawDebugHelpers.h"
 #include "imgui.h"
+#include <random>
+
 #ifndef EXCLUDE_PX4_COMPONENT
 #include "Controllers/PX4Component.h"
 #endif
@@ -12,6 +14,7 @@
 #include "Core/DroneManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnrealMathUtility.h"
+#include "Sensors/GPSSensor.h"
 
 
 // ---------------------- Constructor ------------------------
@@ -165,7 +168,6 @@ void UQuadDroneController::Update(double a_deltaTime)
     		SetUseExternalController(currentPX4State);
            
     		// If we have a PX4Component, activate/deactivate it
-#ifndef EXCLUDE_PX4_COMPONENT
     		if (dronePawn)
     		{
     			if (auto* PX4Comp = dronePawn->FindComponentByClass<UPX4Component>())
@@ -173,7 +175,6 @@ void UQuadDroneController::Update(double a_deltaTime)
     				PX4Comp->SetPX4Active(currentPX4State);
     			}
     		}
-#endif
     	}
        
     	ImGui::Separator();
@@ -322,7 +323,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	if (!CurrentSet || !dronePawn) return;
 	
 	/* ───── World-space state ───── */
-	const FVector  currPos = dronePawn->GetActorLocation();     
+	const FVector  currPos = dronePawn->GPSSensor->GetLastGPS();     
 	const FVector  currVel = dronePawn->GetVelocity();          
 	const FRotator currRot = dronePawn->GetActorRotation();     
 	const FRotator yawOnlyRot(0.f, currRot.Yaw, 0.f);  
@@ -333,10 +334,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 
 	if (bUseExternalController)
 	{
-		// When using external controller (PX4), we don't run our cascade
-		// External controller will send motor commands via ApplyMotorCommands()
-        
-		// Still update navigation and debug visuals
+
 		if (UNavigationComponent* Nav = dronePawn->FindComponentByClass<UNavigationComponent>())
 		{
 			Nav->UpdateNavigation(currPos);

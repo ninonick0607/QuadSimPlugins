@@ -14,6 +14,7 @@
 #include "SimulationCore/Public/Interfaces/ISimulatable.h"
 #include "QuadPawn.generated.h"
 
+class UGPSSensor;
 // Forward Declarations
 class UQuadDroneController;
 class UImGuiUtil;
@@ -67,6 +68,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* DroneBody;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UGPSSensor* GPSSensor;
+	
 	// --- Camera Components ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	USpringArmComponent* SpringArm;
@@ -99,8 +103,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TArray<UStaticMeshComponent*> Propellers;
 
-        UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-        TArray<UThrusterComponent*> Thrusters;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TArray<UThrusterComponent*> Thrusters;
 
 	// --- Drone Configuration ---
 	UPROPERTY(EditDefaultsOnly, Category = "Drone Configuration")
@@ -143,12 +147,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Collision")
 	void ResetCollisionStatus();
 
-        UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Navigation")
-        UNavigationComponent* NavigationComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Navigation")
+    UNavigationComponent* NavigationComponent;
     
-        // Generate a figure-8 waypoint list around the pawn's current position
-        UFUNCTION(BlueprintCallable, Category = "Navigation")
-        TArray<FVector> GenerateFigureEightWaypoints() const;
+    // Generate a figure-8 waypoint list around the pawn's current position
+    UFUNCTION(BlueprintCallable, Category = "Navigation")
+    TArray<FVector> GenerateFigureEightWaypoints() const;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Input")
 	FGamepadInputs GamepadInputs;
 	UFUNCTION(BlueprintCallable, Category = "ROS Control")
