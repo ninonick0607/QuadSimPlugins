@@ -13,6 +13,8 @@
 #include "Core/DroneManager.h"
 #include "Interfaces/IPluginManager.h"
 #include "Sensors/GPSSensor.h"
+#include "Sensors/IMUSensor.h"
+#include "Sensors/SensorManagerComponent.h"
 
 UImGuiUtil::UImGuiUtil()
 	: DronePawn(nullptr)
@@ -59,7 +61,7 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, float deltaTime)
     TArray<float>& ThrustsVal = DronePawn->QuadController->Thrusts;
     FVector currentVelocity = DronePawn->QuadController->GetCurrentLocalVelocity();
     FVector currentAngularVelocity = DronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
-    FVector currLoc = DronePawn->GPSSensor->GetLastGPS()/100.f;
+    FVector currLoc = DronePawn->SensorManager->GPS->GetLastGPS()/100.f;
     FRotator currentRotation = DronePawn->GetActorRotation();
     
     double desiredRollAngle = DronePawn->QuadController->GetDesiredRoll();
@@ -194,7 +196,7 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, float deltaTime)
             if (DronePawn && DronePawn->DroneBody)
             {
                 FVector worldAngVel = DronePawn->DroneBody->GetPhysicsAngularVelocityInDegrees();
-                FVector localAngVel = currentRotation.UnrotateVector(worldAngVel);
+                FVector localAngVel = DronePawn->SensorManager->IMU->GetLastGyroscopeDegrees();//currentRotation.UnrotateVector(worldAngVel);
                 ImGui::Text("Current Rate: Roll: %.2f deg/s || Pitch: %.2f deg/s", localAngVel.X, localAngVel.Y);
                 
                 FFullPIDSet* PIDSet = Controller ? Controller->GetPIDSet(CurrentMode) : nullptr;
@@ -210,7 +212,18 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, float deltaTime)
                 ImGui::Text("Angular Rate data unavailable");
             }
         }
-
+    	if (ImGui::CollapsingHeader("Acceleration", ImGuiTreeNodeFlags_DefaultOpen))
+    	{
+    		if (DronePawn && DronePawn->DroneBody)
+    		{
+    			FVector localAccel = DronePawn->SensorManager->IMU->GetLastAccelerometer();//currentRotation.UnrotateVector(worldAngVel);
+    			ImGui::Text("Current Acc: X: %.2f m/s^2 || Y: %.2f m/s^2 || Z: %.2f m/s^2 ", localAccel.X/100, localAccel.Y/100,localAccel.Z/100);
+    		}
+    		else
+    		{
+    			ImGui::Text("Acc data unavailable");
+    		}
+    	}
         // === SUB-COLLAPSIBLE: Position ===
         if (ImGui::CollapsingHeader("Position", ImGuiTreeNodeFlags_DefaultOpen))
         {

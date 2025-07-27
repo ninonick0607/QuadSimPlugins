@@ -15,6 +15,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnrealMathUtility.h"
 #include "Sensors/GPSSensor.h"
+#include "Sensors/SensorManagerComponent.h"
 
 
 // ---------------------- Constructor ------------------------
@@ -323,7 +324,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	if (!CurrentSet || !dronePawn) return;
 	
 	/* ───── World-space state ───── */
-	const FVector  currPos = dronePawn->GPSSensor->GetLastGPS();     
+	const FVector  currPos = dronePawn->SensorManager->GPS->GetLastGPS();     
 	const FVector  currVel = dronePawn->GetVelocity();          
 	const FRotator currRot = dronePawn->GetActorRotation();     
 	const FRotator yawOnlyRot(0.f, currRot.Yaw, 0.f);  

@@ -11,6 +11,14 @@ UGPSSensor::UGPSSensor()
 
 FVector UGPSSensor::SampleRawGPS() const
 {
+	// GPS sensors measure the position of the vehicle, not the sensor itself
+	// So we should use the owner's (drone's) location
+	if (AActor* Owner = GetOwner())
+	{
+		return Owner->GetActorLocation();
+	}
+	
+	// Fallback to component location if no owner
 	return GetComponentLocation();
 }
 
@@ -23,6 +31,19 @@ void UGPSSensor::UpdateSensor(float DeltaTime, bool bNoise)
 		return;
 	AccumulatedTime -= Period;
 
+	// Log update rate verification
+	static float LastLogTime = 0.0f;
+	static int32 UpdateCount = 0;
+	UpdateCount++;
+	
+	float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+	if (CurrentTime - LastLogTime >= 1.0f) // Log once per second
+	{
+		UE_LOG(LogTemp, Display, TEXT("GPS Update Rate: %d Hz (Expected: %.0f Hz)"), UpdateCount, UpdateRate);
+		UpdateCount = 0;
+		LastLogTime = CurrentTime;
+	}
+
 	FVector Pos = SampleRawGPS();
 
 	if (bNoise)
@@ -31,6 +52,7 @@ void UGPSSensor::UpdateSensor(float DeltaTime, bool bNoise)
 		Pos.Y += SensorNoise() * LatLonNoiseStdDev;
 		Pos.Z += SensorNoise() * AltNoiseStdDev;
 	}
+
 	LastGPS = Pos;
 }
 

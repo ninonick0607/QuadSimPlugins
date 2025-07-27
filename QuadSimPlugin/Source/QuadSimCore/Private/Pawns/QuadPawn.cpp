@@ -21,8 +21,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "SimulationCore/Public/Interfaces/ISimulatable.h" // Add this for interface check
 #include "Controllers/PX4Component.h"
-#include "Sensors/GPSSensor.h"
-#include "Sensors/IMUSensor.h"
+#include "Sensors/SensorManagerComponent.h"
+
 #define EPSILON 0.0001f
 // At the top of QuadPawn.cpp
 
@@ -100,13 +100,8 @@ AQuadPawn::AQuadPawn()
     DroneBody->SetCollisionProfileName(UCollisionProfile::PhysicsActor_ProfileName);
 
 	// SENSORS
-	GPSSensor = CreateDefaultSubobject<UGPSSensor>(TEXT("GPSSensor"));
-	GPSSensor->SetupAttachment(DroneBody);
-	GPSSensor->SetActive(true);
-
-	IMUSensor = CreateDefaultSubobject<UIMUSensor>(TEXT("IMUSensor"));
-	IMUSensor->SetupAttachment(DroneBody);
-	IMUSensor->SetActive(true);
+	SensorManager = CreateDefaultSubobject<USensorManagerComponent>(TEXT("SensorManager"));
+	SensorManager->SetupAttachment(DroneBody);
 	
 	CameraFPV = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraFPV"));
 	CameraFPV->SetupAttachment(DroneBody,TEXT("FPVCam"));
@@ -213,10 +208,7 @@ void AQuadPawn::BeginPlay()
 		QuadController = NewObject<UQuadDroneController>(this, TEXT("QuadDroneController"));
 		QuadController->Initialize(this);
 	}
-	if (IMUSensor)
-	{
-		IMUSensor->Initialize();  
-	}
+
 	UE_LOG(LogTemp, Warning, TEXT("Debug SetController: QuadController=%p"), QuadController);
 	
 	
@@ -232,6 +224,16 @@ void AQuadPawn::BeginPlay()
         ImGuiUtil->Initialize(this, QuadController);
     }
 
+	// Initialize sensors
+	if (SensorManager)
+	{
+		SensorManager->InitializeSensors();
+		UE_LOG(LogTemp, Display, TEXT("QuadPawn: Initialized SensorManager sensors"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("QuadPawn: SensorManager is null!"));
+	}
 	
     // Reset PID controllers
     QuadController->ResetPID();
@@ -306,8 +308,10 @@ void AQuadPawn::UpdateControl(float DeltaTime)
 	{	
 		QuadController->Update(DeltaTime);
 	}
-	GPSSensor->UpdateSensor(DeltaTime,true);
-	IMUSensor->UpdateSensor(DeltaTime,true);
+	if (SensorManager)
+	{
+		SensorManager->UpdateAllSensors(DeltaTime, false);
+	}
 	if (NavigationComponent)
 	{
 		NavigationComponent->UpdateNavigation(GetActorLocation());

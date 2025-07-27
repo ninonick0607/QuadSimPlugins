@@ -20,7 +20,8 @@ public:
     
 	FVector GetLastAccelerometer() { return LastAccelerometer; }
 	FVector GetLastGyroscope() { return LastGyroscope; }
-    
+	FVector GetLastGyroscopeDegrees() { return  FMath::RadiansToDegrees(LastGyroscope); }
+
 	void Initialize();
 
 private:

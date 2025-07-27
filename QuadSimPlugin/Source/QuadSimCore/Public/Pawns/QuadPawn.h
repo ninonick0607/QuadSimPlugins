@@ -14,8 +14,8 @@
 #include "SimulationCore/Public/Interfaces/ISimulatable.h"
 #include "QuadPawn.generated.h"
 
-class UGPSSensor;
-class UIMUSensor;
+class USensorManagerComponent;
+
 // Forward Declarations
 class UQuadDroneController;
 class UImGuiUtil;
@@ -70,10 +70,8 @@ public:
 	UStaticMeshComponent* DroneBody;
 	// Sensor Components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	UGPSSensor* GPSSensor;
+	USensorManagerComponent* SensorManager;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	UIMUSensor* IMUSensor;	
 
 	// --- Camera Components ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
