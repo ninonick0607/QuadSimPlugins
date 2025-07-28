@@ -11,6 +11,7 @@ public class RobotCore : ModuleRules
             "CoreUObject",
             "Engine",
             "ImGui",
+            "GeoReferencing"
         });
     }
 }

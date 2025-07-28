@@ -2,6 +2,7 @@
 #include "Sensors/SensorManagerComponent.h"
 #include "Sensors/GPSSensor.h"
 #include "Sensors/IMUSensor.h"
+#include "Sensors/MagSensor.h" 
 #include "Components/PrimitiveComponent.h"
 #include "GameFramework/Actor.h"
 
@@ -12,6 +13,7 @@ USensorManagerComponent::USensorManagerComponent()
     
     GPS = CreateDefaultSubobject<UGPSSensor>(TEXT("GPSSensor"));
     IMU = CreateDefaultSubobject<UIMUSensor>(TEXT("IMUSensor"));
+	Magnetometer = CreateDefaultSubobject<UMagSensor>(TEXT("MagnetometerSensor")); 
 }
 
 void USensorManagerComponent::BeginPlay()
@@ -28,6 +30,11 @@ void USensorManagerComponent::BeginPlay()
 	{
 		IMU->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 		UE_LOG(LogTemp, Display, TEXT("SensorManager: Attached IMU to SensorManager"));
+	}
+	if (Magnetometer && !Magnetometer->GetAttachParent())
+	{
+		Magnetometer->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+		UE_LOG(LogTemp, Display, TEXT("SensorManager: Attached Magnetometer to SensorManager"));
 	}
 }
 
@@ -57,7 +64,15 @@ void USensorManagerComponent::InitializeSensors()
     {
         UE_LOG(LogTemp, Error, TEXT("SensorManager: GPS component is null!"));
     }
-	
+	if (Magnetometer)
+	{
+		Magnetometer->Initialize();
+		UE_LOG(LogTemp, Display, TEXT("SensorManager: Magnetometer initialized"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("SensorManager: Magnetometer component is null!"));
+	}
     bSensorsInitialized = true;
     UE_LOG(LogTemp, Display, TEXT("SensorManager: All sensors initialized"));
 }
@@ -90,6 +105,19 @@ void USensorManagerComponent::UpdateAllSensors(float DeltaTime, bool bAddNoise)
             RemainingTime -= IMUPeriod;
         }
     }
+	if (Magnetometer)
+	{
+		const float MagPeriod = 1.0f / 100.0f; // 0.01 seconds (10ms)
+		float RemainingTime = DeltaTime;
+        
+		while (RemainingTime > 0.0f)
+		{
+			float StepTime = FMath::Min(RemainingTime, MagPeriod);
+			Magnetometer->UpdateSensor(StepTime, bAddNoise);
+			RemainingTime -= MagPeriod;
+		}
+	}
+	
 }
 
 // void USensorManagerComponent::SetupSensorAttachments()

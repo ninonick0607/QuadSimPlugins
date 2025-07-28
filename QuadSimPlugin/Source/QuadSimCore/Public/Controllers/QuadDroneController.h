@@ -6,7 +6,7 @@
 
 
 class AQuadPawn;
-
+class AGeoReferencingSystem;
 #include "QuadDroneController.generated.h"
 
 UENUM(BlueprintType)
@@ -170,7 +170,8 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "External Control") 
     FRotator GetCurrentRotation() const;
-    
+	void DrawMagneticDebugVisuals();
+
 private:
 
     UPROPERTY()

@@ -8,6 +8,7 @@
 // Forward declarations
 class UGPSSensor;
 class UIMUSensor;
+class UMagSensor;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class ROBOTCORE_API USensorManagerComponent : public USceneComponent
@@ -31,13 +32,12 @@ public:
     
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sensors")
 	UIMUSensor* IMU;
-    
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sensors")
+	UMagSensor* Magnetometer; 
 	// Future sensors would go here:
 	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sensors")
 	// UBarometerSensor* Barometer;
-    
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sensors")
-	// UMagnetometerSensor* Magnetometer;
     
 	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sensors")
 	// URangefinderSensor* Rangefinder;

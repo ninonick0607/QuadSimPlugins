@@ -31,19 +31,6 @@ void UGPSSensor::UpdateSensor(float DeltaTime, bool bNoise)
 		return;
 	AccumulatedTime -= Period;
 
-	// Log update rate verification
-	static float LastLogTime = 0.0f;
-	static int32 UpdateCount = 0;
-	UpdateCount++;
-	
-	float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
-	if (CurrentTime - LastLogTime >= 1.0f) // Log once per second
-	{
-		UE_LOG(LogTemp, Display, TEXT("GPS Update Rate: %d Hz (Expected: %.0f Hz)"), UpdateCount, UpdateRate);
-		UpdateCount = 0;
-		LastLogTime = CurrentTime;
-	}
-
 	FVector Pos = SampleRawGPS();
 
 	if (bNoise)
