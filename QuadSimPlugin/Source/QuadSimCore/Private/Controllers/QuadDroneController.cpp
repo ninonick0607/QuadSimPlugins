@@ -20,6 +20,8 @@
 #include "Sensors/SensorManagerComponent.h"
 #include "WorldMagneticModel/GeoMagDeclination.h"
 #include "GeoReferencingSystem.h"         
+#include "Sensors/BaroSensor.h"
+#include "Sensors/IMUSensor.h"
 
 
 // ---------------------- Constructor ------------------------
@@ -191,7 +193,7 @@ void UQuadDroneController::Update(double a_deltaTime)
           const bool selPos = currentFlightMode == EFlightMode::AutoWaypoint;
           const bool selVel = currentFlightMode == EFlightMode::VelocityControl;
           const bool selAng = currentFlightMode == EFlightMode::AngleControl;
-          const bool selRate = currentFlightMode == EFlightMode::RateControl; // Added check for Rate Control mode
+          const bool selRate = currentFlightMode == EFlightMode::RateControl; 
 
           // Position Control
           ImGui::PushStyleColor(
@@ -328,9 +330,11 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	if (!CurrentSet || !dronePawn) return;
 	
 	/* ───── World-space state ───── */
-	const FVector  currPos = dronePawn->SensorManager->GPS->GetLastGPS();     
-	const FVector  currVel = dronePawn->GetVelocity();          
-	const FRotator currRot = dronePawn->GetActorRotation();     
+	FVector GPSData = dronePawn->SensorManager->GPS->GetLastGPS();
+	float Altitude = dronePawn->SensorManager->Barometer->GetEstimatedAltitude()*100;
+	const FVector  currPos = {GPSData.X, GPSData.Y, Altitude};     
+	const FVector  currVel = dronePawn->SensorManager->IMU->GetLastVelocity();          
+	const FRotator currRot = dronePawn->SensorManager->IMU->GetLastAttitude();
 	const FRotator yawOnlyRot(0.f, currRot.Yaw, 0.f);
 	
 	// Get world angular velocity and transform it to local frame using yaw-only rotation
@@ -339,7 +343,6 @@ void UQuadDroneController::FlightController(double DeltaTime)
 
 	if (bUseExternalController)
 	{
-
 		if (UNavigationComponent* Nav = dronePawn->FindComponentByClass<UNavigationComponent>())
 		{
 			Nav->UpdateNavigation(currPos);
@@ -363,7 +366,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 			if (bShowUI) { dronePawn->ImGuiUtil->ImGuiHud(currentFlightMode, DeltaTime); }
 		}
         
-		return; // Exit early - external controller handles everything else
+		return; 
 	}
 	
 	// ───── Update / fetch next set-point ─────
@@ -407,7 +410,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	}
 	
 	/*-------- Velocity PID Control (FLU) -------- */ 
-	currentLocalVelocity = yawOnlyRot.UnrotateVector(currVel);
+	currentLocalVelocity = currVel;
 	
 	const double xOut = CurrentSet->XPID -> Calculate(desiredLocalVelocity.X,currentLocalVelocity.X, DeltaTime);
 	const double yOut = CurrentSet->YPID -> Calculate(desiredLocalVelocity.Y,currentLocalVelocity.Y, DeltaTime);
@@ -415,19 +418,8 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	
 	desiredRoll  = FMath::Clamp(yOut, -maxAngle,  maxAngle);
 	desiredPitch = FMath::Clamp(xOut, -maxAngle,  maxAngle);
-	desiredYawRate = 0.f; // Command a stable yaw rate, can be expanded later.
-
-	// Calculate and store normalized thrust
-	const float droneMass = dronePawn->GetMass();
-	const float gravity = 980.0f;
-	const float hoverThrustForce = droneMass * gravity;
-	const float maxTotalThrust = 700.0f * 4; // From your mixer's clamp value
-
-	float totalThrustForce = hoverThrustForce + zOut;
-	desiredThrust_Normalized = FMath::Clamp(totalThrustForce / maxTotalThrust, 0.0f, 1.0f);
+	desiredYawRate = 0.f; 
     
-	
-	
 	/*-------- Angle P Control -------- */ 
 	
 	desiredRoll  = (currentFlightMode == EFlightMode::AngleControl) ? desiredNewRoll: FMath::Clamp( yOut, -maxAngle,  maxAngle);
@@ -676,8 +668,10 @@ void UQuadDroneController::DrawDebugVisuals(const FVector& currentPosition) cons
  {
  	if (!bDebugVisualsEnabled || !dronePawn || !dronePawn->DroneBody) return;
 
- 	FVector dronePos = dronePawn->GetActorLocation();
- 	const float scaleXYZ = 0.5f;
+	FVector GPSData = dronePawn->SensorManager->GPS->GetLastGPS();
+	float Altitude = dronePawn->SensorManager->Barometer->GetEstimatedAltitude()*100;
+	const FVector  dronePos = {GPSData.X, GPSData.Y, Altitude};
+	const float scaleXYZ = 0.5f;
 
  	// Velocity debug lines
  	DrawDebugLine(dronePawn->GetWorld(), dronePos, dronePos + FVector(desiredNewVelocity.X, 0, 0) * scaleXYZ, FColor::Red, false, -1.0f, 0, 2.0f);
@@ -765,12 +759,16 @@ void UQuadDroneController::SetFlightMode(EFlightMode NewMode)
 	default:
 		break;
 	}
+
+	FVector GPSData = dronePawn->SensorManager->GPS->GetLastGPS();
+	float Altitude = dronePawn->SensorManager->Barometer->GetEstimatedAltitude()*100;
+	const FVector  currPos = {GPSData.X, GPSData.Y, Altitude};     
     currentFlightMode = NewMode;
     // On selecting AutoWaypoint, generate and load the figure-8 navigation plan
     if (NewMode == EFlightMode::AutoWaypoint && dronePawn)
     {
         // Generate waypoints from pawn's position
-        TArray<FVector> plan = dronePawn->GenerateFigureEightWaypoints();
+        TArray<FVector> plan = dronePawn->GenerateFigureEightWaypoints(currPos);
         // Set navigation plan
         if (UNavigationComponent* Nav = dronePawn->FindComponentByClass<UNavigationComponent>())
         {

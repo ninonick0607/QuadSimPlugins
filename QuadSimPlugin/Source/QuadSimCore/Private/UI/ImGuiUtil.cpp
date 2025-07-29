@@ -14,6 +14,7 @@
 #include "Interfaces/IPluginManager.h"
 #include "Sensors/GPSSensor.h"
 #include "Sensors/IMUSensor.h"
+#include "Sensors/BaroSensor.h"
 #include "Sensors/SensorManagerComponent.h"
 
 UImGuiUtil::UImGuiUtil()
@@ -237,7 +238,57 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, float deltaTime)
             ImGui::Text("Desired: %.1f, %.1f, %.1f", currentDesiredVelocity.X, currentDesiredVelocity.Y, currentDesiredVelocity.Z);
         }
     }
-
+	if (DronePawn && DronePawn->SensorManager && DronePawn->SensorManager->Barometer)
+	{
+		UBaroSensor* Baro = DronePawn->SensorManager->Barometer;
+    
+		ImGui::Separator();
+		ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Barometer Sensor");
+    
+		// Display in a nice table format
+		if (ImGui::BeginTable("BarometerTable", 2, ImGuiTableFlags_None))
+		{
+			ImGui::TableSetupColumn("Parameter", ImGuiTableColumnFlags_WidthFixed, 120.0f);
+			ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+        
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Pressure:");
+			ImGui::TableNextColumn();
+			ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "%.2f hPa", Baro->GetLastPressureHPa());
+        
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Temperature:");
+			ImGui::TableNextColumn();
+			ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "%.1f °C", Baro->GetLastTemperature());
+        
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Altitude:");
+			ImGui::TableNextColumn();
+			ImGui::TextColored(ImVec4(0.2f, 0.8f, 1.0f, 1.0f), "%.1f m", Baro->GetEstimatedAltitude());
+        
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Raw Pressure:");
+			ImGui::TableNextColumn();
+			ImGui::Text("%.0f Pa", Baro->GetLastPressure());
+        
+			ImGui::EndTable();
+		}
+    
+		// Add a tooltip with explanation
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::BeginTooltip();
+			ImGui::Text("Barometer uses ISA model:");
+			ImGui::Text("- Pressure decreases with altitude");
+			ImGui::Text("- Temperature drops 6.5°C/km");
+			ImGui::Text("- Sea level: ~1013 hPa");
+			ImGui::EndTooltip();
+		}
+	}
     // === COLLAPSIBLE: PID Settings ===
     static bool syncXY = false, syncRP = false;
     DisplayPIDSettings(CurrentMode, "PID Settings", syncXY, syncRP);
@@ -255,6 +306,9 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, float deltaTime)
     if (plotSwitch)
         RenderControlPlots(deltaTime, currentRotation, currentAngularVelocity, desiredRollAngle, desiredPitchAngle, desiredPitchAngleRate, desiredRollAngleRate, SliderMaxAngle, SliderMaxAngleRate);
     DisplayPIDHistoryWindow();
+
+
+
 }
 
 void UImGuiUtil::RenderControlPlots(float deltaTime, const FRotator& currentRotation, FVector currentAngularRate, float desiredRoll, float desiredPitch, double desiredPitchRate, double desiredRollRate, float maxAngle, float maxRate)

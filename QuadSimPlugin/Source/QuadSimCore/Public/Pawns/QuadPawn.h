@@ -154,7 +154,7 @@ public:
     
     // Generate a figure-8 waypoint list around the pawn's current position
     UFUNCTION(BlueprintCallable, Category = "Navigation")
-    TArray<FVector> GenerateFigureEightWaypoints() const;
+    TArray<FVector> GenerateFigureEightWaypoints(FVector Altitude) const;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Input")
 	FGamepadInputs GamepadInputs;

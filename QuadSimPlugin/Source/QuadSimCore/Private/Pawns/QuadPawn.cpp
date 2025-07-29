@@ -21,6 +21,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "SimulationCore/Public/Interfaces/ISimulatable.h" // Add this for interface check
 #include "Controllers/PX4Component.h"
+#include "Sensors/BaroSensor.h"
 #include "Sensors/SensorManagerComponent.h"
 
 #define EPSILON 0.0001f
@@ -70,9 +71,9 @@ static TArray<FVector> spiralWaypoints(const FVector& startPos)
 // Expose figure-8 waypoint generator for the pawn
 
 const FName ObstacleCollisionTag = FName("Obstacle");
-TArray<FVector> AQuadPawn::GenerateFigureEightWaypoints() const
+TArray<FVector> AQuadPawn::GenerateFigureEightWaypoints(FVector Altitude) const
 {
-    return spiralWaypoints(GetActorLocation());
+    return spiralWaypoints(Altitude);
 }
 
 AQuadPawn::AQuadPawn()

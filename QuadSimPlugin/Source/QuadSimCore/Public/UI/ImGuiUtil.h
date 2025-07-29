@@ -93,7 +93,9 @@ private:
     TArray<float> CurrentPitchRateData;
     TArray<float> DesiredPitchRateData;
     
-    
+	TArray<float> BaroPressureData;
+	TArray<float> BaroTemperatureData;
+	TArray<float> BaroAltitudeData;
     // Helper method to load PID values from a CSV row
     void LoadPIDValues(EFlightMode Mode, const TArray<FString>& Values);
 

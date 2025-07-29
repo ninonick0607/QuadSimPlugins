@@ -17,11 +17,14 @@ public:
 	void UpdateSensor(float DeltaTime, bool bNoise);
 	FVector SampleRawAcceleration(float DeltaTime);
 	FVector SampleRawAngularVelocity();
-    
+	FVector SampleRawVelocity();
+	FRotator SampleRawAttitude();
+	
 	FVector GetLastAccelerometer() { return LastAccelerometer; }
 	FVector GetLastGyroscope() { return LastGyroscope; }
 	FVector GetLastGyroscopeDegrees() { return  FMath::RadiansToDegrees(LastGyroscope); }
-
+	FVector GetLastVelocity(){return LastVelocity;}
+	FRotator GetLastAttitude(){return LastAttitude;}
 	void Initialize();
 
 private:
@@ -29,13 +32,14 @@ private:
 	float AccumulatedTime = 0.0f;
 	FVector LastAccelerometer;
 	FVector LastGyroscope;
-    
+    FVector LastVelocity;
+	FRotator LastAttitude;
 	FVector PreviousVelocity;
 	bool bInitialized = false;
     
 	// Noise parameters
-	float AccelNoiseStdDev = 0.02f; // m/s^2
-	float GyroNoiseStdDev = 0.01f;  // rad/s
+	float AccelVelNoiseStdDev = 0.02f; // m/s^2
+	float GyroAttNoiseStdDev = 0.01f;  // rad/s
     
 	UPROPERTY()
 	UPrimitiveComponent* AttachedBody = nullptr;

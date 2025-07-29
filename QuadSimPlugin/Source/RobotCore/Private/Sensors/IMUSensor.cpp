@@ -60,6 +60,28 @@ FVector UIMUSensor::SampleRawAngularVelocity()
 	return AttachedBody->GetComponentTransform().InverseTransformVectorNoScale(RawAngVel);
 }
 
+FVector UIMUSensor::SampleRawVelocity(){
+	if (!bInitialized || !AttachedBody)
+		return FVector::ZeroVector;
+	
+	FVector CurrVel = AttachedBody->GetPhysicsLinearVelocity();
+	FRotator ComponentRot = AttachedBody->GetComponentRotation();
+	FRotator YawOnlyRot(0.f, ComponentRot.Yaw, 0.f);
+    
+	// Transform using only yaw
+	return YawOnlyRot.UnrotateVector(CurrVel);
+}
+
+FRotator UIMUSensor::SampleRawAttitude(){
+	if (!bInitialized || !AttachedBody)
+		return FRotator::ZeroRotator;
+	FRotator WorldRotation = AttachedBody->GetComponentRotation();
+	
+	UE_LOG(LogTemp, Warning, TEXT("Roll: %f, Pitch: %f, Yaw: %f"),WorldRotation.Roll,WorldRotation.Pitch,WorldRotation.Yaw);
+
+	return WorldRotation;
+}
+
 void UIMUSensor::UpdateSensor(float DeltaTime, bool bNoise)
 {
 	AccumulatedTime += DeltaTime;
@@ -70,22 +92,41 @@ void UIMUSensor::UpdateSensor(float DeltaTime, bool bNoise)
 
 	AccumulatedTime -= Period;
 
+	// Sample all sensor data
 	FVector Accel = SampleRawAcceleration(Period);
-	FVector Gyro  = SampleRawAngularVelocity();
+	FVector Gyro = SampleRawAngularVelocity();
+	FVector Velocity = SampleRawVelocity();
+	FRotator Attitude = SampleRawAttitude();
 
+	// Apply noise if requested
 	if (bNoise)
 	{
-		Accel.X += SensorNoise() * AccelNoiseStdDev;
-		Accel.Y += SensorNoise() * AccelNoiseStdDev;
-		Accel.Z += SensorNoise() * AccelNoiseStdDev;
+		// Acceleration noise
+		Accel.X += SensorNoise() * AccelVelNoiseStdDev;
+		Accel.Y += SensorNoise() * AccelVelNoiseStdDev;
+		Accel.Z += SensorNoise() * AccelVelNoiseStdDev;
 
-		Gyro.X  += SensorNoise() * GyroNoiseStdDev;
-		Gyro.Y  += SensorNoise() * GyroNoiseStdDev;
-		Gyro.Z  += SensorNoise() * GyroNoiseStdDev;
+		// Angular velocity noise
+		Gyro.X += SensorNoise() * GyroAttNoiseStdDev;
+		Gyro.Y += SensorNoise() * GyroAttNoiseStdDev;
+		Gyro.Z += SensorNoise() * GyroAttNoiseStdDev;
+       
+		// Velocity noise (using same noise level as acceleration)
+		Velocity.X += SensorNoise() * AccelVelNoiseStdDev;
+		Velocity.Y += SensorNoise() * AccelVelNoiseStdDev;
+		Velocity.Z += SensorNoise() * AccelVelNoiseStdDev;
+       
+		// Attitude noise (using same noise level as gyro)
+		Attitude.Roll += SensorNoise() * GyroAttNoiseStdDev;
+		Attitude.Pitch += SensorNoise() * GyroAttNoiseStdDev;
+		Attitude.Yaw += SensorNoise() * GyroAttNoiseStdDev;
 	}
 
+	// Store all sensor readings
 	LastAccelerometer = Accel;
-	LastGyroscope     = Gyro;
+	LastGyroscope = Gyro;
+	LastVelocity = Velocity;  // You'll need to add this member variable
+	LastAttitude = Attitude;  // You'll need to add this member variable
 }
 
 float UIMUSensor::SensorNoise()
