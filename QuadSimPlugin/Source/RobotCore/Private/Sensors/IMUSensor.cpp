@@ -42,7 +42,7 @@ FVector UIMUSensor::SampleRawAcceleration(float DeltaTime)
 	if (!bInitialized || !AttachedBody || DeltaTime <= 0.f)
 		return FVector::ZeroVector;
 
-	FVector CurrVel = AttachedBody->GetPhysicsLinearVelocity();
+	FVector CurrVel = AttachedBody->GetPhysicsLinearVelocity()/100;
 	FVector RawAccel = (CurrVel - PreviousVelocity) / DeltaTime;
 	PreviousVelocity = CurrVel;
 
@@ -64,7 +64,7 @@ FVector UIMUSensor::SampleRawVelocity(){
 	if (!bInitialized || !AttachedBody)
 		return FVector::ZeroVector;
 	
-	FVector CurrVel = AttachedBody->GetPhysicsLinearVelocity();
+	FVector CurrVel = AttachedBody->GetPhysicsLinearVelocity()/100;
 	FRotator ComponentRot = AttachedBody->GetComponentRotation();
 	FRotator YawOnlyRot(0.f, ComponentRot.Yaw, 0.f);
     
@@ -77,8 +77,6 @@ FRotator UIMUSensor::SampleRawAttitude(){
 		return FRotator::ZeroRotator;
 	FRotator WorldRotation = AttachedBody->GetComponentRotation();
 	
-	UE_LOG(LogTemp, Warning, TEXT("Roll: %f, Pitch: %f, Yaw: %f"),WorldRotation.Roll,WorldRotation.Pitch,WorldRotation.Yaw);
-
 	return WorldRotation;
 }
 
@@ -117,9 +115,9 @@ void UIMUSensor::UpdateSensor(float DeltaTime, bool bNoise)
 		Velocity.Z += SensorNoise() * AccelVelNoiseStdDev;
        
 		// Attitude noise (using same noise level as gyro)
-		Attitude.Roll += SensorNoise() * GyroAttNoiseStdDev;
-		Attitude.Pitch += SensorNoise() * GyroAttNoiseStdDev;
-		Attitude.Yaw += SensorNoise() * GyroAttNoiseStdDev;
+		Attitude.Roll += SensorNoise() * FMath::RadiansToDegrees(GyroAttNoiseStdDev);
+		Attitude.Pitch += SensorNoise() * FMath::RadiansToDegrees(GyroAttNoiseStdDev);
+		Attitude.Yaw += SensorNoise() * FMath::RadiansToDegrees(GyroAttNoiseStdDev);
 	}
 
 	// Store all sensor readings

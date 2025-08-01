@@ -27,19 +27,16 @@ void USensorManagerComponent::BeginPlay()
 		GPS->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 		UE_LOG(LogTemp, Display, TEXT("SensorManager: Attached GPS to SensorManager"));
 	}
-	
 	if (IMU && !IMU->GetAttachParent())
 	{
 		IMU->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 		UE_LOG(LogTemp, Display, TEXT("SensorManager: Attached IMU to SensorManager"));
 	}
-	
 	if (Magnetometer && !Magnetometer->GetAttachParent())
 	{
 		Magnetometer->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 		UE_LOG(LogTemp, Display, TEXT("SensorManager: Attached Magnetometer to SensorManager"));
 	}
-	
 	if (Barometer && !Barometer->GetAttachParent())
 	{
 		Barometer->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
@@ -150,7 +147,6 @@ void USensorManagerComponent::UpdateAllSensors(float DeltaTime, bool bAddNoise)
 			RemainingTime -= BaroPeriod;
 		}
 	}
-	
 }
 
 // void USensorManagerComponent::SetupSensorAttachments()

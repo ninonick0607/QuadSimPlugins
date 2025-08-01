@@ -62,7 +62,6 @@ void QuadPIDController::RemoveExpiredPoints()
     }
 }
 
-
 double QuadPIDController::Calculate(float desiredState,float measuredState, float dt)
 {
     if (dt <= KINDA_SMALL_NUMBER)

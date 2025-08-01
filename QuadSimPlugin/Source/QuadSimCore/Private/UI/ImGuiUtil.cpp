@@ -539,7 +539,6 @@ void UImGuiUtil::DisplayJoystickControl(const FGamepadInputs& GamepadInputs)
 	drawList->AddCircleFilled(lPos, 5.0f, IM_COL32(255,255,0,255));
 	ImGui::EndGroup();
 }
-
 void UImGuiUtil::DisplayPIDSettings(EFlightMode Mode, const char* headerLabel, bool& synchronizeXYGains, bool& synchronizeGains)
 {
 	FFullPIDSet* PIDSet = Controller ? Controller->GetPIDSet(Mode) : nullptr;
@@ -898,7 +897,6 @@ void UImGuiUtil::DisplayButtons()
    }
 	
 }
-
 void UImGuiUtil::DisplayDesiredVelocities(float velocityLimit)
 {
 	ImGui::Text("Desired Velocities");

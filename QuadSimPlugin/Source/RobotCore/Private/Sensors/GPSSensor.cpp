@@ -1,6 +1,6 @@
 #include "Sensors/GPSSensor.h"
 
-// EVERYTHING IN CM 
+// EVERYTHING IN M
 
 UGPSSensor::UGPSSensor()
 {
@@ -11,15 +11,14 @@ UGPSSensor::UGPSSensor()
 
 FVector UGPSSensor::SampleRawGPS() const
 {
-	// GPS sensors measure the position of the vehicle, not the sensor itself
-	// So we should use the owner's (drone's) location
+
 	if (AActor* Owner = GetOwner())
 	{
-		return Owner->GetActorLocation();
+		return Owner->GetActorLocation()/100;
 	}
 	
 	// Fallback to component location if no owner
-	return GetComponentLocation();
+	return GetComponentLocation()/100;
 }
 
 void UGPSSensor::UpdateSensor(float DeltaTime, bool bNoise)

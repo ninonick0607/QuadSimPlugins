@@ -305,13 +305,13 @@ void AQuadPawn::Tick(float DeltaTime)
 
 void AQuadPawn::UpdateControl(float DeltaTime)
 {
-	if (QuadController)
-	{	
-		QuadController->Update(DeltaTime);
-	}
 	if (SensorManager)
 	{
 		SensorManager->UpdateAllSensors(DeltaTime, false);
+	}
+	if (QuadController)
+	{	
+		QuadController->Update(DeltaTime);
 	}
 	if (NavigationComponent)
 	{

@@ -59,18 +59,6 @@ void UMagSensor::UpdateSensor(float DeltaTime, bool bNoise)
     
     // Transform Earth field to body frame
     FVector BodyMagField = TransformToBodyFrame(EarthMagField);
-	static float BodyLogTimer = 0.0f;
-	BodyLogTimer += Period;
-	if (BodyLogTimer >= 2.0f)
-	{
-		FRotator DroneRot = GetOwner()->GetActorRotation();
-		UE_LOG(LogTemp, Warning, TEXT("Body Frame Field (PX4 output): X=%.3f, Y=%.3f, Z=%.3f Gauss"), 
-			   BodyMagField.X, BodyMagField.Y, BodyMagField.Z);
-		UE_LOG(LogTemp, Warning, TEXT("Drone Rotation: Roll=%.1f°, Pitch=%.1f°, Yaw=%.1f°"), 
-			   DroneRot.Roll, DroneRot.Pitch, DroneRot.Yaw);
-		UE_LOG(LogTemp, Warning, TEXT("================================"));
-		BodyLogTimer = 0.0f;
-	}
     // Add noise if enabled
     if (bNoise)
     {
@@ -130,28 +118,7 @@ void UMagSensor::UpdateEarthMagField()
 				   MagFieldNED.Z * (-UpVector); // Down = -Up
     
 	bEarthMagFieldValid = true;
-	float Declination = FGeoMagDeclination::GetMagDeclinationDegrees(Latitude, Longitude);
-	float Inclination = FGeoMagDeclination::GetMagInclinationDegrees(Latitude, Longitude);
-	float Strength = FGeoMagDeclination::GetMagStrengthGauss(Latitude, Longitude);
-    	
-	static float LogTimer = 0.0f;
-	LogTimer += 0.01f; // Assuming 100Hz update rate
-	if (LogTimer >= 2.0f)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("=== MAGNETOMETER VERIFICATION ==="));
-		UE_LOG(LogTemp, Warning, TEXT("Location: Lat=%.6f°, Lon=%.6f°, Alt=%.1fm"), 
-			   Latitude, Longitude, Altitude);
-		UE_LOG(LogTemp, Warning, TEXT("Magnetic Components:"));
-		UE_LOG(LogTemp, Warning, TEXT("  - Declination: %.2f° (angle from true north)"), Declination);
-		UE_LOG(LogTemp, Warning, TEXT("  - Inclination: %.2f° (dip angle)"), Inclination);
-		UE_LOG(LogTemp, Warning, TEXT("  - Total Strength: %.3f Gauss (%.1f μT)"), 
-			   Strength, Strength * 100.0f); // 1 Gauss = 100 μT
-		UE_LOG(LogTemp, Warning, TEXT("NED Frame Field: North=%.3f, East=%.3f, Down=%.3f Gauss"), 
-			   MagFieldNED.X, MagFieldNED.Y, MagFieldNED.Z);
-		UE_LOG(LogTemp, Warning, TEXT("Earth Frame Field: X=%.3f, Y=%.3f, Z=%.3f Gauss"), 
-			   EarthMagField.X, EarthMagField.Y, EarthMagField.Z);
-		LogTimer = 0.0f;
-	}
+
 }
 
 FVector UMagSensor::TransformToBodyFrame(const FVector& EarthField)

@@ -331,7 +331,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	
 	/* ───── World-space state ───── */
 	FVector GPSData = dronePawn->SensorManager->GPS->GetLastGPS();
-	float Altitude = dronePawn->SensorManager->Barometer->GetEstimatedAltitude()*100;
+	float Altitude = dronePawn->SensorManager->Barometer->GetEstimatedAltitude();
 	const FVector  currPos = {GPSData.X, GPSData.Y, Altitude};     
 	const FVector  currVel = dronePawn->SensorManager->IMU->GetLastVelocity();          
 	const FRotator currRot = dronePawn->SensorManager->IMU->GetLastAttitude();
@@ -406,7 +406,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	if (bHoverModeActive)
 	{
 		desiredLocalVelocity.Z = AltitudePID->Calculate(hoverTargetAltitude,currPos.Z, DeltaTime);
-		desiredLocalVelocity.Z = FMath::Clamp(desiredLocalVelocity.Z, -100.f, 100.f);
+		desiredLocalVelocity.Z = FMath::Clamp(desiredLocalVelocity.Z, -1.f, 1.f);
 	}
 	
 	/*-------- Velocity PID Control (FLU) -------- */ 
@@ -473,7 +473,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 void UQuadDroneController::ThrustMixer(double xOut, double yOut, double zOut, double rollOutput, double pitchOutput, double yawOutput)
 {
 	float droneMass = dronePawn->DroneBody->GetMass();
-	const float gravity = 980.0f;
+	const float gravity = 9.8f;
 	const float hoverThrust = (droneMass * gravity) / 4.0f; 
  
 	float baseThrust = hoverThrust + zOut / 4.0f;
@@ -487,7 +487,7 @@ void UQuadDroneController::ThrustMixer(double xOut, double yOut, double zOut, do
 	// Paper is FR, BL, FL, BR
 	for (int i = 0; i < Thrusts.Num(); i++)
 	{
-		Thrusts[i] = FMath::Clamp(Thrusts[i], 0.0f, 700.0f);
+		Thrusts[i] = FMath::Clamp(Thrusts[i], 0.0f, 7.f);
 	}
 
 	for (int i = 0; i < Thrusts.Num(); i++)
