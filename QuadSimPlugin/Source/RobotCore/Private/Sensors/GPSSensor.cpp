@@ -1,4 +1,8 @@
 #include "Sensors/GPSSensor.h"
+#include "GameFramework/Actor.h"
+#include "EngineUtils.h"
+#include "GeoReferencingSystem.h"
+#include "GeographicCoordinates.h"
 
 // EVERYTHING IN M
 
@@ -7,6 +11,49 @@ UGPSSensor::UGPSSensor()
 
 	PrimaryComponentTick.bCanEverTick = false;
 	LastGPS = FVector::ZeroVector;
+	LastGeographicCoords = FVector::ZeroVector;
+
+}
+
+void UGPSSensor::Initialize()
+{
+	// Find the GeoReferencingSystem in the world
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<AGeoReferencingSystem> It(World); It; ++It)
+		{
+			GeoRefSystem = *It;
+			break;
+		}
+        
+		if (!GeoRefSystem)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GPSSensor: No GeoReferencingSystem found in level! Please add one."));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Display, TEXT("GPSSensor: Found GeoReferencingSystem"));
+		}
+	}
+}
+
+FVector UGPSSensor::GetGeographicCoordinates() const
+{
+	if (!GeoRefSystem || !GetOwner())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GPSSensor: Cannot get geographic coordinates - no GeoRefSystem or Owner"));
+		return LastGeographicCoords;
+	}
+    
+	// Get current position in Unreal coordinates
+	FVector WorldPosition = GetOwner()->GetActorLocation();
+    
+	// Convert to geographic coordinates using the Georeferencing plugin
+	FGeographicCoordinates GeoCoords;
+	GeoRefSystem->EngineToGeographic(WorldPosition, GeoCoords);
+    
+	// Return as FVector (Latitude, Longitude, Altitude)
+	return FVector(GeoCoords.Latitude, GeoCoords.Longitude, GeoCoords.Altitude);
 }
 
 FVector UGPSSensor::SampleRawGPS() const
@@ -40,6 +87,8 @@ void UGPSSensor::UpdateSensor(float DeltaTime, bool bNoise)
 	}
 
 	LastGPS = Pos;
+	LastGeographicCoords = GetGeographicCoordinates();
+
 }
 
 float UGPSSensor::SensorNoise()

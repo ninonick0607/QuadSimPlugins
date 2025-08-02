@@ -61,7 +61,11 @@ void USensorManagerComponent::InitializeSensors()
 	{
 		UE_LOG(LogTemp, Error, TEXT("SensorManager: IMU component is null!"));
 	}
-    
+	if (GPS)
+	{
+		GPS->Initialize();  // Add this line
+		UE_LOG(LogTemp, Display, TEXT("SensorManager: GPS initialized"));
+	}
 	if (GPS)
 	{
 		UE_LOG(LogTemp, Display, TEXT("SensorManager: GPS ready"));

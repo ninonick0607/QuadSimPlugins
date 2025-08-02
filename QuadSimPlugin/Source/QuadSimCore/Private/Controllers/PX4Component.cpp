@@ -2,6 +2,10 @@
 #include "Controllers/QuadDroneController.h"
 #include "Pawns/QuadPawn.h"
 #include "Engine/World.h"
+#include "Sensors/BaroSensor.h"
+#include "Sensors/GPSSensor.h"
+#include "Sensors/IMUSensor.h"
+#include "Sensors/MagSensor.h"
 #include "Common/UdpSocketBuilder.h"
 #include "HAL/PlatformProcess.h"
 
@@ -11,6 +15,7 @@
 #pragma warning(disable: 4996) // Disable deprecated function warnings
 
 // Include the common dialect of MAVLink
+#include "Sensors/SensorManagerComponent.h"
 #include "common/mavlink.h"
 
 #pragma warning(pop)
@@ -1080,11 +1085,11 @@ void UPX4Component::SendHILGPS()
 	hil_gps.time_usec = timestamp_us;
     
 	// GPS position
-	hil_gps.lat = 473977372; // Zurich * 1e7
-	hil_gps.lon = 85455939;
+	hil_gps.lat = CurrentGeoCoords.X; // Zurich * 1e7
+	hil_gps.lon = CurrentGeoCoords.Y;
     
-	float alt_m = (-CurrentPosition.Z / 100.0f) + 5.0f; // Same offset as barometer
-	hil_gps.alt = (int32_t)((500.0f + alt_m) * 1000);
+	float alt_m = CurrentAltitude;
+	hil_gps.alt = (int32_t)alt_m;
 	
 	// GPS accuracy
 	hil_gps.eph = 100; // HDOP * 100
@@ -1295,23 +1300,12 @@ void UPX4Component::UpdateCurrentState()
 {
 	if (AQuadPawn* QuadPawn = Cast<AQuadPawn>(GetOwner()))
 	{
-		CurrentPosition = QuadPawn->GetActorLocation();
-		CurrentVelocity = QuadPawn->GetVelocity();
-		CurrentRotation = QuadPawn->GetActorRotation();
-        
-		if (!QuadController)
-		{
-			QuadController = FindQuadController();
-		}
-        
-		if (QuadController)
-		{
-			CurrentAngularVelocity = QuadController->GetLocalAngularRateDeg();
-		}
-		else
-		{
-			CurrentAngularVelocity = FVector::ZeroVector;
-		}
+		CurrentPosition = QuadPawn->SensorManager->GPS->GetLastGPS();
+		CurrentGeoCoords = QuadPawn->SensorManager->GPS->GetGeographicCoordinates();
+		CurrentVelocity = QuadPawn->SensorManager->IMU->GetLastVelocity();
+		CurrentRotation = QuadPawn->SensorManager->IMU->GetLastAttitude();
+		CurrentAngularVelocity = QuadPawn->SensorManager->IMU->GetLastGyroscopeDegrees();
+		CurrentAltitude = QuadPawn->SensorManager->Barometer->GetEstimatedAltitude();
 	}
 }
 

@@ -19,7 +19,12 @@ public:
 	void UpdateSensor(float DeltaTime, bool bNoise );
 	FVector SampleRawGPS() const;
 	FVector GetLastGPS() const { return LastGPS; }
+
+	void Initialize();
 	
+	UFUNCTION(BlueprintCallable, Category = "GPS")
+	FVector GetGeographicCoordinates() const; 
+    
 private:
 	float UpdateRate = 10.0f;          
 	float AccumulatedTime = 0.0f;      
@@ -29,4 +34,9 @@ private:
 
 	FVector LastGPS;
 	
+	FVector LastGeographicCoords;
+    
+	UPROPERTY()
+	AGeoReferencingSystem* GeoRefSystem = nullptr;
+
 };

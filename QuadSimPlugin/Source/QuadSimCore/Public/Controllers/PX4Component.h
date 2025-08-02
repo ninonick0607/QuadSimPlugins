@@ -178,9 +178,11 @@ private:
 
     // State Storage (main thread)
     FVector CurrentPosition = FVector::ZeroVector;
+	FVector CurrentGeoCoords = FVector::ZeroVector;
     FVector CurrentVelocity = FVector::ZeroVector;
     FRotator CurrentRotation = FRotator::ZeroRotator;
     FVector CurrentAngularVelocity = FVector::ZeroVector;
+	float CurrentAltitude = 0.f;
 
     // Threading
     FPX4CommunicationThread* CommunicationThread;
