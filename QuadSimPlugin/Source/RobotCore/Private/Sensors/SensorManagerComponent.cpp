@@ -110,19 +110,20 @@ void USensorManagerComponent::UpdateAllSensors(float DeltaTime, bool bAddNoise)
     }
     
     // IMU needs to update at 250Hz, so we may need multiple updates per frame
-    if (IMU)
-    {
-        const float IMUPeriod = 1.0f / 250.0f; // 0.004 seconds (4ms)
-        float RemainingTime = DeltaTime;
-        
-        // Update IMU multiple times if frame time is longer than IMU period
-        while (RemainingTime > 0.0f)
-        {
-            float StepTime = FMath::Min(RemainingTime, IMUPeriod);
-            IMU->UpdateSensor(StepTime, bAddNoise);
-            RemainingTime -= IMUPeriod;
-        }
-    }
+	if (IMU)
+	{
+		// reset our “first sample” marker
+		IMU->BeginFrame();
+
+		const float IMUPeriod = 1.0f / 250.0f;
+		float RemainingTime = DeltaTime;
+		while (RemainingTime > 0.0f)
+		{
+			float StepTime = FMath::Min(RemainingTime, IMUPeriod);
+			IMU->UpdateSensor(StepTime, bAddNoise);
+			RemainingTime -= IMUPeriod;
+		}
+	}
 	if (Magnetometer)
 	{
 		const float MagPeriod = 1.0f / 100.0f; // 0.01 seconds (10ms)

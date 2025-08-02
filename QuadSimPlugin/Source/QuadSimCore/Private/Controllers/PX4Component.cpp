@@ -1252,24 +1252,24 @@ void UPX4Component::ConvertUnrealToPX4Coordinates(const FVector& UnrealPos, cons
     
     // Position: Convert cm to meters and flip coordinates
     OutX = UnrealPos.X / 100.0f;  // Forward -> North
-    OutY = UnrealPos.Y / 100.0f;  // Right -> East  
+    OutY = -UnrealPos.Y / 100.0f;  // Right -> East  
     OutZ = -UnrealPos.Z / 100.0f; // Up -> Down (flip sign)
     
     // Velocity: Convert cm/s to m/s and flip coordinates
     OutVx = UnrealVel.X / 100.0f;  // Forward -> North
-    OutVy = UnrealVel.Y / 100.0f;  // Right -> East
+    OutVy = -UnrealVel.Y / 100.0f;  // Right -> East
     OutVz = -UnrealVel.Z / 100.0f; // Up -> Down (flip sign)
     
     // Attitude: Convert rotation to quaternion with coordinate system conversion
     FQuat UnrealQuat = FQuat(UnrealRot);
     OutQ0 = UnrealQuat.W;
     OutQ1 = UnrealQuat.X;
-    OutQ2 = UnrealQuat.Y; 
+    OutQ2 = -UnrealQuat.Y; 
     OutQ3 = -UnrealQuat.Z; // Flip Z for coordinate conversion
     
     // Angular rates: Convert and flip as needed
     OutRollRate = UnrealAngVel.X;   // Roll rate (same axis)
-    OutPitchRate = UnrealAngVel.Y;  // Pitch rate (same axis)
+    OutPitchRate = -UnrealAngVel.Y;  // Pitch rate (same axis)
     OutYawRate = -UnrealAngVel.Z;   // Yaw rate (flip for coordinate conversion)
 }
 

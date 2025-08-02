@@ -32,7 +32,7 @@ void UThrusterComponent::ApplyForce(double Force)
     }
 
     const FVector Direction = GetComponentTransform().GetUnitAxis(EAxis::X);
-    const FVector ForceVector = Direction * Force*100;
+    const FVector ForceVector = Direction * Force;
 
     const FVector ForceLocation = GetComponentLocation();
     RootPrim->AddForceAtLocation(ForceVector, ForceLocation);

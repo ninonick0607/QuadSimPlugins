@@ -33,7 +33,7 @@ void UIMUSensor::Initialize()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("IMUSensor: No physics body found!"));
+			UE_LOG(LogTemp, Warning, TEXT("IMUSensor: No physics body found!"));
 	}
 }
 
@@ -42,11 +42,11 @@ FVector UIMUSensor::SampleRawAcceleration(float DeltaTime)
 	if (!bInitialized || !AttachedBody || DeltaTime <= 0.f)
 		return FVector::ZeroVector;
 
-	FVector CurrVel = AttachedBody->GetPhysicsLinearVelocity()/100;
+	FVector CurrVel = AttachedBody->GetPhysicsLinearVelocity();
 	FVector RawAccel = (CurrVel - PreviousVelocity) / DeltaTime;
 	PreviousVelocity = CurrVel;
 
-	return AttachedBody->GetComponentTransform().InverseTransformVectorNoScale(RawAccel);
+	return AttachedBody->GetComponentTransform().InverseTransformVectorNoScale(RawAccel/100);
 }
 
 FVector UIMUSensor::SampleRawAngularVelocity()
@@ -84,10 +84,8 @@ void UIMUSensor::UpdateSensor(float DeltaTime, bool bNoise)
 {
 	AccumulatedTime += DeltaTime;
 	const float Period = 1.f / UpdateRate;
-
 	if (AccumulatedTime < Period)
 		return;
-
 	AccumulatedTime -= Period;
 
 	// Sample all sensor data
@@ -119,9 +117,12 @@ void UIMUSensor::UpdateSensor(float DeltaTime, bool bNoise)
 		Attitude.Pitch += SensorNoise() * FMath::RadiansToDegrees(GyroAttNoiseStdDev);
 		Attitude.Yaw += SensorNoise() * FMath::RadiansToDegrees(GyroAttNoiseStdDev);
 	}
-
+	if (bNeedsFirstAccelSample)
+	{
+		LastAccelerometer = Accel;
+		bNeedsFirstAccelSample = false;
+	}
 	// Store all sensor readings
-	LastAccelerometer = Accel;
 	LastGyroscope = Gyro;
 	LastVelocity = Velocity;  // You'll need to add this member variable
 	LastAttitude = Attitude;  // You'll need to add this member variable

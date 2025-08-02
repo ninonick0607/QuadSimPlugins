@@ -69,7 +69,6 @@ public:
 
     void FlightController(double DeltaTime);
     void GamepadController(double DeltaTime);
-    void dynamicController(double DeltaTime);
     void ThrustMixer(double currentRoll, double currentPitch, double zOutput, double rollOutput, double pitchOutput, double yawOutput);
     float YawRateControl(double DeltaTime);
     
@@ -78,47 +77,25 @@ public:
     void ResetDroneRotation();
     void ResetDroneOrigin();
 
-
-    void SetManualThrustMode(bool bEnable);
     void SetHoverMode(bool bActive, float TargetAltitude = 250.0f);
     void SetDestination(FVector desiredSetPoints);
-    
 
     void DrawDebugVisuals(const FVector& currentPosition)const;
     void DrawDebugVisualsVel(const FVector& horizontalVelocity) const;
-    void SafetyReset();
-    void ApplyManualThrusts();
- 
-    FVector GetCurrentLocalVelocity() const { return currentLocalVelocity; }
-    FVector GetCurrentAngularVelocity() const {return currentLocalVelocity; }
+	
     FVector GetDesiredVelocity() const { return desiredNewVelocity; }
     bool GetDebugVisualsEnabled() const { return bDebugVisualsEnabled; }
-    
-    // ROSFlight interface methods - available when UnrealRosFlight plugin is loaded
-    float IsUsingROSflight() const { 
-        return bUseROSflight; 
-    }
-    float GetDesiredRoll() const { 
-        return desiredRoll; 
-    }
-    float GetDesiredPitch() const { 
-        return desiredPitch; 
-    }
-    float GetDesiredYawRate() const { 
-        return desiredYawRate; 
-    }
-    float GetDesiredThrustNormalized() const { 
-        return desiredThrust_Normalized; 
-    }
+	
+    float GetDesiredRoll() const { return desiredRoll; }
+    float GetDesiredPitch() const { return desiredPitch; }
+    float GetDesiredYawRate() const { return desiredYawRate; }
     
     double GetDesiredRollRate() const {return desiredRollRate;}
     double GetDesiredPitchRate() const {return desiredPitchRate;}
-    
 
     EFlightMode GetFlightMode() const { return currentFlightMode; }
     
     FVector GetCurrentSetPoint() const { return setPoint; }
-    const TArray<float>& GetThrusts() const { return Thrusts; }
     
     void SetDebugVisualsEnabled(bool bEnabled) { bDebugVisualsEnabled = bEnabled; }
     void SetDesiredAngle(float newAngle) { maxAngle = newAngle; }
@@ -138,15 +115,9 @@ public:
 
     float GetCurrentThrustOutput(int32 ThrusterIndex) const;
 
-    UFUNCTION(BlueprintPure, Category = "Drone State")
-    FVector GetCurrentVelocity() const; 
-
     UFUNCTION(BlueprintCallable, Category = "Flight")
     void SetFlightMode(EFlightMode NewMode);
-    FFullPIDSet* GetPIDSet(EFlightMode Mode)
-    {
-        return &PIDSet;
-    }
+    FFullPIDSet* GetPIDSet(EFlightMode Mode){return &PIDSet;}
 
     // External Control Support (PX4 integration)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "External Control")
@@ -163,13 +134,7 @@ public:
     // Getters for external controller to access state
     UFUNCTION(BlueprintCallable, Category = "External Control")
     FVector GetLocalAngularRateDeg() const { return localAngularRateDeg; }
-
-    // Additional getters that PX4 might need
-    UFUNCTION(BlueprintCallable, Category = "External Control")
-    FVector GetCurrentPosition() const;
-
-    UFUNCTION(BlueprintCallable, Category = "External Control") 
-    FRotator GetCurrentRotation() const;
+	
 	void DrawMagneticDebugVisuals();
 
 private:
@@ -211,6 +176,7 @@ private:
     bool bUseROSflight = false;
     float desiredThrust_Normalized = 0.0f;
 
+	float maxThrust;
     float maxVelocity;
     float maxAngle;
     float maxAngleRate;
