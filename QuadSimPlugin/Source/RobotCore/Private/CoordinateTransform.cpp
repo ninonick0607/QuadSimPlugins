@@ -50,9 +50,9 @@ FVector UCoordinateTransform::UnrealToNED(const FVector& UnrealPos)
     // Unreal (cm): X=Forward, Y=Right, Z=Up
     // NED (m): X=North, Y=East, Z=Down
     return FVector(
-        UnrealPos.X * 0.01f,   // Forward -> North (cm to m)
-        -UnrealPos.Y * 0.01f,  // Right -> East (flip and cm to m)
-        -UnrealPos.Z * 0.01f   // Up -> Down (flip and cm to m)
+        UnrealPos.X  ,   // Forward -> North (cm to m)
+        -UnrealPos.Y ,  // Right -> East (flip and cm to m)
+        -UnrealPos.Z    // Up -> Down (flip and cm to m)
     );
 }
 
@@ -61,9 +61,9 @@ FVector UCoordinateTransform::NEDToUnreal(const FVector& NEDPos)
     // NED (m): X=North, Y=East, Z=Down
     // Unreal (cm): X=Forward, Y=Right, Z=Up
     return FVector(
-        NEDPos.X * 100.0f,    // North -> Forward (m to cm)
-        -NEDPos.Y * 100.0f,   // East -> Right (flip and m to cm)
-        -NEDPos.Z * 100.0f    // Down -> Up (flip and m to cm)
+        NEDPos.X ,    
+        -NEDPos.Y,   
+        -NEDPos.Z
     );
 }
 
@@ -72,9 +72,9 @@ FVector UCoordinateTransform::UnrealToENU(const FVector& UnrealPos)
     // Unreal (cm): X=Forward, Y=Right, Z=Up
     // ENU (m): X=East, Y=North, Z=Up
     return FVector(
-        -UnrealPos.Y * 0.01f,  // Right -> East (flip and cm to m)
-        UnrealPos.X * 0.01f,   // Forward -> North (cm to m)
-        UnrealPos.Z * 0.01f    // Up -> Up (cm to m)
+        -UnrealPos.Y,  // Right -> East (flip and cm to m)
+        UnrealPos.X,   // Forward -> North (cm to m)
+        UnrealPos.Z    // Up -> Up (cm to m)
     );
 }
 

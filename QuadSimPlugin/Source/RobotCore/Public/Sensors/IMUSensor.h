@@ -39,8 +39,11 @@ private:
 	bool bInitialized = false;
     
 	// Noise parameters
-	float AccelVelNoiseStdDev = 0.02f; // m/s^2
-	float GyroAttNoiseStdDev = 0.01f;  // rad/s
+	float VelNoiseStdDev = 0.001f;       // m/s
+	float AccelVelNoiseStdDev = 0.0001f; // m/s²
+	float AttNoiseStdDev = 0.01f;        // degrees  
+	float GyroAttNoiseStdDev = 0.0001f;  // rad/s
+	
 	bool bNeedsFirstAccelSample = true;
 
 	UPROPERTY()

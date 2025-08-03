@@ -385,6 +385,8 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	case EFlightMode::VelocityControl:
 		{
 			desiredLocalVelocity = desiredNewVelocity;
+			DrawMagneticDebugVisuals();
+
 			break;
 		}
 	case EFlightMode::AngleControl:

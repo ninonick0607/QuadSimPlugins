@@ -15,6 +15,7 @@
 #include "GameFramework/Actor.h"        
 #include "Core/ThrusterComponent.h"       
 #include "UI/ImGuiUtil.h"
+#include "Sensors/MagSensor.h"
 #include "UI/QuadHUDWidget.h"
 #include "Components/ChildActorComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -22,6 +23,7 @@
 #include "SimulationCore/Public/Interfaces/ISimulatable.h" // Add this for interface check
 #include "Controllers/PX4Component.h"
 #include "Sensors/BaroSensor.h"
+#include "Sensors/GPSSensor.h"
 #include "Sensors/SensorManagerComponent.h"
 
 #define EPSILON 0.0001f
@@ -291,7 +293,6 @@ void AQuadPawn::Tick(float DeltaTime)
 	}
 
 	UpdateGroundCameraTracking();
-
 	if (bHasCollidedWithObstacle)
 	{
 		float CurrentTime = GetWorld()->GetTimeSeconds();
@@ -315,7 +316,7 @@ void AQuadPawn::UpdateControl(float DeltaTime)
 	}
 	if (NavigationComponent)
 	{
-		NavigationComponent->UpdateNavigation(GetActorLocation());
+		NavigationComponent->UpdateNavigation(SensorManager->GPS->GetLastGPS());
 		FVector NextGoal = NavigationComponent->GetCurrentSetpoint();
 		if (QuadController)
 		{
@@ -562,4 +563,53 @@ void AQuadPawn::SetExternalAttitudeCommand(float InRoll, float InPitch)
         
 		UE_LOG(LogTemp, Log, TEXT("QuadPawn: Passed external attitude to controller (Roll: %.2f, Pitch: %.2f)"), InRoll, InPitch);
 	}
+}
+void AQuadPawn::DebugDrawMagnetometer()
+{
+	if (!SensorManager || !SensorManager->Magnetometer) return;
+
+	// 1) grab the latest body-frame field (in Gauss)
+	FVector magBody = SensorManager->Magnetometer->GetLastMagField();  
+
+	// 2) rotate it into world-frame so we know where “north” points in world coords
+	FQuat  pawnQuat = GetActorQuat();
+	FVector magWorld = pawnQuat.RotateVector(magBody);
+
+	// 3) project onto horizontal plane (zero out up/down)
+	FVector magHoriz = FVector(magWorld.X, magWorld.Y, 0.f).GetSafeNormal();
+	if (!magHoriz.IsNearlyZero())
+	{
+		// 4) draw an arrow at the drone’s location pointing toward magnetic north
+		FVector loc = GetActorLocation();
+		DrawDebugDirectionalArrow(
+			GetWorld(),
+			loc,
+			loc + magHoriz * 200.f,    // 200 cm arrow
+			50.f,                      // arrow head size
+			FColor::Cyan,
+			false,                     // persistent
+			0.f,                       // life time (0 = one frame)
+			0,
+			5.f                        // line thickness
+		);
+	}
+
+	// 5) compute heading (degrees clockwise from +X/North)
+	float headingRad = FMath::Atan2(magHoriz.Y, magHoriz.X);
+	float headingDeg = FMath::RadiansToDegrees(headingRad);
+	if (headingDeg < 0) headingDeg += 360.f;
+
+	// 6) display on-screen text: Gauss magnitude & heading
+	float gauss = magBody.Size();
+	FString dbg = FString::Printf(
+		TEXT("Mag: %.3f G   Heading: %.1f°"), 
+		gauss, 
+		headingDeg
+	);
+	GEngine->AddOnScreenDebugMessage(
+		-1,            // key -1 = new message
+		0.f,           // duration 0 = every frame
+		FColor::White, 
+		dbg
+	);
 }

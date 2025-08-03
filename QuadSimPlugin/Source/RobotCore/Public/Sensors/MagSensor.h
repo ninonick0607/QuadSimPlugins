@@ -31,7 +31,7 @@ private:
 	bool bEarthMagFieldValid = false;
     
 	// Noise parameters
-	float MagNoiseStdDev = 0.02f;  
+	float MagNoiseStdDev = 0.00001f;  
 	
 	UPROPERTY(EditAnywhere, Category = "Magnetometer")
 	float MagOffsetX = 0.0f;

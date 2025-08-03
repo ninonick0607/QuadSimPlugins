@@ -925,20 +925,20 @@ void UPX4Component::SendHILStateQuaternion()
 	hil_state.lon = (int32_t)(CurrentGeoCoords.Y * 1e7);
 	hil_state.alt = (int32_t)(CurrentGeoCoords.Z * 1000); // mm
 	
-    // Velocities in cm/s
-	hil_state.vx = (int16_t)(CurrentVelocity.X * 100.0f);
-	hil_state.vy = (int16_t)(CurrentVelocity.Y * 100.0f);
-	hil_state.vz = (int16_t)(CurrentVelocity.Z * 100.0f);
+    // Velocities in m/s
+	hil_state.vx = (int16_t)(CurrentVelocity.X);
+	hil_state.vy = (int16_t)(CurrentVelocity.Y);
+	hil_state.vz = (int16_t)(CurrentVelocity.Z);
     
     // Ground speed
 	float ground_speed_ms = FMath::Sqrt(CurrentVelocity.X * CurrentVelocity.X + CurrentVelocity.Y * CurrentVelocity.Y);
-	hil_state.ind_airspeed = (uint16_t)(ground_speed_ms * 100.0f); // cm/s
+	hil_state.ind_airspeed = (uint16_t)(ground_speed_ms); // m/s
 	hil_state.true_airspeed = hil_state.ind_airspeed;
     
     // Accelerations (use gravity-compensated values)
     hil_state.xacc = 0;
     hil_state.yacc = 0;
-    hil_state.zacc = 980; // 1g in cm/s^2
+    hil_state.zacc = 980; // 1g in m/s^2
     
     // Encode and send
     mavlink_msg_hil_state_quaternion_encode(SystemID, ComponentID, &msg, &hil_state);
@@ -1067,14 +1067,14 @@ void UPX4Component::SendHILGPS()
 	hil_gps.eph = 100; // HDOP * 100
 	hil_gps.epv = 100; // VDOP * 100
     
-	// Velocities in cm/s
-	hil_gps.vn = (int16_t)(CurrentVelocity.X * 100.0f); // North velocity cm/s
-	hil_gps.ve = (int16_t)(CurrentVelocity.Y * 100.0f); // East velocity cm/s
-	hil_gps.vd = (int16_t)(CurrentVelocity.Z * 100.0f); // Down velocity cm/s
+	// Velocities in m/s
+	hil_gps.vn = (int16_t)(CurrentVelocity.X); // North velocity m/s
+	hil_gps.ve = (int16_t)(CurrentVelocity.Y); // East velocity m/s
+	hil_gps.vd = (int16_t)(CurrentVelocity.Z); // Down velocity m/s
     
 	// Ground speed and course
 	float ground_speed_ms = FMath::Sqrt(CurrentVelocity.X * CurrentVelocity.X + CurrentVelocity.Y * CurrentVelocity.Y);
-	hil_gps.vel = (uint16_t)(ground_speed_ms * 100.0f); // cm/s
+	hil_gps.vel = (uint16_t)(ground_speed_ms * 100.0f); // m/s
 	
 	// Course over ground in centidegrees (0-35999)
 	float cog_rad = FMath::Atan2(CurrentVelocity.Y, CurrentVelocity.X); // East, North for NED
@@ -1231,40 +1231,6 @@ void UPX4Component::UpdateConnectionStatus()
     }
 }
 
-void UPX4Component::ConvertUnrealToPX4Coordinates(const FVector& UnrealPos, const FVector& UnrealVel, 
-                                                 const FRotator& UnrealRot, const FVector& UnrealAngVel,
-                                                 float& OutX, float& OutY, float& OutZ,
-                                                 float& OutVx, float& OutVy, float& OutVz,
-                                                 float& OutQ0, float& OutQ1, float& OutQ2, float& OutQ3,
-                                                 float& OutRollRate, float& OutPitchRate, float& OutYawRate)
-{
-    // Convert from Unreal (FLU: Forward-Left-Up) to PX4/NED (North-East-Down)
-    // Unreal: X=Forward, Y=Right, Z=Up
-    // PX4/NED: X=North, Y=East, Z=Down
-    
-    // Position: Convert cm to meters and flip coordinates
-    OutX = UnrealPos.X / 100.0f;  // Forward -> North
-    OutY = -UnrealPos.Y / 100.0f;  // Right -> East  
-    OutZ = -UnrealPos.Z / 100.0f; // Up -> Down (flip sign)
-    
-    // Velocity: Convert cm/s to m/s and flip coordinates
-    OutVx = UnrealVel.X / 100.0f;  // Forward -> North
-    OutVy = -UnrealVel.Y / 100.0f;  // Right -> East
-    OutVz = -UnrealVel.Z / 100.0f; // Up -> Down (flip sign)
-    
-    // Attitude: Convert rotation to quaternion with coordinate system conversion
-    FQuat UnrealQuat = FQuat(UnrealRot);
-    OutQ0 = UnrealQuat.W;
-    OutQ1 = UnrealQuat.X;
-    OutQ2 = -UnrealQuat.Y; 
-    OutQ3 = -UnrealQuat.Z; // Flip Z for coordinate conversion
-    
-    // Angular rates: Convert and flip as needed
-    OutRollRate = UnrealAngVel.X;   // Roll rate (same axis)
-    OutPitchRate = -UnrealAngVel.Y;  // Pitch rate (same axis)
-    OutYawRate = -UnrealAngVel.Z;   // Yaw rate (flip for coordinate conversion)
-}
-
 uint64 UPX4Component::GetSynchronizedTimestamp()
 {
 	FScopeLock Lock(&TimestampMutex);
@@ -1289,7 +1255,7 @@ void UPX4Component::UpdateCurrentState()
 	{
 		FVector GPSPositionMeters = QuadPawn->SensorManager->GPS->GetLastGPS(); // Already in meters
 		FVector GeographicCoords = QuadPawn->SensorManager->GPS->GetGeographicCoordinates();
-		FVector IMUVelocity = QuadPawn->SensorManager->IMU->GetLastVelocity(); // cm/s
+		FVector IMUVelocity = QuadPawn->SensorManager->IMU->GetLastVelocity(); // m/s
 		FRotator IMUAttitude = QuadPawn->SensorManager->IMU->GetLastAttitude();
 		FVector IMUAngularVelDeg = QuadPawn->SensorManager->IMU->GetLastGyroscopeDegrees(); // deg/s
 		float BaroAltitude = QuadPawn->SensorManager->Barometer->GetEstimatedAltitude(); // meters

@@ -62,7 +62,7 @@ void UMagSensor::UpdateSensor(float DeltaTime, bool bNoise)
     // Add noise if enabled
     if (bNoise)
     {
-        BodyMagField += NoiseGauss3f(MagNoiseStdDev, MagNoiseStdDev, MagNoiseStdDev * 1.5f);
+        BodyMagField += NoiseGauss3f (MagNoiseStdDev, MagNoiseStdDev, MagNoiseStdDev);
     }
     
     // Add sensor bias/offset

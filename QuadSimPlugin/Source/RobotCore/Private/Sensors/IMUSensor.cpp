@@ -76,7 +76,6 @@ FRotator UIMUSensor::SampleRawAttitude(){
 	if (!bInitialized || !AttachedBody)
 		return FRotator::ZeroRotator;
 	FRotator WorldRotation = AttachedBody->GetComponentRotation();
-	
 	return WorldRotation;
 }
 

@@ -31,8 +31,8 @@ private:
 	float UpdateRate = 10.0f;          
 	float AccumulatedTime = 0.0f;      
 
-	float LatLonNoiseStdDev = 2.f;    
-	float AltNoiseStdDev    = 4.f;    
+	float LatLonNoiseStdDev = 0.02f;   // meters (2cm)
+	float AltNoiseStdDev = 0.05f;      // meters (5cm)
 
 	FVector LastGPS;
 	

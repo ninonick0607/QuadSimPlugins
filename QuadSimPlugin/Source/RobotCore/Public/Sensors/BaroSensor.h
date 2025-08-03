@@ -44,10 +44,10 @@ private:
 	
 	// Drift simulation
 	float BaroDriftPa = 0.0f;
-	float BaroDriftPaPerSec = 0.01f;  // 0.01 Pa/s drift rate
-    
-	// Noise parameters
-	float PressureNoiseStdDev = 1.0f;  // 1 Pa RMS noise (from PX4)
+	
+	float PressureNoiseStdDev = 0.5f;        // Pa (~0.04m altitude)
+	float BaroDriftPaPerSec = 0.005f;        // Pa/s drift rate  
+	float TemperatureNoiseStdDev = 0.1f;     // °C
 	
 	// Box-Muller transform state for noise generation
 	bool bUseLastGaussian = false;
