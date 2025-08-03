@@ -5,6 +5,7 @@
 #include "Components/SceneComponent.h"
 #include "BaroSensor.generated.h"
 
+// Forward declarations
 class AGeoReferencingSystem;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))

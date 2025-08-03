@@ -511,9 +511,7 @@ float  UQuadDroneController::YawRateControl(double DeltaTime)
 	float yawTorqueFeedback = CurrentSet->YawRatePID->Calculate(currentdesiredYawRate,currentYawRate, DeltaTime);
 	return yawTorqueFeedback;
 }
-
 // ------ Reset Functions ------------------------
-
 void UQuadDroneController::ResetPID()
 {
 	PIDSet.XPID      ->Reset();
@@ -525,7 +523,6 @@ void UQuadDroneController::ResetPID()
 	PIDSet.PitchRatePID->Reset();
 	PIDSet.YawRatePID  ->Reset();
 }
-
 void UQuadDroneController::ResetDroneIntegral()
 {
 	FFullPIDSet* CurrentSet = &PIDSet;
@@ -592,10 +589,7 @@ void UQuadDroneController::ResetDroneOrigin()
 		desiredNewVelocity = FVector::ZeroVector;
 	}
 }
-
-
 // ------------ Setter and Getter -------------------
-
 void UQuadDroneController::SetHoverMode(bool bActive, float TargetAltitude)
 {
 	if (bActive && bHoverModeActive && dronePawn && TargetAltitude != hoverTargetAltitude)
@@ -616,14 +610,10 @@ void UQuadDroneController::SetHoverMode(bool bActive, float TargetAltitude)
 		UE_LOG(LogTemp, Display, TEXT("Hover mode deactivated"));
 	}
 }
-
 void UQuadDroneController::SetDestination(FVector desiredSetPoints) {
 	setPoint = desiredSetPoints;
 }
-
-
 // ---------------------- Helper Functions -----------------------
-
 void UQuadDroneController::DrawDebugVisuals(const FVector& currentPosition) const
 {
    // Draw only a line connecting the current position to the setpoint (no spheres).
@@ -636,7 +626,6 @@ void UQuadDroneController::DrawDebugVisuals(const FVector& currentPosition) cons
        /*LifeTime=*/0.0f
    );
 }
-
  void UQuadDroneController::DrawDebugVisualsVel(const FVector& horizontalVelocity) const
  {
  	if (!bDebugVisualsEnabled || !dronePawn || !dronePawn->DroneBody) return;
@@ -660,9 +649,6 @@ void UQuadDroneController::DrawDebugVisuals(const FVector& currentPosition) cons
  			nullptr, FColor::White, 0.0f, true, 1.2f);
  	}
  }
-
-
-
 float UQuadDroneController::GetCurrentThrustOutput(int32 ThrusterIndex) const
 {
 	if (Thrusts.IsValidIndex(ThrusterIndex))
@@ -671,7 +657,6 @@ float UQuadDroneController::GetCurrentThrustOutput(int32 ThrusterIndex) const
 	}
 	return 0.0f;
 }
-
 void UQuadDroneController::SetFlightMode(EFlightMode NewMode)
 {
 	switch (NewMode)
@@ -729,41 +714,26 @@ void UQuadDroneController::SetFlightMode(EFlightMode NewMode)
         }
     }
 }
-
-
 //=========================== PX4 Implementation =========================== //
 
 void UQuadDroneController::ApplyMotorCommands(const TArray<float>& MotorCommands)
 {
-    if (!dronePawn || MotorCommands.Num() < 4)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("ApplyMotorCommands: Invalid input - dronePawn=%p, MotorCommands.Num()=%d"), 
-               dronePawn, MotorCommands.Num());
-        return;
-    }
-    
-    // Convert normalized motor commands (0.0-1.0) to thrust forces
-    const float MaxThrust = maxThrust; // Your current max thrust value
-    
+    float DroneMass = dronePawn->GetMass();
+    const float Gravity = 980.0f; // cm/s^2 in Unreal units
+	
+    float TotalHoverThrust = DroneMass * Gravity; // Total thrust needed to hover in centiNewtons
+    float HoverThrustPerMotor = TotalHoverThrust / 4.0f;
+
+	
     for (int32 i = 0; i < FMath::Min(MotorCommands.Num(), 4); i++)
     {
         if (dronePawn->Thrusters.IsValidIndex(i) && dronePawn->Thrusters[i])
         {
-            float ThrustForce = FMath::Clamp(MotorCommands[i], 0.0f, 1.0f) * MaxThrust;
+            float Command = FMath::Clamp(MotorCommands[i], 0.0f, 1.0f);
+        	float ThrustForce = HoverThrustPerMotor * Command * Command;
             dronePawn->Thrusters[i]->ApplyForce(ThrustForce);
-            
-            // Update Thrusts array for UI display
-            if (Thrusts.IsValidIndex(i))
-            {
-                Thrusts[i] = ThrustForce;
-            }
         }
     }
-    
-    UE_LOG(LogTemp, VeryVerbose, TEXT("Applied motor commands: [%.2f, %.2f, %.2f, %.2f] -> [%.0f, %.0f, %.0f, %.0f]N"), 
-           MotorCommands[0], MotorCommands[1], MotorCommands[2], MotorCommands[3],
-           MotorCommands[0] * MaxThrust, MotorCommands[1] * MaxThrust, 
-           MotorCommands[2] * MaxThrust, MotorCommands[3] * MaxThrust);
 }
 
 void UQuadDroneController::SetUseExternalController(bool bUseExternal)

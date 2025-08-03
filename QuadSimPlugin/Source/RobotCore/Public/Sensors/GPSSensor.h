@@ -6,6 +6,8 @@
 #include "Components/SceneComponent.h"
 #include "GPSSensor.generated.h"
 
+// Forward declarations
+class AGeoReferencingSystem;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ROBOTCORE_API UGPSSensor : public USceneComponent
