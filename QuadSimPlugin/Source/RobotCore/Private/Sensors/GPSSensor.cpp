@@ -51,7 +51,7 @@ FVector UGPSSensor::GetGeographicCoordinates() const
 	// Convert to geographic coordinates using the Georeferencing plugin
 	FGeographicCoordinates GeoCoords;
 	GeoRefSystem->EngineToGeographic(WorldPosition, GeoCoords);
-    
+	UE_LOG(LogTemp, Warning, TEXT("WorldPos: %.2f, %.2f, %.2f -> Geo: %.6f, %.6f, %.2f"), WorldPosition.X, WorldPosition.Y, WorldPosition.Z,GeoCoords.Latitude, GeoCoords.Longitude, GeoCoords.Altitude);
 	// Return as FVector (Latitude, Longitude, Altitude)
 	return FVector(GeoCoords.Latitude, GeoCoords.Longitude, GeoCoords.Altitude);
 }

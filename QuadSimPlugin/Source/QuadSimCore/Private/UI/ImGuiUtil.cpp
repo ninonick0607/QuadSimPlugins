@@ -58,6 +58,7 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, float deltaTime)
     TArray<float>& ThrustsVal = DronePawn->QuadController->Thrusts;
     FVector currentVelocity = DronePawn->SensorManager->IMU->GetLastVelocity();
     FVector currentAngularVelocity = DronePawn->SensorManager->IMU->GetLastGyroscope();
+	FVector GeographicCoords = DronePawn->SensorManager->GPS->GetGeographicCoordinates();
     FVector currLoc = DronePawn->SensorManager->GPS->GetLastGPS();
 	float Altitude = DronePawn->SensorManager->Barometer->GetEstimatedAltitude();
     FRotator currentRotation = DronePawn->SensorManager->IMU->GetLastAttitude();
@@ -254,7 +255,10 @@ void UImGuiUtil::ImGuiHud(EFlightMode CurrentMode, float deltaTime)
         {
             ImGui::Text("Current: %.1f, %.1f, %.1f", currLoc.X, currLoc.Y, Altitude);
         }
-
+    	if (ImGui::CollapsingHeader("Geo Position", ImGuiTreeNodeFlags_DefaultOpen))
+    	{
+    		ImGui::Text("Current: %.1f, %.1f, %.1f", GeographicCoords.X, GeographicCoords.Y, GeographicCoords.Z);
+    	}
         // === SUB-COLLAPSIBLE: Velocity ===
         if (ImGui::CollapsingHeader("Velocity", ImGuiTreeNodeFlags_DefaultOpen))
         {

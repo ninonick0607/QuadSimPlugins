@@ -4,9 +4,9 @@
 		"max_velocity_bound": 8,
 		"max_velocity": 1,
 		"max_angle": 15,
+		"max_thrust": 700,
 		"max_angle_rate": 10,
 		"max_pid_output": 10000,
-		"max_thrust": 40,
 		"altitude_threshold": 0.60000002384185791,
 		"min_altitude_local": 500,
 		"acceptable_distance": 200
