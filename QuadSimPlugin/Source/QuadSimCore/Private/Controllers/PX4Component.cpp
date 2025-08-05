@@ -268,40 +268,6 @@ void UPX4Component::SimulationUpdate(float FixedDeltaTime)
 	}
 }
 
-
-// if (bTCPConnected && bUseLockstep)
-// {
-// 	SendHeartbeat();
-// 	HeartbeatTimer = 0.0f;
-// 	// Log every 50 frames
-// 	if (LockstepCounter % 50 == 0)
-// 	{
-// 		UE_LOG(LogPX4, Warning, TEXT("Lockstep[%llu]: timestamp=%llu us, fps=%.1f"), 
-// 			   LockstepCounter, LockstepCounter * 4000, 1.0f / DeltaTime);
-// 	}
-//         
-// 	UpdateCurrentState();
-//         
-// 	// Send all HIL messages
-// 	SendHILSensor();
-// 	SendHILStateQuaternion();
-// 	SendHILGPS();
-// 	SendHILRCInputs();
-//         
-// 	// CRITICAL: Force TCP to send data immediately
-// 	// This is a platform-specific call, but it ensures data is sent
-// 	if (TCPClientSocket)
-// 	{
-// 		// Force the socket to send any buffered data
-// 		int32 BytesSent = 0;
-// 		TCPClientSocket->Send(nullptr, 0, BytesSent); // Empty send to flush
-// 	}
-//         
-// 	LockstepCounter++;
-// }
-//
-
-
 void UPX4Component::SetPX4Active(bool bActive)
 {
     if (bActive && !bUsePX4)
@@ -388,34 +354,7 @@ bool UPX4Component::IsConnectedToPX4() const
 
 void UPX4Component::UpdateThreadSafeState()
 {
-    if (!QuadController)
-    {
-        QuadController = FindQuadController();
-    }
-    
-    FScopeLock Lock(&StateMutex);
-    
-    if (AQuadPawn* QuadPawn = Cast<AQuadPawn>(GetOwner()))
-    {
-        ThreadSafePosition = QuadPawn->GetActorLocation();
-        ThreadSafeVelocity = QuadPawn->GetVelocity();
-        ThreadSafeRotation = QuadPawn->GetActorRotation();
-        
-        if (QuadController)
-        {
-            ThreadSafeAngularVelocity = QuadController->GetLocalAngularRateDeg();
-        }
-        else
-        {
-            ThreadSafeAngularVelocity = FVector::ZeroVector;
-        }
-        
-        bThreadSafeDataValid = true;
-    }
-    else
-    {
-        bThreadSafeDataValid = false;
-    }
+	UpdateCurrentState();
 }
 
 void UPX4Component::SendHILDataFromThread()
@@ -437,9 +376,9 @@ void UPX4Component::SendHILDataFromThread()
 	}
 	else
 	{
-		CurrentPosition = ThreadSafePosition;
-		CurrentVelocity = ThreadSafeVelocity;
-		CurrentRotation = ThreadSafeRotation;
+		CurrentPosition		   = ThreadSafePosition;
+		CurrentVelocity		   = ThreadSafeVelocity;
+		CurrentRotation		   = ThreadSafeRotation;
 		CurrentAngularVelocity = ThreadSafeAngularVelocity;
 	}
     
@@ -872,7 +811,12 @@ void UPX4Component::SendHeartbeat()
 {
 	mavlink_message_t msg;
 	mavlink_heartbeat_t heartbeat;
-    
+
+	// heartbeat.type = MAV_TYPE_QUADROTOR;  // or MAV_TYPE_GCS for ground station
+	// heartbeat.autopilot = MAV_AUTOPILOT_PX4;
+	// heartbeat.base_mode = MAV_MODE_FLAG_HIL_ENABLED | 
+	// 					 MAV_MODE_FLAG_SAFETY_ARMED |
+	// 					 MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
 	heartbeat.type = MAV_TYPE_GCS; // Or try MAV_TYPE_ONBOARD_CONTROLLER
 	heartbeat.autopilot = MAV_AUTOPILOT_INVALID;
 	heartbeat.base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | 
@@ -936,9 +880,9 @@ void UPX4Component::SendHILStateQuaternion()
 	hil_state.true_airspeed = hil_state.ind_airspeed;
     
     // Accelerations (use gravity-compensated values)
-    hil_state.xacc = 0;
-    hil_state.yacc = 0;
-    hil_state.zacc = 980; // 1g in m/s^2
+	hil_state.xacc = (int16_t)(CurrentAccelData.X * 100); // Convert m/s^2 to cm/s^2
+	hil_state.yacc = (int16_t)(CurrentAccelData.Y * 100);
+	hil_state.zacc = (int16_t)(CurrentAccelData.Z * 100);
     
     // Encode and send
     mavlink_msg_hil_state_quaternion_encode(SystemID, ComponentID, &msg, &hil_state);
@@ -963,21 +907,20 @@ void UPX4Component::SendHILSensor()
 	AQuadPawn* QuadPawn = Cast<AQuadPawn>(GetOwner());
 	if (!QuadPawn || !QuadPawn->SensorManager)
 	{
-		UE_LOG(LogPX4, Warning, TEXT("No QuadPawn or SensorManager found, using default sensor values"));
+		UE_LOG(LogPX4, Warning, TEXT("No  or SensorManager found, using default sensor values"));
 		SendMAVLinkMessage(nullptr, 0); // Don't send if no data
 		return;
 	}
-	USensorManagerComponent* SensorManager = QuadPawn->SensorManager;
-	FVector AccelData = SensorManager->IMU->GetLastAccelerometer(); // m/s^2 in body frame
+
 
 	FQuat DroneQuat = UCoordinateTransform::UnrealQuaternionToNED(FQuat(CurrentRotation));
 	FVector GravityWorld(0, 0, 9.81f); // Positive because we subtract it from acceleration
 	FVector GravityBody = DroneQuat.UnrotateVector(GravityWorld);
 	
     // Accelerometer (m/s^2) - includes gravity
-	hil_sensor.xacc = AccelData.X + GravityBody.X;
-	hil_sensor.yacc = AccelData.Y + GravityBody.Y;
-	hil_sensor.zacc = AccelData.Z + GravityBody.Z;
+	hil_sensor.xacc = CurrentAccelData.X + GravityBody.X;
+	hil_sensor.yacc = CurrentAccelData.Y + GravityBody.Y;
+	hil_sensor.zacc = CurrentAccelData.Z + GravityBody.Z;
     
     // Gyroscope (rad/s)
 	hil_sensor.xgyro = CurrentAngularVelocity.X;
@@ -985,20 +928,14 @@ void UPX4Component::SendHILSensor()
 	hil_sensor.zgyro = CurrentAngularVelocity.Z;
     
     // Magnetometer (Gauss) - normalized earth field
-	FVector MagData = SensorManager->Magnetometer->GetLastMagField(); // Gauss in body frame
-	hil_sensor.xmag = MagData.X;
-	hil_sensor.ymag = MagData.Y;
-	hil_sensor.zmag = MagData.Z;
-    
-    // Barometer - sea level pressure
-	float Pressure = SensorManager->Barometer->GetLastPressure(); // Pascal
-	float Temperature = SensorManager->Barometer->GetLastTemperature(); // Celsius
-	float AltitudeMeters = SensorManager->Barometer->GetEstimatedAltitude(); // Meters
-    
-	hil_sensor.abs_pressure = Pressure / 100.0f; // Convert Pa to mbar
+	hil_sensor.xmag = CurrentMagData.X;
+	hil_sensor.ymag = CurrentMagData.Y;
+	hil_sensor.zmag = CurrentMagData.Z;
+	
+	hil_sensor.abs_pressure = CurrentPressure/ 100.0f; // Convert Pa to mbar
 	hil_sensor.diff_pressure = 0.0f; // No airspeed sensor
-	hil_sensor.pressure_alt = AltitudeMeters;
-	hil_sensor.temperature = Temperature;
+	hil_sensor.pressure_alt = CurrentAltitude;
+	hil_sensor.temperature = CurrentTemperature;
     
     // CRITICAL: Set ALL required fields
     hil_sensor.fields_updated = 
@@ -1256,13 +1193,20 @@ void UPX4Component::UpdateCurrentState()
 		FVector GPSPositionMeters = QuadPawn->SensorManager->GPS->GetLastGPS(); // Already in meters
 		FVector GeographicCoords = QuadPawn->SensorManager->GPS->GetGeographicCoordinates();
 		FVector IMUVelocity = QuadPawn->SensorManager->IMU->GetLastVelocity(); // m/s
-		FRotator IMUAttitude = QuadPawn->SensorManager->IMU->GetLastAttitude();
+		FVector AccelData = QuadPawn->SensorManager->IMU->GetLastAccelerometer(); // m/s^2 in body frame
+		FRotator IMUAttitude = QuadPawn->SensorManager->IMU->GetLastAttitude(); //deg
 		FVector IMUAngularVelDeg = QuadPawn->SensorManager->IMU->GetLastGyroscopeDegrees(); // deg/s
+
+		float Pressure = QuadPawn->SensorManager->Barometer->GetLastPressure(); // Pascal
+		float Temperature = QuadPawn->SensorManager->Barometer->GetLastTemperature(); // Celsius
 		float BaroAltitude = QuadPawn->SensorManager->Barometer->GetEstimatedAltitude(); // meters
-		
+
+		FVector MagData = QuadPawn->SensorManager->Magnetometer->GetLastMagField(); // Gauss in body frame
+
 		// Transform to NED coordinates
 		CurrentPosition = UCoordinateTransform::UnrealToNED(GPSPositionMeters); // Now in NED meters
 		CurrentVelocity = UCoordinateTransform::UnrealVelocityToNED(IMUVelocity); // Now in NED m/s
+		CurrentAccelData = UCoordinateTransform::UnrealToNED(AccelData);
 		CurrentRotation = UCoordinateTransform::UnrealRotationToNED(IMUAttitude); // Now in NED frame
         
 		// Angular velocity needs special handling - it's already in body frame from IMU
@@ -1272,13 +1216,25 @@ void UPX4Component::UpdateCurrentState()
 		// Geographic coordinates stay the same (lat/lon/alt)
 		CurrentGeoCoords = GeographicCoords;
 		CurrentAltitude = BaroAltitude;
-        
+
+		CurrentMagData = MagData;
+
+		CurrentPressure = Pressure;
+		CurrentTemperature = Temperature;
+		
 		// Update thread-safe copies if needed
 		FScopeLock Lock(&StateMutex);
 		ThreadSafePosition = CurrentPosition;
 		ThreadSafeVelocity = CurrentVelocity;
 		ThreadSafeRotation = CurrentRotation;
 		ThreadSafeAngularVelocity = CurrentAngularVelocity;
+		ThreadSafeGeoCoords = CurrentGeoCoords;
+		ThreadSafeMagData = CurrentMagData;
+		ThreadSafeAccelData = CurrentAccelData;
+		ThreadSafePressureData = CurrentPressure;
+		ThreadSafeTemperatureData = CurrentTemperature;
+		ThreadSafeAltitudeData = CurrentAltitude;
+		
 		bThreadSafeDataValid = true;
 		
 	}

@@ -142,7 +142,6 @@ private:
     
 	FCriticalSection MotorCommandMutex;
 	TQueue<FMotorCommand, EQueueMode::Mpsc> PendingMotorCommands;
-
 	
     // TCP Communication (for initial handshake)
     FSocket* TCPListenSocket;  // Server socket that listens for connections
@@ -178,10 +177,14 @@ private:
 
     // State Storage (main thread)
     FVector CurrentPosition = FVector::ZeroVector;
-	FVector CurrentGeoCoords = FVector::ZeroVector;
     FVector CurrentVelocity = FVector::ZeroVector;
     FRotator CurrentRotation = FRotator::ZeroRotator;
     FVector CurrentAngularVelocity = FVector::ZeroVector;
+	FVector CurrentGeoCoords = FVector::ZeroVector;
+	FVector CurrentMagData = FVector::ZeroVector;
+	FVector CurrentAccelData = FVector::ZeroVector;
+	float CurrentPressure = 0.0f;
+	float CurrentTemperature = 0.0f;
 	float CurrentAltitude = 0.f;
 
     // Threading
@@ -193,6 +196,13 @@ private:
     FVector ThreadSafeVelocity;
     FRotator ThreadSafeRotation;
     FVector ThreadSafeAngularVelocity;
+	FVector ThreadSafeGeoCoords;
+	FVector ThreadSafeMagData;
+	FVector ThreadSafeAccelData;
+	float ThreadSafePressureData;
+	float ThreadSafeTemperatureData;
+	float ThreadSafeAltitudeData;
+	
     bool bThreadSafeDataValid;
 
     // QuadDroneController reference

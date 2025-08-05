@@ -83,9 +83,9 @@ FVector UCoordinateTransform::ENUToUnreal(const FVector& ENUPos)
     // ENU (m): X=East, Y=North, Z=Up
     // Unreal (cm): X=Forward, Y=Right, Z=Up
     return FVector(
-        ENUPos.Y * 100.0f,    // North -> Forward (m to cm)
-        -ENUPos.X * 100.0f,   // East -> Right (flip and m to cm)
-        ENUPos.Z * 100.0f     // Up -> Up (m to cm)
+        ENUPos.Y,    // North -> Forward (m to cm)
+        -ENUPos.X,   // East -> Right (flip and m to cm)
+        ENUPos.Z      // Up -> Up (m to cm)
     );
 }
 
