@@ -63,7 +63,7 @@ uint32 FPX4CommunicationThread::Run()
 		if (PX4Component && PX4Component->IsConnectedToPX4())
 		{
 			// Update the drone's state from the main game thread
-			PX4Component->UpdateThreadSafeState();
+			PX4Component->UpdateCurrentState();
 
 			// Handle the simulation step (sends HIL data, heartbeats, etc.)
 			PX4Component->ThreadSimulationStep();
@@ -212,15 +212,34 @@ void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 	if (bConnectedToPX4 && QuadController)
 	{
 		FMotorCommand Command;
+		int32 ProcessedCount = 0;
 		while (PendingMotorCommands.Dequeue(Command))
 		{
 			// Now we're safely on the game thread
 			QuadController->ApplyMotorCommands(Command.Commands);
-			if (!PendingMotorCommands.IsEmpty())
+			ProcessedCount++;
+			
+			// Log the actual motor commands being applied
+			if (ProcessedCount == 1) // Log first command in batch
 			{
-				UE_LOG(LogPX4, Warning, TEXT("Motor command queue depth: %d"), 
-					   PendingMotorCommands.IsEmpty() ? 0 : 1);
+				UE_LOG(LogPX4, Warning, TEXT("Applying motor commands to QuadController: [%.3f, %.3f, %.3f, %.3f]"),
+					   Command.Commands[0], Command.Commands[1], Command.Commands[2], Command.Commands[3]);
 			}
+		}
+		
+		if (ProcessedCount > 0)
+		{
+			UE_LOG(LogPX4, VeryVerbose, TEXT("Processed %d motor commands this tick"), ProcessedCount);
+		}
+	}
+	else
+	{
+		// Debug why we're not processing
+		static int32 DebugCounter = 0;
+		if (++DebugCounter % 100 == 0) // Every 100 ticks
+		{
+			UE_LOG(LogPX4, Warning, TEXT("Not processing motor commands: bConnectedToPX4=%d, QuadController=%s"),
+				   bConnectedToPX4 ? 1 : 0, QuadController ? TEXT("Valid") : TEXT("NULL"));
 		}
 	}
 }
@@ -228,44 +247,8 @@ void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 // In PX4Component.cpp - SimulationUpdate
 void UPX4Component::SimulationUpdate(float FixedDeltaTime)
 {
-	if (!bTCPConnected || !bUseLockstep) return;
-    
-	// Update state from drone
-	UpdateCurrentState();
-    
-	// Calculate how many sensor updates we need to send
-	const float SensorUpdateInterval = 0.004f; // 250Hz = 4ms
-	int32 UpdatesNeeded = FMath::RoundToInt(FixedDeltaTime / SensorUpdateInterval);
-	UpdatesNeeded = FMath::Max(1, UpdatesNeeded);
-    
-	for (int32 i = 0; i < UpdatesNeeded; i++)
-	{
-		// Increment counter for each sensor update
-		SimulationStepCounter++;
-        
-		// Update timestamp for this step
-		LockstepCounter = SimulationStepCounter;
-        
-		// Send sensor data
-		SendHILSensor();
-		SendHILStateQuaternion();
-        
-		// Send GPS and RC at lower rates
-		if (SimulationStepCounter % 5 == 0) // 50Hz
-		{
-			SendHILGPS();
-			SendHILRCInputs();
-		}
-	}
-    
-	// Send heartbeat occasionally
-	static float HeartbeatAccumulator = 0.0f;
-	HeartbeatAccumulator += FixedDeltaTime;
-	if (HeartbeatAccumulator >= 0.5f) // 2Hz
-	{
-		SendHeartbeat();
-		HeartbeatAccumulator = 0.0f;
-	}
+	// Remove lockstep mode - all updates now handled by communication thread at 250Hz
+	// This prevents double-sending of data and timing conflicts
 }
 
 void UPX4Component::SetPX4Active(bool bActive)
@@ -310,16 +293,12 @@ void UPX4Component::ConnectToPX4()
         UE_LOG(LogPX4, Warning, TEXT("Start PX4 with: make px4_sitl none_iris"));
     }
 
-	if (bUseLockstep)
-	{
-		UE_LOG(LogPX4, Warning, TEXT("Using LOCKSTEP mode - PX4 will sync with Unreal frame rate"));
-	}
     if (!CommunicationThread)
     {
         CommunicationThread = new FPX4CommunicationThread(this);
         CommunicationThread->StartThread();
         UE_LOG(LogPX4, Warning, TEXT("Started PX4 communication thread:"));
-        UE_LOG(LogPX4, Warning, TEXT("  - Mode: %s"), bUseLockstep ? TEXT("LOCKSTEP") : TEXT("REALTIME"));
+        UE_LOG(LogPX4, Warning, TEXT("  - Mode: REALTIME (250Hz)"));
         UE_LOG(LogPX4, Warning, TEXT("  - Frequency: 250Hz (4ms interval)"));
         UE_LOG(LogPX4, Warning, TEXT("  - Priority: TimeCritical"));
         UE_LOG(LogPX4, Warning, TEXT("  - Frame-independent: YES"));
@@ -352,54 +331,6 @@ bool UPX4Component::IsConnectedToPX4() const
     return bConnectedToPX4 && bTCPConnected;
 }
 
-void UPX4Component::UpdateThreadSafeState()
-{
-	UpdateCurrentState();
-}
-
-void UPX4Component::SendHILDataFromThread()
-{
-	// In lockstep mode, this is handled by ThreadSimulationStep
-	if (bUseLockstep)
-	{
-		return;
-	}
-	
-	FScopeLock Lock(&StateMutex);
-    
-	if (!bThreadSafeDataValid) 
-	{
-		CurrentPosition = FVector::ZeroVector;
-		CurrentVelocity = FVector::ZeroVector;
-		CurrentRotation = FRotator::ZeroRotator;
-		CurrentAngularVelocity = FVector::ZeroVector;
-	}
-	else
-	{
-		CurrentPosition		   = ThreadSafePosition;
-		CurrentVelocity		   = ThreadSafeVelocity;
-		CurrentRotation		   = ThreadSafeRotation;
-		CurrentAngularVelocity = ThreadSafeAngularVelocity;
-	}
-    
-	// Send sensor data EVERY cycle at 250Hz
-	SendHILSensor();
-	SendHILStateQuaternion();
-    
-	// Send GPS at 50Hz (every 5 cycles instead of 10)
-	static int32 GPSCounter = 0;
-	if (++GPSCounter % 5 == 0)  // Was % 10
-	{
-		SendHILGPS();
-	}
-    
-	// Send RC at 50Hz
-	static int32 RCCounter = 0;
-	if (++RCCounter % 5 == 0)  // Was % 10
-	{
-		SendHILRCInputs();
-	}
-}
 
 void UPX4Component::SetupTCPServer()
 {
@@ -482,11 +413,9 @@ void UPX4Component::AcceptTCPConnection()
             UE_LOG(LogPX4, Warning, TEXT("TCP connection established with NoDelay=true"));
             UE_LOG(LogPX4, Warning, TEXT("TCP buffers: Send=%d, Recv=%d"), ActualSendSize, ActualRecvSize);
             
-            if (bUseLockstep)
-            {
-                bConnectedToPX4 = true;
-                UE_LOG(LogPX4, Warning, TEXT("Lockstep mode - starting sensor data transmission immediately"));
-            }
+            // Mark as connected immediately in realtime mode
+            bConnectedToPX4 = true;
+            UE_LOG(LogPX4, Warning, TEXT("Realtime mode - starting sensor data transmission immediately at 250Hz"));
             
             // Close the listen socket
             if (TCPListenSocket)
@@ -807,6 +736,48 @@ void UPX4Component::ParseMAVLinkData(const uint8* Data, int32 DataLength)
 	
 }
 
+void UPX4Component::ThreadSimulationStep()
+{
+	// This function is called from the communications thread's 250Hz loop.
+	// It is responsible for sending all periodic HIL data.
+
+	FScopeLock Lock(&StateMutex);
+	if (!bThreadSafeDataValid) return; // Don't send if we don't have fresh data
+
+	// Update local state from the thread-safe copies (including all sensor data)
+	CurrentPosition = ThreadSafePosition;
+	CurrentVelocity = ThreadSafeVelocity;
+	CurrentRotation = ThreadSafeRotation;
+	CurrentAngularVelocity = ThreadSafeAngularVelocity;
+	CurrentGeoCoords = ThreadSafeGeoCoords;
+	CurrentMagData = ThreadSafeMagData;
+	CurrentAccelData = ThreadSafeAccelData;
+	CurrentPressure = ThreadSafePressureData;
+	CurrentTemperature = ThreadSafeTemperatureData;
+	CurrentAltitude = ThreadSafeAltitudeData;
+    
+	// Increment timestamp counter for proper timing
+	LockstepCounter++; 
+	SimulationStepCounter++;
+
+	// Send High-Frequency Data (250Hz)
+	SendHILSensor();
+	SendHILStateQuaternion();
+
+	// Send GPS and RC inputs at 50Hz (every 5 steps)
+	if (SimulationStepCounter % 5 == 0) 
+	{
+		SendHILGPS();
+		SendHILRCInputs();
+	}
+    
+	// Send heartbeat at 2Hz (every 125 steps)
+	if (SimulationStepCounter % 125 == 0)
+	{
+		SendHeartbeat();
+	}
+}
+
 void UPX4Component::SendHeartbeat()
 {
 	mavlink_message_t msg;
@@ -953,11 +924,7 @@ void UPX4Component::SendHILSensor()
         (1 << 11) | // pressure_alt
         (1 << 12);  // temperature
     
-    // Set lockstep flag
-    if (bUseLockstep)
-    {
-        hil_sensor.fields_updated |= (uint32)(1 << 31); // Set bit 31 for lockstep
-    }
+    // Don't set lockstep flag - running in realtime mode at 250Hz
     
     hil_sensor.id = 0; // Sensor instance ID
     
@@ -978,6 +945,12 @@ void UPX4Component::SendHILSensor()
 			   hil_sensor.xgyro, hil_sensor.ygyro, hil_sensor.zgyro,
 			   hil_sensor.xmag, hil_sensor.ymag, hil_sensor.zmag,
 			   hil_sensor.abs_pressure, hil_sensor.temperature);
+			   
+		// Additional debug for magnetometer
+		if (CurrentMagData.IsNearlyZero())
+		{
+			UE_LOG(LogPX4, Error, TEXT("WARNING: Magnetometer data is ZERO! Check GeoReferencingSystem in level."));
+		}
 	}
 
 	SendMAVLinkMessage(buffer, len);
@@ -1069,12 +1042,6 @@ void UPX4Component::SendHILRCInputs()
 	SendMAVLinkMessage(buffer, len);
 }
 
-void UPX4Component::SendBasicHILData()
-{
-    // This method is kept for compatibility but is now handled by SendHILDataFromThread
-    SendHILDataFromThread();
-}
-
 void UPX4Component::HandleActuatorOutputs(const uint8* MessageBuffer, uint16 MessageLength)
 {
 	if (!bConnectedToPX4 || !bTCPConnected)
@@ -1121,6 +1088,7 @@ void UPX4Component::HandleActuatorOutputs(const uint8* MessageBuffer, uint16 Mes
 			   NewCommand.Commands[2], NewCommand.Commands[3]);
 	}
 }
+
 void UPX4Component::HandleHeartbeat(const uint8* MessageBuffer, uint16 MessageLength)
 {
 	mavlink_message_t* msg = (mavlink_message_t*)MessageBuffer;
@@ -1217,7 +1185,10 @@ void UPX4Component::UpdateCurrentState()
 		CurrentGeoCoords = GeographicCoords;
 		CurrentAltitude = BaroAltitude;
 
-		CurrentMagData = MagData;
+		// Magnetometer data is in body frame but needs axis transformation for NED
+		// In body frame: X=forward, Y=right, Z=down (both Unreal and NED use this)
+		// But the actual magnetic field vector needs to be transformed
+		CurrentMagData = UCoordinateTransform::UnrealToNED(MagData);
 
 		CurrentPressure = Pressure;
 		CurrentTemperature = Temperature;
@@ -1266,42 +1237,3 @@ void UPX4Component::SetLockstepMode(bool bEnabled)
 	}
 }
 
-void UPX4Component::ThreadSimulationStep()
-{
-	// This function is now called directly from the communications thread's 250Hz loop.
-	// It is responsible for sending all periodic HIL data.
-
-	FScopeLock Lock(&StateMutex);
-	if (!bThreadSafeDataValid) return; // Don't send if we don't have fresh data
-
-	// --- Update local state from the thread-safe copies ---
-	CurrentPosition = ThreadSafePosition;
-	CurrentVelocity = ThreadSafeVelocity;
-	CurrentRotation = ThreadSafeRotation;
-	CurrentAngularVelocity = ThreadSafeAngularVelocity;
-    
-	// --- Increment Counters ---
-	// The timestamp is based on the lockstep counter, advancing by 4000us (4ms) each step.
-	LockstepCounter++; 
-	SimulationStepCounter++;
-
-	// --- Send High-Frequency Data (250Hz) ---
-	// These must be sent on every single step.
-	SendHILSensor();
-	SendHILStateQuaternion();
-
-	// --- Send Lower-Frequency Data ---
-	// Send GPS and RC inputs at 50Hz (every 5 steps).
-	if (SimulationStepCounter % 5 == 0) 
-	{
-		SendHILGPS();
-		SendHILRCInputs();
-	}
-    
-	// --- Send Heartbeat (2Hz) ---
-	// Send a heartbeat every 125 steps (250Hz / 2Hz = 125).
-	if (SimulationStepCounter % 125 == 0)
-	{
-		SendHeartbeat();
-	}
-}

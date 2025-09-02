@@ -5,37 +5,37 @@
 #include "EngineUtils.h"
 #include "Engine/World.h"
 
-// Define conversion matrices
-// Unreal: X=Forward, Y=Right, Z=Up (FRU in cm)
-// NED: X=North, Y=East, Z=Down (in meters)
-// ENU: X=East, Y=North, Z=Up (in meters)
+// Unreal: X=Forward, Y=Right, Z=Up (FRU)
+// NED:    X=North,  Y=East,  Z=Down
+// ENU:    X=East,   Y=North, Z=Up
+// NOTE: All transforms below are AXIS-ONLY (no unit scaling).
 
 const FMatrix UCoordinateTransform::UnrealToNEDMat = FMatrix(
-    FPlane(0.01f,  0.0f,   0.0f, 0.0f),  // X_NED = X_Unreal / 100
-    FPlane(0.0f,  -0.01f,  0.0f, 0.0f),  // Y_NED = -Y_Unreal / 100  
-    FPlane(0.0f,   0.0f,  -0.01f, 0.0f), // Z_NED = -Z_Unreal / 100
-    FPlane(0.0f,   0.0f,   0.0f, 1.0f)
+	FPlane(1.f,   0.f,   0.f, 0.f),  // X_NED =  +X_U
+	FPlane(0.f,  -1.f,   0.f, 0.f),  // Y_NED =  -Y_U
+	FPlane(0.f,   0.f,  -1.f, 0.f),  // Z_NED =  -Z_U
+	FPlane(0.f,   0.f,   0.f, 1.f)
 );
 
 const FMatrix UCoordinateTransform::UnrealToENUMat = FMatrix(
-    FPlane(0.0f,  -0.01f,  0.0f, 0.0f),  // X_ENU = -Y_Unreal / 100
-    FPlane(0.01f,  0.0f,   0.0f, 0.0f),  // Y_ENU = X_Unreal / 100
-    FPlane(0.0f,   0.0f,   0.01f, 0.0f), // Z_ENU = Z_Unreal / 100
-    FPlane(0.0f,   0.0f,   0.0f, 1.0f)
+	FPlane(0.f,  -1.f,   0.f, 0.f),  // X_ENU =  -Y_U
+	FPlane(1.f,   0.f,   0.f, 0.f),  // Y_ENU =  +X_U
+	FPlane(0.f,   0.f,   1.f, 0.f),  // Z_ENU =  +Z_U
+	FPlane(0.f,   0.f,   0.f, 1.f)
 );
 
 const FMatrix UCoordinateTransform::NEDToUnrealMat = FMatrix(
-    FPlane(100.0f,  0.0f,    0.0f, 0.0f),   // X_Unreal = X_NED * 100
-    FPlane(0.0f,   -100.0f,  0.0f, 0.0f),   // Y_Unreal = -Y_NED * 100
-    FPlane(0.0f,    0.0f,   -100.0f, 0.0f), // Z_Unreal = -Z_NED * 100
-    FPlane(0.0f,    0.0f,    0.0f, 1.0f)
+	FPlane(1.f,   0.f,   0.f, 0.f),  // X_U =  +X_NED
+	FPlane(0.f,  -1.f,   0.f, 0.f),  // Y_U =  -Y_NED
+	FPlane(0.f,   0.f,  -1.f, 0.f),  // Z_U =  -Z_NED
+	FPlane(0.f,   0.f,   0.f, 1.f)
 );
 
 const FMatrix UCoordinateTransform::ENUToUnrealMat = FMatrix(
-    FPlane(0.0f,   100.0f,  0.0f, 0.0f),   // X_Unreal = Y_ENU * 100
-    FPlane(-100.0f, 0.0f,   0.0f, 0.0f),   // Y_Unreal = -X_ENU * 100
-    FPlane(0.0f,    0.0f,   100.0f, 0.0f), // Z_Unreal = Z_ENU * 100
-    FPlane(0.0f,    0.0f,   0.0f, 1.0f)
+	FPlane(0.f,   1.f,   0.f, 0.f),  // X_U =  +Y_ENU
+	FPlane(-1.f,  0.f,   0.f, 0.f),  // Y_U =  -X_ENU
+	FPlane(0.f,   0.f,   1.f, 0.f),  // Z_U =  +Z_ENU
+	FPlane(0.f,   0.f,   0.f, 1.f)
 );
 
 UCoordinateTransform::UCoordinateTransform()
@@ -43,136 +43,88 @@ UCoordinateTransform::UCoordinateTransform()
     // Nothing to initialize for static class
 }
 
-// ==================== POSITION TRANSFORMS ====================
+// ==================== POSITION / VECTOR (AXIS-ONLY) ====================
 
-FVector UCoordinateTransform::UnrealToNED(const FVector& UnrealPos)
+FVector UCoordinateTransform::UnrealToNED(const FVector& vU)
 {
-    // Unreal (cm): X=Forward, Y=Right, Z=Up
-    // NED (m): X=North, Y=East, Z=Down
+	return FVector(+vU.X, -vU.Y, -vU.Z);
+}
+
+FVector UCoordinateTransform::NEDToUnreal(const FVector& vNED)
+{
+	return FVector(+vNED.X, -vNED.Y, -vNED.Z);
+}
+
+FVector UCoordinateTransform::UnrealToENU(const FVector& vU)
+{
+	return FVector(-vU.Y, +vU.X, +vU.Z);
+}
+
+FVector UCoordinateTransform::ENUToUnreal(const FVector& vENU)
+{
+	return FVector(+vENU.Y, -vENU.X, +vENU.Z);
+}
+
+// ==================== VELOCITY (AXIS-ONLY) ====================
+
+FVector UCoordinateTransform::UnrealVelocityToNED(const FVector& velU)
+{
+    return UnrealToNED(velU);
+}
+
+FVector UCoordinateTransform::UnrealVelocityToENU(const FVector& velU)
+{
+    return UnrealToENU(velU);
+}
+
+// ==================== ROTATIONS (AXIS-ONLY) ====================
+
+FRotator UCoordinateTransform::UnrealRotationToNED(const FRotator& eulU_deg)
+{
+    // FRU -> NED Euler (deg): roll same, pitch & yaw flip signs
+    return FRotator(-eulU_deg.Pitch, -eulU_deg.Yaw, eulU_deg.Roll);
+}
+
+FRotator UCoordinateTransform::UnrealRotationToENU(const FRotator& eulU_deg)
+{
+    // One consistent option: FRU -> ENU via a +90° yaw offset in U-space and axis swap.
+    // For most use cases in this project, prefer UnrealRotationToNED. Keep this as-is if you use ENU.
+    return FRotator(eulU_deg.Pitch, eulU_deg.Yaw + 90.f, eulU_deg.Roll);
+}
+
+FQuat UCoordinateTransform::UnrealQuaternionToNED(const FQuat& qU)
+{
+    // FRU -> NED mapping as a coefficient flip (equivalent to 180° about +X)
+    FQuat q(qU.W, qU.X, -qU.Y, -qU.Z);
+    q.Normalize();
+    return q;
+}
+
+FQuat UCoordinateTransform::UnrealQuaternionToENU(const FQuat& qU)
+{
+    // Simple, robust way: convert to rotator, map with UnrealRotationToENU, back to quat
+    return FQuat(UnrealRotationToENU(qU.Rotator()));
+}
+
+// ==================== ANGULAR VELOCITY (AXIS-ONLY; DEG->RAD ONLY IF YOU WANT) ====================
+
+FVector UCoordinateTransform::UnrealAngularVelocityToNED(const FVector& wU_degps)
+{
+    // If you want axis-only with no unit change, remove conversion to radians.
+    // Keeping your original behavior (deg/s -> rad/s) because it’s commonly needed:
     return FVector(
-        UnrealPos.X  ,   // Forward -> North (cm to m)
-        -UnrealPos.Y ,  // Right -> East (flip and cm to m)
-        -UnrealPos.Z    // Up -> Down (flip and cm to m)
+        FMath::DegreesToRadians(wU_degps.X),   // roll
+        -FMath::DegreesToRadians(wU_degps.Y),  // pitch (flip)
+        -FMath::DegreesToRadians(wU_degps.Z)   // yaw   (flip)
     );
 }
 
-FVector UCoordinateTransform::NEDToUnreal(const FVector& NEDPos)
+FVector UCoordinateTransform::UnrealAngularVelocityToENU(const FVector& wU_degps)
 {
-    // NED (m): X=North, Y=East, Z=Down
-    // Unreal (cm): X=Forward, Y=Right, Z=Up
     return FVector(
-        NEDPos.X ,    
-        -NEDPos.Y,   
-        -NEDPos.Z
-    );
-}
-
-FVector UCoordinateTransform::UnrealToENU(const FVector& UnrealPos)
-{
-    // Unreal (cm): X=Forward, Y=Right, Z=Up
-    // ENU (m): X=East, Y=North, Z=Up
-    return FVector(
-        -UnrealPos.Y,  // Right -> East (flip and cm to m)
-        UnrealPos.X,   // Forward -> North (cm to m)
-        UnrealPos.Z    // Up -> Up (cm to m)
-    );
-}
-
-FVector UCoordinateTransform::ENUToUnreal(const FVector& ENUPos)
-{
-    // ENU (m): X=East, Y=North, Z=Up
-    // Unreal (cm): X=Forward, Y=Right, Z=Up
-    return FVector(
-        ENUPos.Y,    // North -> Forward (m to cm)
-        -ENUPos.X,   // East -> Right (flip and m to cm)
-        ENUPos.Z      // Up -> Up (m to cm)
-    );
-}
-
-// ==================== VELOCITY TRANSFORMS ====================
-
-FVector UCoordinateTransform::UnrealVelocityToNED(const FVector& UnrealVel)
-{
-    // Same transformation as position but for velocity (cm/s to m/s)
-    return UnrealToNED(UnrealVel);
-}
-
-FVector UCoordinateTransform::UnrealVelocityToENU(const FVector& UnrealVel)
-{
-    // Same transformation as position but for velocity (cm/s to m/s)
-    return UnrealToENU(UnrealVel);
-}
-
-// ==================== ROTATION TRANSFORMS ====================
-
-FRotator UCoordinateTransform::UnrealRotationToNED(const FRotator& UnrealRot)
-{
-    // Unreal uses FRotator(Pitch, Yaw, Roll)
-    // NED typically uses aerospace convention
-    // This is a simplified conversion - may need adjustment based on your specific needs
-    
-    return FRotator(
-        -UnrealRot.Pitch,  // Pitch sign flip
-        UnrealRot.Yaw,     // Yaw stays same
-        UnrealRot.Roll     // Roll stays same
-    );
-}
-
-FRotator UCoordinateTransform::UnrealRotationToENU(const FRotator& UnrealRot)
-{
-    // Convert to ENU frame
-    // ENU typically uses different conventions
-    
-    return FRotator(
-        UnrealRot.Pitch,           // Pitch
-        UnrealRot.Yaw + 90.0f,     // Yaw offset by 90 degrees
-        UnrealRot.Roll             // Roll
-    );
-}
-
-FQuat UCoordinateTransform::UnrealQuaternionToNED(const FQuat& UnrealQuat)
-{
-    // For quaternions, we need to consider the coordinate system change
-    // This matches your PX4Component conversion
-    return FQuat(
-        UnrealQuat.W,   // W stays same
-        UnrealQuat.X,   // X stays same
-        -UnrealQuat.Y,  // Y flips
-        -UnrealQuat.Z   // Z flips
-    );
-}
-
-FQuat UCoordinateTransform::UnrealQuaternionToENU(const FQuat& UnrealQuat)
-{
-    // Convert quaternion to ENU frame
-    // First convert to rotation, transform, then back to quaternion
-    FRotator UnrealRot = UnrealQuat.Rotator();
-    FRotator ENURot = UnrealRotationToENU(UnrealRot);
-    return FQuat(ENURot);
-}
-
-// ==================== ANGULAR VELOCITY TRANSFORMS ====================
-
-FVector UCoordinateTransform::UnrealAngularVelocityToNED(const FVector& UnrealAngVel)
-{
-    // Convert from deg/s to rad/s and apply coordinate transform
-    // Unreal: X=Roll, Y=Pitch, Z=Yaw (deg/s)
-    // NED: X=Roll, Y=Pitch, Z=Yaw (rad/s)
-    
-    return FVector(
-        FMath::DegreesToRadians(UnrealAngVel.X),      // Roll
-        FMath::DegreesToRadians(-UnrealAngVel.Y),     // Pitch (flip)
-        FMath::DegreesToRadians(-UnrealAngVel.Z)      // Yaw (flip)
-    );
-}
-
-FVector UCoordinateTransform::UnrealAngularVelocityToENU(const FVector& UnrealAngVel)
-{
-    // Convert from deg/s to rad/s and apply coordinate transform
-    return FVector(
-        FMath::DegreesToRadians(UnrealAngVel.X),      // Roll
-        FMath::DegreesToRadians(UnrealAngVel.Y),      // Pitch
-        FMath::DegreesToRadians(UnrealAngVel.Z)       // Yaw
+        FMath::DegreesToRadians(wU_degps.X),
+        FMath::DegreesToRadians(wU_degps.Y),
+        FMath::DegreesToRadians(wU_degps.Z)
     );
 }
 

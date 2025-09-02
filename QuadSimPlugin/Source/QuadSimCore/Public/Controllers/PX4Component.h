@@ -121,18 +121,17 @@ public:
     void SetLockstepMode(bool bEnabled);
 
     // Thread-safe methods (called by communication thread)
-    void SendHILDataFromThread();
-    void UpdateThreadSafeState();
     bool IsConnectedToPX4() const;
     void SendHeartbeat();
 	void SimulationUpdate(float FixedDeltaTime);
 	bool bIsActive() const { return bUsePX4 && bConnectedToPX4; }
-	void SendLockstepData(uint64 StepNumber);
 	bool IsLockstepMode() const { return bUseLockstep; }
 	void ProcessIncomingMAVLinkData();
 
 	// Frame-independent update for the communication thread
 	void ThreadSimulationStep();
+	void UpdateCurrentState();
+
 private:
 	struct FMotorCommand
 	{
@@ -220,9 +219,7 @@ private:
     void SendHILSensor();
     void SendHILGPS();
     void SendHILRCInputs();
-    void SendHILActuatorControls();
-    void SendBasicHILData();
-	void SendMinimalTestSensor();
+
 
     // MAVLink Message Handlers
     void HandleActuatorOutputs(const uint8* MessageBuffer, uint16 MessageLength);
@@ -231,9 +228,6 @@ private:
     // Helper Functions
     UQuadDroneController* FindQuadController();
     void UpdateConnectionStatus();
-    FQuat RotatorToQuaternion(const FRotator& Rotator);
-    void ConvertUnrealToPX4Coordinates(const FVector& UnrealPos, const FVector& UnrealVel, const FRotator& UnrealRot, const FVector& UnrealAngVel,float& OutX, float& OutY, float& OutZ,float& OutVx, float& OutVy, float& OutVz,float& OutQ0, float& OutQ1, float& OutQ2, float& OutQ3,float& OutRollRate, float& OutPitchRate, float& OutYawRate);
-	void UpdateCurrentState();
 
 	uint64 BaseTimestamp = 0;
 	uint64 TimestampOffset = 0;

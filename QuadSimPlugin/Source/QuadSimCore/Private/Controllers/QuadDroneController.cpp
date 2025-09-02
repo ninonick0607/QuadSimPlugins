@@ -725,6 +725,23 @@ void UQuadDroneController::ApplyMotorCommands(const TArray<float>& MotorCommands
 	
     float TotalHoverThrust = DroneMass * Gravity; // Total thrust needed to hover in centiNewtons
     float HoverThrustPerMotor = TotalHoverThrust / 4.0f;
+    
+    // Maximum thrust per motor (hover thrust * some factor, e.g., 2x for good control authority)
+    const float MaxThrustPerMotor = HoverThrustPerMotor * 2.5f;
+    
+    // Debug logging
+    static int32 LogCounter = 0;
+    bool bShouldLog = (LogCounter++ % 50 == 0); // Log every 50 calls
+    
+    if (bShouldLog)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("ApplyMotorCommands: DroneMass=%.2f kg, HoverThrustPerMotor=%.2f cN, Commands=[%.3f, %.3f, %.3f, %.3f]"),
+               DroneMass, HoverThrustPerMotor, 
+               MotorCommands.IsValidIndex(0) ? MotorCommands[0] : 0.0f,
+               MotorCommands.IsValidIndex(1) ? MotorCommands[1] : 0.0f,
+               MotorCommands.IsValidIndex(2) ? MotorCommands[2] : 0.0f,
+               MotorCommands.IsValidIndex(3) ? MotorCommands[3] : 0.0f);
+    }
 
 	
     for (int32 i = 0; i < FMath::Min(MotorCommands.Num(), 4); i++)
@@ -732,8 +749,15 @@ void UQuadDroneController::ApplyMotorCommands(const TArray<float>& MotorCommands
         if (dronePawn->Thrusters.IsValidIndex(i) && dronePawn->Thrusters[i])
         {
             float Command = FMath::Clamp(MotorCommands[i], 0.0f, 1.0f);
-        	float ThrustForce = HoverThrustPerMotor * Command * Command;
-            dronePawn->Thrusters[i]->ApplyForce(ThrustForce);
+            // Linear mapping instead of quadratic for better response
+        	float ThrustForce = MaxThrustPerMotor * Command;
+            dronePawn->Thrusters[i]->ApplyForce(ThrustForce*100);
+            
+            if (bShouldLog)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Motor %d: Command=%.3f, ThrustForce=%.2f cN"), 
+                       i, Command, ThrustForce);
+            }
         }
     }
 }
