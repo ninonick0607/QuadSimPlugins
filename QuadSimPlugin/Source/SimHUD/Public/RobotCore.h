@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
 
-class FRobotCoreModule : public IModuleInterface
+class FSimHUDModule : public IModuleInterface
 {
 public:
     virtual void StartupModule() override;

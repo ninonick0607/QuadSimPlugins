@@ -24,6 +24,11 @@
       "Name": "RobotCore",
       "Type": "Runtime",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "SimHUD",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
     }
   ],
 
