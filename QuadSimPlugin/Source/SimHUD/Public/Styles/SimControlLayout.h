@@ -1,115 +1,118 @@
-// Copyright (c) Nicolas N.
-// SPDX-License-Identifier: MIT
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "SimControlLayout.generated.h"
 
-// ---- Control modes shown in the top bar
-UENUM(BlueprintType, meta=(UnderlyingType="uint8"))
+// Forward decl; the .cpp includes the real header
+class UDroneJSONConfig;
+
+UENUM(BlueprintType)
 enum class EControlMode : uint8
 {
-    Position UMETA(DisplayName="Position"),
-    Velocity UMETA(DisplayName="Velocity"),
-    Angle    UMETA(DisplayName="Angle"),
-    Acro     UMETA(DisplayName="Acro")
+    Position,
+    Velocity,
+    Angle,
+    Acro
 };
 
-// ---- Axes/channels a slider row can drive
-UENUM(BlueprintType, meta=(UnderlyingType="uint8"))
+UENUM(BlueprintType)
 enum class EAxisChannel : uint8
 {
-    X         UMETA(DisplayName="X"),
-    Y         UMETA(DisplayName="Y"),
-    Z         UMETA(DisplayName="Z"),
-    Roll      UMETA(DisplayName="Roll"),
-    Pitch     UMETA(DisplayName="Pitch"),
-    Yaw       UMETA(DisplayName="Yaw"),
-    YawRate   UMETA(DisplayName="Yaw Rate"),
-    Throttle  UMETA(DisplayName="Throttle")
+    X, Y, Z,
+    Roll, Pitch, Yaw,
+    YawRate,
+    Throttle
 };
 
-// ---- Per-slider specification
 USTRUCT(BlueprintType)
 struct FAxisSpec
 {
     GENERATED_BODY()
 
-    /** Which variable this row controls. */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Axis")
-    EAxisChannel Channel = EAxisChannel::X;
-
-    /** UI label, e.g., "X", "Yaw rate", "Throttle" (no units here). */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Axis")
-    FText Label = FText::FromString(TEXT("X"));
-
-    /** Optional unit label to be shown alongside Label, e.g., "m", "deg". */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Axis")
-    FText UnitText = FText::GetEmpty();
-
-    /** Range and default. */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Axis")
-    float Min = -1.f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Axis")
-    float Max = 1.f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Axis")
-    float Default = 0.f;
-
-    /** Slider step and whether to wrap (useful for yaw 0..360). */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Axis")
-    float Step = 0.01f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Axis")
-    bool bWrap = false;
-
-    /** Show the numeric box to the right. */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Axis")
-    bool bShowBox = true;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) EAxisChannel Channel = EAxisChannel::Yaw;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FText        Label;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FText        Units;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) float        Min = 0.f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) float        Max = 1.f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) float        Default = 0.f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) float        Step = 0.1f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) bool         bWrap = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) bool         bShowSpin = true;
 };
 
-// ---- A mode is just a list of sliders in order
 USTRUCT(BlueprintType)
 struct FModeLayout
 {
     GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Layout")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FAxisSpec> Axes;
 };
 
-// ---- Data asset you will author in the editor
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLayoutChanged);
+
 UCLASS(BlueprintType)
-class USimControlLayout : public UDataAsset
+class SIMHUD_API USimControlLayout : public UDataAsset
 {
     GENERATED_BODY()
+
 public:
-    /** Normal (keyboard/mouse) layouts. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layouts")
+    USimControlLayout();
+
+    /** Main layouts per mode */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout")
     TMap<EControlMode, FModeLayout> Layouts;
 
-    /** Gamepad overrides for Angle/Acro when the UI is in "Gamepad" mode. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layouts|Gamepad")
+    /** Optional gamepad variants (kept for parity) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout")
     FModeLayout GamepadAngle;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layouts|Gamepad")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout")
     FModeLayout GamepadAcro;
 
-    /** Existence check. */
-    UFUNCTION(BlueprintPure, Category="Layout")
-    bool HasMode(EControlMode Mode) const { return Layouts.Contains(Mode); }
+    /** Live copy of JSON knobs (mirror what ImGui used) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Config")
+    float MaxVelocityBound = 8.f;     // flight_parameters.max_velocity_bound
 
-    /** Returns the correct layout for Mode. If bGamepadOnly and Mode is Angle/Acro, returns Gamepad overrides. */
-    UFUNCTION(BlueprintPure, Category="Layout")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Config")
+    float MaxVelocity      = 1.f;     // flight_parameters.max_velocity (SliderMaxVelocity)
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Config")
+    float MaxAngle         = 15.f;    // flight_parameters.max_angle (SliderMaxAngle)  [deg]
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Config")
+    float MaxAngleRate     = 10.f;    // flight_parameters.max_angle_rate (SliderMaxAngleRate) [deg/s]
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Config")
+    float MaxThrust        = 700.f;   // flight_parameters.max_thrust (kept for future use)
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Config")
+    float YawRateLimit     = 50.f;    // controller.yaw_rate [deg/s]
+
+    /** Notify listeners (ControlPanel, Taskbar) that limits changed */
+    UPROPERTY(BlueprintAssignable)
+    FOnLayoutChanged OnLayoutChanged;
+
+    /** JSON reload entry (same loader you already use) */
+    UFUNCTION(BlueprintCallable, Category="Layout")
+    void RefreshFromConfig(bool bForceReloadFile = false);
+
+    /** ImGui-equivalent setters — rebuild Layouts + broadcast */
+    UFUNCTION(BlueprintCallable, Category="Layout") void SetMaxVelocity(float V);
+    UFUNCTION(BlueprintCallable, Category="Layout") void SetMaxAngle(float A);
+    UFUNCTION(BlueprintCallable, Category="Layout") void SetMaxAngleRate(float R);
+    UFUNCTION(BlueprintCallable, Category="Layout") void SetYawRateLimit(float Y);
+
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category="Layout")
     const FModeLayout& GetLayout(EControlMode Mode, bool bGamepadOnly) const;
 
 #if WITH_EDITOR
-    // Optional: after edits, clamp bad ranges
-    virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+    virtual void PostEditChangeProperty(FPropertyChangedEvent& E) override;
 #endif
 
-    // Constructor seeds sensible defaults so you can just tweak in the editor
-    USimControlLayout();
+private:
+    void BuildLayoutsFromCurrentConfig();
+    void LoadConfigValues(bool bForceReloadFile);
+    void BroadcastChanged() { OnLayoutChanged.Broadcast(); }
 };

@@ -1,172 +1,196 @@
 #include "ControlPanel/SliderRow.h"
 #include "Components/TextBlock.h"
+#include "Components/SpinBox.h"
 #include "Components/Slider.h"
-#include "Components/EditableTextBox.h"
-#include "Internationalization/Internationalization.h"
+#include "Blueprint/WidgetTree.h"
+
+#define ROWLOG(Verbosity, Fmt, ...) UE_LOG(LogTemp, Verbosity, TEXT("[SliderRow] " Fmt), ##__VA_ARGS__)
 
 void USliderRow::NativeConstruct()
 {
-	Super::NativeConstruct();
+    Super::NativeConstruct();
 
-	if (Slider)
-	{
-		Slider->OnValueChanged.Clear();
-		Slider->OnValueChanged.AddDynamic(this, &USliderRow::HandleSlider);
+    if (!bWiringDone)
+    {
+        bWiringDone = true;
 
-		// Make sure slider’s domain is 0..1 (we map ourselves)
-#if ENGINE_MAJOR_VERSION >= 5
-		// UE5 sliders default to 0..1; keeping explicit for clarity.
-#endif
-	}
+        if (SpinBox)
+        {
+            SpinBox->OnValueChanged.AddDynamic(this, &USliderRow::HandleSpinChanged);
+            SpinBox->OnValueCommitted.AddDynamic(this, &USliderRow::HandleSpinCommitted);
+        }
+        if (Slider)
+        {
+            Slider->OnValueChanged.AddDynamic(this, &USliderRow::HandleSliderChanged);
+            Slider->OnMouseCaptureEnd.AddDynamic(this, &USliderRow::HandleSliderCommit);
+            Slider->OnControllerCaptureEnd.AddDynamic(this, &USliderRow::HandleSliderCommit);
+        }
+    }
 
-	if (TxtValue)
-	{
-		TxtValue->OnTextCommitted.Clear();
-		TxtValue->OnTextCommitted.AddDynamic(this, &USliderRow::HandleTextCommitted);
-		// Optional: keep user edits numeric-only visually (no unit suffix here).
-	}
-
-	RefreshDisplay(); // shows whatever Current is
+    ApplyModelToUI();
 }
 
 void USliderRow::Init(const FAxisSpec& InSpec)
 {
-	Spec = InSpec;
-	Current = FMath::Clamp(Spec.Default, Spec.Min, Spec.Max);
-	ApplySpecToWidgets();
-	RefreshDisplay();
-}
+	Channel = InSpec.Channel;
+	Min     = InSpec.Min;
+	Max     = InSpec.Max;
+	Step    = FMath::Max(InSpec.Step, KINDA_SMALL_NUMBER);
+	Value   = FMath::Clamp(InSpec.Default, Min, Max);
 
-void USliderRow::UpdateSpec(const FAxisSpec& InSpec)
-{
-	Spec = InSpec;
-	Current = FMath::Clamp(Current, Spec.Min, Spec.Max); // keep current if reasonable
-	ApplySpecToWidgets();
-	RefreshDisplay();
-}
+	Units   = InSpec.Units;
 
-void USliderRow::ApplySpecToWidgets()
-{
-	if (TxtLabel)
+	if (TxtUnits)
 	{
-		// If your FAxisSpec has UnitText, append; if not, Label alone is fine.
-		// Assuming FAxisSpec has optional FText UnitText; if not, just use Label.
-		if (Spec.UnitText.IsEmpty())
-		{
-			TxtLabel->SetText(Spec.Label);
-		}
-		else
-		{
-			// "Yaw (deg)" style
-			FText LabelWithUnit = FText::Format(
-				NSLOCTEXT("SliderRow", "LabelUnitFmt", "{0} ({1})"),
-				Spec.Label, Spec.UnitText);
-			TxtLabel->SetText(LabelWithUnit);
-		}
+		TxtUnits->SetText(Units);
+		UE_LOG(LogTemp, Log, TEXT("[SliderRow] %s units set to %s"),
+			*UEnum::GetValueAsString(Channel),
+			*Units.ToString());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[SliderRow] TxtUnits not bound!"));
 	}
 
-	if (Slider)
-	{
-		// Normalize step for [0..1] domain
-		const float Range = FMath::Max(0.000001f, Spec.Max - Spec.Min);
-		const float StepN = FMath::Clamp(Spec.Step / Range, 0.0f, 1.0f);
-		Slider->SetStepSize(StepN > 0.f ? StepN : 0.f);
-	}
-
-	// TxtValue formatting handled in RefreshDisplay()
+	ApplyValueToWidgets();
 }
 
-int32 USliderRow::Decimals() const
+
+void USliderRow::InitCustom(FText /*InLabelIgnored*/, float InMin, float InMax, float InDefault, float InStep, FText InUnits)
 {
-	if (Spec.Step <= KINDA_SMALL_NUMBER) return 2;
-	const float S = FMath::Abs(Spec.Step);
-	if (S >= 1.f) return 0;
-	int32 dp = 0; float t = S;
-	while (t < 1.f && dp < 6) { t *= 10.f; ++dp; }
-	return dp;
+    Channel = EAxisChannel::X; // settings rows don't use it
+    Units   = InUnits;
+    Min     = InMin;
+    Max     = InMax;
+    Step    = FMath::Max(InStep, KINDA_SMALL_NUMBER);
+    Value   = FMath::Clamp(InDefault, Min, Max);
+
+    ApplyModelToUI();
+
+    ROWLOG(Log, "InitCustom: Units='%s' [%g..%g] step=%g def=%g",
+        *Units.ToString(), Min, Max, Step, Value);
 }
 
-FText USliderRow::FormatValue(float V) const
+void USliderRow::SetValue(float NewValue, bool bSilent)
 {
-	// Pretty number: 0 decimals if integer-ish, else up to Decimals().
-	const int32 dp = Decimals();
-	FNumberFormattingOptions Opts;
-	Opts.MinimumIntegralDigits = 1;
-	Opts.MinimumFractionalDigits = 0;
-	Opts.MaximumFractionalDigits = dp;
-	return FText::AsNumber(V, &Opts);
+    Value = FMath::Clamp(Quantize(NewValue), Min, Max);
+    ApplyValueToWidgets();
+    if (!bSilent)
+    {
+        OnAxisChanged.Broadcast(Channel, Value);
+    }
 }
 
-float USliderRow::Quantize(float V) const
+void USliderRow::HandleSpinChanged(float NewVal)
 {
-	if (Spec.Step <= KINDA_SMALL_NUMBER) return V;
-	const float q = Spec.Step;
-	return FMath::RoundToFloat(V / q) * q;
+    if (bUpdatingWidgets) return;
+    Value = FMath::Clamp(Quantize(NewVal), Min, Max);
+    ApplyValueToWidgets();
+    OnAxisChanged.Broadcast(Channel, Value);
 }
 
-float USliderRow::ClampOrWrap(float V) const
+void USliderRow::HandleSpinCommitted(float NewVal, ETextCommit::Type)
 {
-	if (Spec.bWrap)
-	{
-		const float Range = Spec.Max - Spec.Min;
-		if (Range <= 0.f) return Spec.Min;
-		float x = FMath::Fmod(V - Spec.Min, Range);
-		if (x < 0) x += Range;
-		return Spec.Min + x;
-	}
-	return FMath::Clamp(V, Spec.Min, Spec.Max);
+    if (bUpdatingWidgets) return;
+    Value = FMath::Clamp(Quantize(NewVal), Min, Max);
+    ApplyValueToWidgets();
+    OnAxisChanged.Broadcast(Channel, Value);
 }
 
-float USliderRow::ToSlider(float World) const
+void USliderRow::HandleSliderChanged(float Raw0to1)
 {
-	const float Den = (Spec.Max - Spec.Min);
-	return Den > 0 ? (World - Spec.Min) / Den : 0.f;
+    if (bUpdatingWidgets) return;
+    Value = FMath::Clamp(Quantize(SliderToValue(Raw0to1)), Min, Max);
+    ApplyValueToWidgets();
+    OnAxisChanged.Broadcast(Channel, Value);
 }
 
-float USliderRow::FromSlider(float S) const
+void USliderRow::HandleSliderCommit()
 {
-	return Spec.Min + S * (Spec.Max - Spec.Min);
+    // no-op
 }
 
-void USliderRow::SetValue(float V, bool bSilent)
+void USliderRow::ApplyModelToUI()
 {
-	Current = ClampOrWrap(Quantize(V));
-	RefreshDisplay();
-	if (!bSilent) Emit(Current);
+    // Write units ONLY
+    UTextBlock* UnitsText = TxtUnits ? TxtUnits : FindUnitsTextFallback();
+    if (UnitsText)
+    {
+        UnitsText->SetText(Units);
+        UnitsText->SetVisibility(Units.IsEmpty() ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
+
+        // Make sure opacity isn't 0 (common accidental style issue)
+        FSlateColor C = UnitsText->GetColorAndOpacity();
+        if (C.GetSpecifiedColor().A <= 0.f)
+        {
+            UnitsText->SetColorAndOpacity(FLinearColor(1,1,1,1));
+            ROWLOG(Warning, "TxtUnits had zero alpha; forcing to opaque white.");
+        }
+    }
+    else
+    {
+        ROWLOG(Error, "No Units TextBlock found. Ensure a TextBlock named 'TxtUnits' exists (IsVariable=TRUE).");
+    }
+
+    if (SpinBox)
+    {
+        SpinBox->SetMinValue(Min);
+        SpinBox->SetMaxValue(Max);
+        SpinBox->SetMinSliderValue(Min);
+        SpinBox->SetMaxSliderValue(Max);
+        SpinBox->SetDelta(Step);
+        SpinBox->SetValue(Value);
+    }
+
+    if (Slider)
+    {
+        Slider->SetMinValue(0.f);
+        Slider->SetMaxValue(1.f);
+        Slider->SetStepSize((Max > Min) ? (Step / (Max - Min)) : 1.f);
+        Slider->SetValue(ValueToSlider(Value));
+    }
+
+    ApplyValueToWidgets();
 }
 
-void USliderRow::RefreshDisplay()
+void USliderRow::ApplyValueToWidgets()
 {
-	if (Slider)
-	{
-		// Avoid feedback loop: set normalized value derived from Current
-		Slider->SetValue(ToSlider(Current));
-	}
+    TGuardValue<bool> Guard(bUpdatingWidgets, true);
 
-	if (TxtValue)
-	{
-		TxtValue->SetText(FormatValue(Current)); // numeric only
-		// If you want a visible unit, put it in TxtLabel or add a separate unit text.
-	}
+    if (SpinBox)
+        SpinBox->SetValue(Value);
+
+    if (Slider)
+        Slider->SetValue(ValueToSlider(Value));
 }
 
-void USliderRow::Emit(float V)
+float USliderRow::Quantize(float In) const
 {
-	// Dynamic delegate → bindable in Blueprint.
-	OnAxisChanged.Broadcast(Spec.Channel, V);
+    if (Step <= KINDA_SMALL_NUMBER) return In;
+    const float Q = FMath::RoundToFloat((In - Min) / Step) * Step + Min;
+    return FMath::Clamp(Q, Min, Max);
 }
 
-void USliderRow::HandleSlider(float S)
+float USliderRow::SliderToValue(float Raw) const
 {
-	const float V = ClampOrWrap(Quantize(FromSlider(S)));
-	Current = V;
-	RefreshDisplay();  // keep text in sync during drags
-	Emit(V);
+    return FMath::Lerp(Min, Max, Raw);
 }
 
-void USliderRow::HandleTextCommitted(const FText& T, ETextCommit::Type /*CommitMethod*/)
+float USliderRow::ValueToSlider(float V) const
 {
-	// Parse numeric (TxtValue does not contain unit)
-	const float V = ClampOrWrap(Quantize(FCString::Atof(*T.ToString())));
-	SetValue(V); // refresh + emit
+    return (Max > Min) ? (V - Min) / (Max - Min) : 0.f;
+}
+
+UTextBlock* USliderRow::FindUnitsTextFallback() const
+{
+    // Try to find a child named "TxtUnits" if BindWidget didn't hook up
+    if (WidgetTree)
+    {
+        if (UWidget* W = WidgetTree->FindWidget(TEXT("TxtUnits")))
+        {
+            if (UTextBlock* TB = Cast<UTextBlock>(W))
+                return TB;
+        }
+    }
+    return nullptr;
 }

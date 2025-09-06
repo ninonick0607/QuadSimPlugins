@@ -1,67 +1,118 @@
 #include "Styles/SimControlLayout.h"
 #include "Internationalization/Text.h"
-#include "UObject/UnrealType.h"
+#include "Core/DroneJSONConfig.h"   // your existing JSON loader
+
+#define LOCTEXT_NAMESPACE "SimControlLayout"
+
+static FAxisSpec MakeAxis(
+    EAxisChannel Channel,
+    const FString& Label,
+    const FString& Units,
+    float Min, float Max,
+    float Default = 0.f,
+    float Step = 0.1f,
+    bool bWrap = false,
+    bool bShowSpin = true)
+{
+    FAxisSpec A;
+    A.Channel   = Channel;
+    A.Label     = FText::FromString(Label);
+    A.Units     = FText::FromString(Units);
+    A.Min       = Min;
+    A.Max       = Max;
+    A.Default   = Default;
+    A.Step      = Step;
+    A.bWrap     = bWrap;
+    A.bShowSpin = bShowSpin;
+    return A;
+}
 
 USimControlLayout::USimControlLayout()
 {
-    // ---- Position (meters, yaw in deg)
+    LoadConfigValues(false);
+    BuildLayoutsFromCurrentConfig();
+}
+
+void USimControlLayout::LoadConfigValues(bool bForceReloadFile)
+{
+    UDroneJSONConfig& Cfg = UDroneJSONConfig::Get();
+    if (bForceReloadFile)
+    {
+        Cfg.ReloadConfig();
+    }
+
+    // Mirror ImGui knobs:
+    MaxVelocityBound = Cfg.Config.FlightParams.MaxVelocityBound;
+    MaxThrust        = Cfg.Config.FlightParams.MaxThrust;
+
+    MaxVelocity      = Cfg.Config.FlightParams.MaxVelocity;     // SliderMaxVelocity
+    MaxAngle         = Cfg.Config.FlightParams.MaxAngle;        // SliderMaxAngle
+    MaxAngleRate     = Cfg.Config.FlightParams.MaxAngleRate;    // SliderMaxAngleRate
+    YawRateLimit     = Cfg.Config.ControllerParams.YawRate;     // controller.yaw_rate
+
+    // Safety/fallbacks:
+    if (MaxVelocityBound <= 0.f) MaxVelocityBound = 8.f;
+    MaxVelocity  = FMath::Clamp(MaxVelocity, 0.f, MaxVelocityBound);
+    if (MaxAngle      <= 0.f) MaxAngle      = 15.f;
+    if (MaxAngleRate  <= 0.f) MaxAngleRate  = 10.f;
+    if (YawRateLimit  <= 0.f) YawRateLimit  = 50.f;
+}
+
+void USimControlLayout::BuildLayoutsFromCurrentConfig()
+{
+    Layouts.Empty();
+
+    // Position: XYZ (m) + YawRate (deg/s)
     {
         FModeLayout M;
         M.Axes = {
-            // Channel,   Label,         Unit,    Min,    Max,  Default, Step,  bWrap, bShowBox
-            { EAxisChannel::X,        FText::FromString("X"),        FText::FromString("m"),   -50.f,   50.f,   0.f,   0.1f,  false, true },
-            { EAxisChannel::Y,        FText::FromString("Y"),        FText::FromString("m"),   -50.f,   50.f,   0.f,   0.1f,  false, true },
-            { EAxisChannel::Z,        FText::FromString("Z"),        FText::FromString("m"),     0.f,   50.f,   0.f,   0.1f,  false, true },
-            { EAxisChannel::Yaw,      FText::FromString("Yaw"),      FText::FromString("deg"),   0.f,  360.f,   0.f,   1.0f,  true,  true }
+            MakeAxis(EAxisChannel::X,       "X Coordinate", "m",    -50.f, 50.f, 0.f, 0.1f),
+            MakeAxis(EAxisChannel::Y,       "Y Coordinate", "m",    -50.f, 50.f, 0.f, 0.1f),
+            MakeAxis(EAxisChannel::Z,       "Z Coordinate", "m",      0.f, 50.f, 0.f, 0.1f),
+            MakeAxis(EAxisChannel::YawRate, "Yaw Rate",     "deg/s", -YawRateLimit, YawRateLimit, 0.f, 1.f)
         };
         Layouts.Add(EControlMode::Position, M);
     }
 
-    // ---- Velocity (m/s, yaw rate in deg/s)
+    // Velocity: Vx Vy Vz (m/s) ± MaxVelocity; YawRate ± YawRateLimit
     {
         FModeLayout M;
         M.Axes = {
-            { EAxisChannel::X,       FText::FromString("VX"),        FText::FromString("m/s"), -10.f,   10.f,   0.f,   0.1f,  false, true },
-            { EAxisChannel::Y,       FText::FromString("VY"),        FText::FromString("m/s"), -10.f,   10.f,   0.f,   0.1f,  false, true },
-            { EAxisChannel::Z,       FText::FromString("VZ"),        FText::FromString("m/s"), -10.f,   10.f,   0.f,   0.1f,  false, true },
-            { EAxisChannel::YawRate, FText::FromString("Yaw Rate"),  FText::FromString("deg/s"), -180.f, 180.f, 0.f,   1.0f,  false, true }
+            MakeAxis(EAxisChannel::X,       "X Velocity", "m/s", -MaxVelocity, MaxVelocity, 0.f, 0.1f),
+            MakeAxis(EAxisChannel::Y,       "Y Velocity", "m/s", -MaxVelocity, MaxVelocity, 0.f, 0.1f),
+            MakeAxis(EAxisChannel::Z,       "Z Velocity", "m/s", -MaxVelocity, MaxVelocity, 0.f, 0.1f),
+            MakeAxis(EAxisChannel::YawRate, "Yaw Rate",   "deg/s", -YawRateLimit, YawRateLimit, 0.f, 1.f)
         };
         Layouts.Add(EControlMode::Velocity, M);
     }
 
-    // ---- Angle (deg + throttle 0..1)
+    // Angle: Roll Pitch (deg) ± MaxAngle; YawRate ± YawRateLimit; ZVel ± MaxVelocity
     {
         FModeLayout M;
         M.Axes = {
-            { EAxisChannel::Roll,     FText::FromString("Roll"),     FText::FromString("deg"),   -60.f,   60.f,   0.f,   0.5f,  false, true },
-            { EAxisChannel::Pitch,    FText::FromString("Pitch"),    FText::FromString("deg"),   -60.f,   60.f,   0.f,   0.5f,  false, true },
-            { EAxisChannel::Yaw,      FText::FromString("Yaw"),      FText::FromString("deg"),     0.f,  360.f,   0.f,   1.0f,  true,  true },
-            { EAxisChannel::Throttle, FText::FromString("Throttle"), FText::GetEmpty(),             0.f,    1.f,   0.f,   0.01f, false, true }
+            MakeAxis(EAxisChannel::Roll,    "Roll",     "deg",   -MaxAngle, MaxAngle, 0.f, 0.5f),
+            MakeAxis(EAxisChannel::Pitch,   "Pitch",    "deg",   -MaxAngle, MaxAngle, 0.f, 0.5f),
+            MakeAxis(EAxisChannel::YawRate, "Yaw Rate", "deg/s", -YawRateLimit, YawRateLimit, 0.f, 1.f),
+            MakeAxis(EAxisChannel::Z,       "Z Velocity","m/s",  -MaxVelocity, MaxVelocity, 0.f, 0.1f)
         };
         Layouts.Add(EControlMode::Angle, M);
-        GamepadAngle = M; // gamepad angle same by default
+        GamepadAngle = M;
     }
 
-    // ---- Acro (deg/s + throttle)
+    // Acro/Rate: RollRate/PitchRate/YawRate (deg/s) ± MaxAngleRate; ZVel ± MaxVelocity
     {
         FModeLayout M;
         M.Axes = {
-            { EAxisChannel::Roll,     FText::FromString("Roll Rate"),    FText::FromString("deg/s"), -400.f,  400.f,  0.f,  5.f,   false, true },
-            { EAxisChannel::Pitch,    FText::FromString("Pitch Rate"),   FText::FromString("deg/s"), -400.f,  400.f,  0.f,  5.f,   false, true },
-            { EAxisChannel::YawRate,  FText::FromString("Yaw Rate"),     FText::FromString("deg/s"), -400.f,  400.f,  0.f,  5.f,   false, true },
-            { EAxisChannel::Throttle, FText::FromString("Throttle"),     FText::GetEmpty(),             0.f,    1.f,  0.f,  0.01f, false, true }
+            MakeAxis(EAxisChannel::Roll,    "Roll Rate",  "deg/s", -MaxAngleRate, MaxAngleRate, 0.f, 1.f),
+            MakeAxis(EAxisChannel::Pitch,   "Pitch Rate", "deg/s", -MaxAngleRate, MaxAngleRate, 0.f, 1.f),
+            MakeAxis(EAxisChannel::YawRate, "Yaw Rate",   "deg/s", -MaxAngleRate, MaxAngleRate, 0.f, 1.f),
+            MakeAxis(EAxisChannel::Z,       "Z Velocity", "m/s",   -MaxVelocity,  MaxVelocity,  0.f, 0.1f)
         };
         Layouts.Add(EControlMode::Acro, M);
-        GamepadAcro = M; // gamepad acro same by default
+        GamepadAcro = M;
     }
-}
 
-#if WITH_EDITOR
-void USimControlLayout::PostEditChangeProperty(FPropertyChangedEvent& E)
-{
-    Super::PostEditChangeProperty(E);
-
-    // Basic safety: ensure Min <= Max; clamp Default inside range; nonzero Step
+    // Sanitize
     auto Sanitize = [](FModeLayout& ML)
     {
         for (FAxisSpec& A : ML.Axes)
@@ -71,15 +122,10 @@ void USimControlLayout::PostEditChangeProperty(FPropertyChangedEvent& E)
             A.Step    = FMath::Max(KINDA_SMALL_NUMBER, A.Step);
         }
     };
-
-    for (auto& Pair : Layouts)
-    {
-        Sanitize(Pair.Value);
-    }
+    for (auto& Pair : Layouts) { Sanitize(Pair.Value); }
     Sanitize(GamepadAngle);
     Sanitize(GamepadAcro);
 }
-#endif
 
 const FModeLayout& USimControlLayout::GetLayout(EControlMode Mode, bool bGamepadOnly) const
 {
@@ -88,12 +134,73 @@ const FModeLayout& USimControlLayout::GetLayout(EControlMode Mode, bool bGamepad
         if (Mode == EControlMode::Angle) return GamepadAngle;
         if (Mode == EControlMode::Acro)  return GamepadAcro;
     }
-
     if (const FModeLayout* Found = Layouts.Find(Mode))
     {
         return *Found;
     }
-
     static const FModeLayout Empty;
     return Empty;
 }
+
+void USimControlLayout::RefreshFromConfig(bool bForceReloadFile /*=false*/)
+{
+    LoadConfigValues(bForceReloadFile);
+    BuildLayoutsFromCurrentConfig();
+    BroadcastChanged();
+}
+
+void USimControlLayout::SetMaxVelocity(float V)
+{
+    MaxVelocity = FMath::Clamp(V, 0.f, MaxVelocityBound);
+    BuildLayoutsFromCurrentConfig();
+    BroadcastChanged();
+}
+void USimControlLayout::SetMaxAngle(float A)
+{
+    MaxAngle = FMath::Max(0.f, A);
+    BuildLayoutsFromCurrentConfig();
+    BroadcastChanged();
+}
+void USimControlLayout::SetMaxAngleRate(float R)
+{
+    MaxAngleRate = FMath::Max(0.f, R);
+    BuildLayoutsFromCurrentConfig();
+    BroadcastChanged();
+}
+void USimControlLayout::SetYawRateLimit(float Y)
+{
+    YawRateLimit = FMath::Max(0.f, Y);
+    BuildLayoutsFromCurrentConfig();
+    BroadcastChanged();
+}
+
+#if WITH_EDITOR
+void USimControlLayout::PostEditChangeProperty(FPropertyChangedEvent& E)
+{
+    Super::PostEditChangeProperty(E);
+
+    if (!E.Property) return;
+
+    static const FName Names[] = {
+        GET_MEMBER_NAME_CHECKED(USimControlLayout, MaxVelocityBound),
+        GET_MEMBER_NAME_CHECKED(USimControlLayout, MaxVelocity),
+        GET_MEMBER_NAME_CHECKED(USimControlLayout, MaxAngle),
+        GET_MEMBER_NAME_CHECKED(USimControlLayout, MaxAngleRate),
+        GET_MEMBER_NAME_CHECKED(USimControlLayout, MaxThrust),
+        GET_MEMBER_NAME_CHECKED(USimControlLayout, YawRateLimit)
+    };
+    for (const FName& N : Names)
+    {
+        if (E.Property->GetFName() == N)
+        {
+            // Keep invariants, then rebuild + notify
+            MaxVelocity = FMath::Clamp(MaxVelocity, 0.f, MaxVelocityBound);
+            BuildLayoutsFromCurrentConfig();
+            BroadcastChanged();
+            break;
+        }
+    }
+}
+#endif
+
+#undef LOCTEXT_NAMESPACE

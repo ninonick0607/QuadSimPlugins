@@ -16,7 +16,8 @@ public class SimHUD : ModuleRules
 			"UMG",        // <-- needed for UUserWidget, UTextBlock, USlider, UEditableTextBox
 			"Slate",      // <-- UMG depends on these
 			"SlateCore",   // <-- for ETextCommit and friends
-			"QuadSimCore"
+			"QuadSimCore",
+			"SimulationCore"
 		});
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{

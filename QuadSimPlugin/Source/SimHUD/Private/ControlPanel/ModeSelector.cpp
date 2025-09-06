@@ -1,20 +1,23 @@
 #include "ControlPanel/ModeSelector.h"
-
-#include "Components/Button.h"
+#include "IconButtonGeneral.h"            // wrapper
 #include "Components/CheckBox.h"
+#include "Components/Button.h"
 #include "Components/PanelWidget.h"
 #include "Components/Border.h"
 #include "Blueprint/UserWidget.h"
+#include "Engine/Engine.h"
+
+#define LOGF(Verbosity, Fmt, ...) UE_LOG(LogTemp, Verbosity, TEXT("[ModeSelector] " Fmt), ##__VA_ARGS__)
 
 void UModeSelector::NativeConstruct()
 {
     Super::NativeConstruct();
 
-    // Bind the four wrappers (WBP_IconButtonGeneral). We’ll drill down to their inner Button.
-    BindButton(BtnPosition, PositionButton, EControlMode::Position);
-    BindButton(BtnVelocity, VelocityButton, EControlMode::Velocity);
-    BindButton(BtnAngle,    AngleButton,    EControlMode::Angle);
-    BindButton(BtnAcro,     AcroButton,     EControlMode::Acro);
+    // Bind four wrappers (or fall back to inner UButton)
+    BindWrapperOrFallback(BtnPosition, EControlMode::Position);
+    BindWrapperOrFallback(BtnVelocity, EControlMode::Velocity);
+    BindWrapperOrFallback(BtnAngle,    EControlMode::Angle);
+    BindWrapperOrFallback(BtnAcro,     EControlMode::Acro);
 
     // Gamepad toggle
     if (ChkGamepad)
@@ -25,20 +28,25 @@ void UModeSelector::NativeConstruct()
     }
 
     RefreshVisibilityForGamepad();
-    RefreshButtonStyles();
+	RefreshSelectedVisuals();
+
 }
 
 void UModeSelector::SetMode(EControlMode NewMode, bool bBroadcast /*=true*/)
 {
     if (bGamepadOnly && (NewMode == EControlMode::Position || NewMode == EControlMode::Velocity))
     {
-        NewMode = EControlMode::Angle; // coerce when gamepad-only
+        NewMode = EControlMode::Angle;
     }
     if (CurrentMode == NewMode) return;
 
     CurrentMode = NewMode;
-    RefreshButtonStyles();
-    if (bBroadcast) OnModeChanged.Broadcast(CurrentMode);
+	RefreshSelectedVisuals();
+    if (bBroadcast)
+    {
+        LOGF(Log, "Broadcast OnModeChanged: %s", *UEnum::GetValueAsString(CurrentMode));
+        OnModeChanged.Broadcast(CurrentMode);
+    }
 }
 
 void UModeSelector::SetGamepadOnly(bool bOn, bool /*bBroadcast*/)
@@ -56,7 +64,6 @@ void UModeSelector::SetGamepadOnly(bool bOn, bool /*bBroadcast*/)
     }
 
     RefreshVisibilityForGamepad();
-    RefreshButtonStyles();
 }
 
 void UModeSelector::OnGamepadToggled(bool bChecked)
@@ -64,10 +71,64 @@ void UModeSelector::OnGamepadToggled(bool bChecked)
     SetGamepadOnly(bChecked, /*bBroadcast=*/true);
 }
 
-void UModeSelector::OnPositionClicked() { SetMode(EControlMode::Position, true); }
-void UModeSelector::OnVelocityClicked() { SetMode(EControlMode::Velocity, true); }
-void UModeSelector::OnAngleClicked()    { SetMode(EControlMode::Angle,    true); }
-void UModeSelector::OnAcroClicked()     { SetMode(EControlMode::Acro,     true); }
+// Button handlers
+void UModeSelector::OnPositionPressed() { SetMode(EControlMode::Position, true); }
+void UModeSelector::OnVelocityPressed() { SetMode(EControlMode::Velocity, true); }
+void UModeSelector::OnAnglePressed()    { SetMode(EControlMode::Angle,    true); }
+void UModeSelector::OnAcroPressed()     { SetMode(EControlMode::Acro,     true); }
+
+// Visibility policy
+void UModeSelector::RefreshVisibilityForGamepad()
+{
+    auto SetVis = [](UWidget* W, bool bShow)
+    {
+        if (!W) return;
+        W->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+    };
+
+    SetVis(BtnPosition, !bGamepadOnly);
+    SetVis(BtnVelocity, !bGamepadOnly);
+    SetVis(BtnAngle,    true);
+    SetVis(BtnAcro,     true);
+}
+
+// ---- Binding helpers ----
+void UModeSelector::BindWrapperOrFallback(UIconButtonGeneral* Wrapper, EControlMode Mode)
+{
+	const FString ModeStr = UEnum::GetValueAsString(Mode);
+
+	if (!Wrapper)
+	{
+		LOGF(Warning, "Wrapper for %s is NULL (BindWidget name mismatch or not present)", *ModeStr);
+		return;
+	}
+
+	// Bind to the wrapper's multicast delegate
+	Wrapper->OnPressed.Clear();
+	switch (Mode)
+	{
+	case EControlMode::Position: Wrapper->OnPressed.AddDynamic(this, &UModeSelector::OnPositionPressed); break;
+	case EControlMode::Velocity: Wrapper->OnPressed.AddDynamic(this, &UModeSelector::OnVelocityPressed); break;
+	case EControlMode::Angle:    Wrapper->OnPressed.AddDynamic(this, &UModeSelector::OnAnglePressed);    break;
+	case EControlMode::Acro:     Wrapper->OnPressed.AddDynamic(this, &UModeSelector::OnAcroPressed);     break;
+	}
+	LOGF(Log, "Bound Wrapper.OnPressed for %s on '%s'", *ModeStr, *Wrapper->GetName());
+
+	// Optional: also try to hook a raw button as a fallback (harmless if none)
+	if (UButton* Raw = FindFirstButtonDeep(Wrapper))
+	{
+		Raw->OnClicked.Clear();
+		switch (Mode)
+		{
+		case EControlMode::Position: Raw->OnClicked.AddDynamic(this, &UModeSelector::OnPositionPressed); break;
+		case EControlMode::Velocity: Raw->OnClicked.AddDynamic(this, &UModeSelector::OnVelocityPressed); break;
+		case EControlMode::Angle:    Raw->OnClicked.AddDynamic(this, &UModeSelector::OnAnglePressed);    break;
+		case EControlMode::Acro:     Raw->OnClicked.AddDynamic(this, &UModeSelector::OnAcroPressed);     break;
+		}
+		LOGF(Log, "Additionally bound inner UButton.OnClicked for %s under '%s'", *ModeStr, *Wrapper->GetName());
+	}
+}
+
 
 UButton* UModeSelector::FindFirstButtonDeep(UWidget* Root) const
 {
@@ -99,77 +160,15 @@ UButton* UModeSelector::FindFirstButtonDeep(UWidget* Root) const
     return nullptr;
 }
 
-void UModeSelector::BindButton(UWidget* Wrapper, UButton*& Cached, EControlMode Mode)
+void UModeSelector::RefreshSelectedVisuals()
 {
-    if (!Wrapper)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[ModeSelector] Wrapper for %s is null"), *UEnum::GetValueAsString(Mode));
-        return;
-    }
+	auto TrySet = [](UIconButtonGeneral* W, bool bSel)
+	{
+		if (W) W->SetSelected(bSel);
+	};
 
-    if (!Cached)
-    {
-        // WBP_IconButtonGeneral is a UUserWidget; find its inner UButton
-        Cached = FindFirstButtonDeep(Wrapper);
-        if (!Cached)
-        {
-            // If the wrapper itself happens to be a Button (unlikely), use it
-            Cached = Cast<UButton>(Wrapper);
-        }
-    }
-
-    if (!Cached)
-    {
-        UE_LOG(LogTemp, Error, TEXT("[ModeSelector] Could not find a UButton under '%s' (mode %s)."),
-               *Wrapper->GetName(), *UEnum::GetValueAsString(Mode));
-        return;
-    }
-
-    Cached->OnClicked.Clear();
-    switch (Mode)
-    {
-        case EControlMode::Position: Cached->OnClicked.AddDynamic(this, &UModeSelector::OnPositionClicked); break;
-        case EControlMode::Velocity: Cached->OnClicked.AddDynamic(this, &UModeSelector::OnVelocityClicked); break;
-        case EControlMode::Angle:    Cached->OnClicked.AddDynamic(this, &UModeSelector::OnAngleClicked);    break;
-        case EControlMode::Acro:     Cached->OnClicked.AddDynamic(this, &UModeSelector::OnAcroClicked);     break;
-    }
-
-    UE_LOG(LogTemp, Log, TEXT("[ModeSelector] Bound %s to inner button '%s'"),
-           *UEnum::GetValueAsString(Mode), *Cached->GetName());
-}
-
-void UModeSelector::RefreshVisibilityForGamepad()
-{
-    auto SetVis = [](UWidget* W, bool bShow)
-    {
-        if (!W) return;
-        W->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-    };
-
-    // In gamepad-only, hide Pos/Vel; Angle/Acro always visible
-    SetVis(BtnPosition, !bGamepadOnly);
-    SetVis(BtnVelocity, !bGamepadOnly);
-    SetVis(BtnAngle,    true);
-    SetVis(BtnAcro,     true);
-}
-
-void UModeSelector::RefreshButtonStyles()
-{
-    auto Tint = [&](UButton* Btn, bool bSelected)
-    {
-        if (!Btn) return;
-        const FLinearColor C = bSelected ? SelectedTint : UnselectedTint;
-
-        // Apply a light tint to the UButton’s style (works even if WBP_IconButtonGeneral drives visuals)
-        FButtonStyle S = Btn->WidgetStyle;
-        S.Normal.TintColor  = FSlateColor(C);
-        S.Hovered.TintColor = FSlateColor(C);
-        S.Pressed.TintColor = FSlateColor(C * 0.9f);
-        Btn->SetStyle(S);
-    };
-
-    Tint(PositionButton, CurrentMode == EControlMode::Position);
-    Tint(VelocityButton, CurrentMode == EControlMode::Velocity);
-    Tint(AngleButton,    CurrentMode == EControlMode::Angle);
-    Tint(AcroButton,     CurrentMode == EControlMode::Acro);
+	TrySet(BtnPosition, CurrentMode == EControlMode::Position);
+	TrySet(BtnVelocity, CurrentMode == EControlMode::Velocity);
+	TrySet(BtnAngle,    CurrentMode == EControlMode::Angle);
+	TrySet(BtnAcro,     CurrentMode == EControlMode::Acro);
 }

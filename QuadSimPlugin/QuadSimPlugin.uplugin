@@ -34,6 +34,7 @@
 
   "Plugins": [
     {"Name": "EnhancedInput","Enabled": true},
-    { "Name": "ImGui", "Enabled": true }
+    { "Name": "ImGui", "Enabled": true },
+    {"Name": "GeoReferencing","Enabled": true}
   ]
 }
