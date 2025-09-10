@@ -3,14 +3,12 @@
 #include "Controllers/QuadDroneController.h"
 #include "Pawns/QuadPawn.h"
 #include "DrawDebugHelpers.h"
-#include "imgui.h"
 #include <random>
 
 #ifndef EXCLUDE_PX4_COMPONENT
 #include "Controllers/PX4Component.h"
 #endif
 #include "GeographicCoordinates.h"
-#include "UI/ImGuiUtil.h"
 #include "Core/DroneJSONConfig.h"
 #include "Core/DroneManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -84,11 +82,11 @@ UQuadDroneController::UQuadDroneController(const FObjectInitializer& ObjectIniti
 
 	ControllerSet.RollPID = new QuadPIDController();
 	ControllerSet.RollPID->SetLimits(-maxPIDOutput, maxPIDOutput);
-	ControllerSet.RollPID->SetGains(0.2f, 0.18f, 0.3f);
+	ControllerSet.RollPID->SetGains(3.0530f, 0.4990f, 2.1020f);
 
 	ControllerSet.PitchPID = new QuadPIDController();
 	ControllerSet.PitchPID->SetLimits(-maxPIDOutput, maxPIDOutput);
-	ControllerSet.PitchPID->SetGains(0.2f, 0.18f, 0.3f);
+	ControllerSet.PitchPID->SetGains(3.0530f, 0.4990f, 2.1020f);
 
 	ControllerSet.RollRatePID = new QuadPIDController();
 	ControllerSet.RollRatePID->SetLimits(-maxPIDOutput, maxPIDOutput);
@@ -159,109 +157,7 @@ void UQuadDroneController::Update(double a_deltaTime)
           }
        }
     }
-    if (bShowUI)
-    {
-       // Unique window name per drone to avoid ID conflicts
-       FString WinName = FString::Printf(TEXT("Flight Mode Selector##%s"), *dronePawn->DroneID);
-       ImGui::Begin(TCHAR_TO_UTF8(*WinName));
-
-    	static bool useGamepad = false;                         
-    	ImGui::Checkbox("GamePad?", &useGamepad);
-       
-    	// PX4 Control checkbox
-    	bool currentPX4State = bUseExternalController;
-    	if (ImGui::Checkbox("Use PX4 Control", &currentPX4State))
-    	{
-    		SetUseExternalController(currentPX4State);
-           
-    		// If we have a PX4Component, activate/deactivate it
-    		if (dronePawn)
-    		{
-    			if (auto* PX4Comp = dronePawn->FindComponentByClass<UPX4Component>())
-    			{
-    				PX4Comp->SetPX4Active(currentPX4State);
-    			}
-    		}
-    	}
-       
-    	ImGui::Separator();
-
-       bGamepadModeUI = useGamepad;               
-       if (!useGamepad)
-       {
-          // determine which button is active
-          const bool selPos = currentFlightMode == EFlightMode::AutoWaypoint;
-          const bool selVel = currentFlightMode == EFlightMode::VelocityControl;
-          const bool selAng = currentFlightMode == EFlightMode::AngleControl;
-          const bool selRate = currentFlightMode == EFlightMode::RateControl; 
-
-          // Position Control
-          ImGui::PushStyleColor(
-             ImGuiCol_Button,
-             selPos
-                ? ImVec4(0.1f, 0.7f, 0.1f, 1.0f)
-                : ImGui::GetStyleColorVec4(ImGuiCol_Button)
-          );
-          if (ImGui::Button("Position Control", ImVec2(200, 50)))
-             SetFlightMode(EFlightMode::AutoWaypoint);
-          ImGui::PopStyleColor();
-
-          // Move By Velocity
-          ImGui::PushStyleColor(
-             ImGuiCol_Button,
-             selVel
-                ? ImVec4(0.1f, 0.7f, 0.1f, 1.0f)
-                : ImVec4(ImGui::GetStyleColorVec4(ImGuiCol_Button))
-          );
-          if (ImGui::Button("Move By Velocity", ImVec2(200, 50)))
-             SetFlightMode(EFlightMode::VelocityControl);
-          ImGui::PopStyleColor();
-
-          // Angle Control
-          ImGui::PushStyleColor(
-             ImGuiCol_Button,
-             selAng
-                ? ImVec4(0.1f, 0.7f, 0.1f, 1.0f)
-                : ImGui::GetStyleColorVec4(ImGuiCol_Button)
-          );
-          if (ImGui::Button("Angle Control", ImVec2(200, 50)))
-             SetFlightMode(EFlightMode::AngleControl);
-          ImGui::PopStyleColor();
-          
-          // --- BEGIN ADDED CODE ---
-          // Rate Control
-          ImGui::PushStyleColor(
-             ImGuiCol_Button,
-             selRate
-                ? ImVec4(0.1f, 0.7f, 0.1f, 1.0f)
-                : ImGui::GetStyleColorVec4(ImGuiCol_Button)
-          );
-          if (ImGui::Button("Rate Control", ImVec2(200, 50)))
-             SetFlightMode(EFlightMode::RateControl);
-          ImGui::PopStyleColor();
-          // --- END ADDED CODE ---
-       }
-       else
-       {
-          // highlight the active one with a different colour
-          const bool selAngle = currentFlightMode == EFlightMode::JoyStickAngleControl;
-          const bool selAcro  = currentFlightMode == EFlightMode::JoyStickAcroControl;
-
-          ImGui::PushStyleColor(ImGuiCol_Button, selAngle ? ImVec4(0.1f,0.7f,0.1f,1.f)
-                                              : ImGui::GetStyleColorVec4(ImGuiCol_Button));
-          if (ImGui::Button("Angle Control", ImVec2(200,50)))
-             SetFlightMode(EFlightMode::JoyStickAngleControl);
-          ImGui::PopStyleColor();
-
-          ImGui::PushStyleColor(ImGuiCol_Button, selAcro ? ImVec4(0.1f,0.7f,0.1f,1.f)
-                                              : ImGui::GetStyleColorVec4(ImGuiCol_Button));
-          if (ImGui::Button("Acro Control", ImVec2(200,50)))
-             SetFlightMode(EFlightMode::JoyStickAcroControl);
-          ImGui::PopStyleColor();
-       }
-       ImGui::End();
-    }
-
+	
     if (currentFlightMode != EFlightMode::None)
     {
        if (bGamepadModeUI)
@@ -308,21 +204,6 @@ void UQuadDroneController::GamepadController(double DeltaTime)
 	/* optional HUD / debug */
 	DrawDebugVisualsVel(FVector::ZeroVector);
 	DrawMagneticDebugVisuals();
-	if (dronePawn && dronePawn->ImGuiUtil)
-	{
-		// Display HUD only for the selected drone (independent) or all (swarm)
-		bool bShowUI = true;
-		if (ADroneManager* Manager = ADroneManager::Get(dronePawn->GetWorld()))
-		{
-			if (!Manager->IsSwarmMode())
-			{
-				const int32 myIdx = Manager->GetDroneIndex(dronePawn);
-				bShowUI = (myIdx == Manager->SelectedDroneIndex);
-			}
-		}
-
-		if (bShowUI){dronePawn->ImGuiUtil->ImGuiHud(currentFlightMode,DeltaTime);}
-	}
 }
 void UQuadDroneController::FlightController(double DeltaTime)
 {
@@ -345,20 +226,6 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	{
         
 		DrawDebugVisualsVel(FVector::ZeroVector);
-		// Show UI if needed
-		if (dronePawn && dronePawn->ImGuiUtil)
-		{
-			bool bShowUI = true;
-			if (ADroneManager* Manager = ADroneManager::Get(dronePawn->GetWorld()))
-			{
-				if (!Manager->IsSwarmMode())
-				{
-					const int32 myIdx = Manager->GetDroneIndex(dronePawn);
-					bShowUI = (myIdx == Manager->SelectedDroneIndex);
-				}
-			}
-			if (bShowUI) { dronePawn->ImGuiUtil->ImGuiHud(currentFlightMode, DeltaTime); }
-		}
         
 		return; 
 	}
@@ -442,21 +309,7 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	
 	//  Debug drawing and on‑screen HUD (optional)
 	DrawDebugVisualsVel(FVector(desiredLocalVelocity.X, desiredLocalVelocity.Y, 0.f));
-
-	if (dronePawn && dronePawn->ImGuiUtil)
-	{
-		bool bShowUI = true;
-		if (ADroneManager* Manager = ADroneManager::Get(dronePawn->GetWorld()))
-		{
-			if (!Manager->IsSwarmMode())
-			{
-				const int32 myIdx = Manager->GetDroneIndex(dronePawn);
-				bShowUI = (myIdx == Manager->SelectedDroneIndex);
-			}
-		}
-
-		if (bShowUI){dronePawn->ImGuiUtil->ImGuiHud(currentFlightMode,DeltaTime);}
-	}
+	
 	
 }
 
@@ -761,7 +614,6 @@ void UQuadDroneController::ApplyMotorCommands(const TArray<float>& MotorCommands
         }
     }
 }
-
 void UQuadDroneController::SetUseExternalController(bool bUseExternal)
 {
     if (bUseExternalController != bUseExternal)
@@ -782,9 +634,6 @@ void UQuadDroneController::SetUseExternalController(bool bUseExternal)
         }
     }
 }
-
-
-
 void UQuadDroneController::DrawMagneticDebugVisuals()
 {
     if (!dronePawn || !bDebugVisualsEnabled) return;
