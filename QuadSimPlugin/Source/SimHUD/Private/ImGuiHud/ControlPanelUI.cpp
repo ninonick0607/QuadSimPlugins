@@ -7,6 +7,7 @@
 #include "QuadSimCore/Public/Core/DroneManager.h"
 #include "Pawns/QuadPawn.h"
 #include "Controllers/QuadDroneController.h"
+#include "Controllers/PX4Component.h"
 #include "Core/DroneJSONConfig.h"
 #include "SimulationCore/Public/Core/SimulationManager.h"
 #include "GameFramework/Actor.h"
@@ -103,6 +104,13 @@ void UControlPanelUI::TickAndDraw(UWorld* World)
             if (Controller)
             {
                 Controller->SetUseExternalController(State.bPX4);
+            }
+            if (ActivePawn)
+            {
+                if (UPX4Component* PX4 = ActivePawn->FindComponentByClass<UPX4Component>())
+                {
+                    PX4->SetPX4Active(State.bPX4);
+                }
             }
         }
         // Note: Gamepad visualization/modes are controlled by selecting the Gamepad Angle/Acro buttons below.

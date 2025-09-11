@@ -280,7 +280,7 @@ void AQuadPawn::UpdateControl(float DeltaTime)
 {
 	if (SensorManager)
 	{
-		SensorManager->UpdateAllSensors(DeltaTime, false);
+		SensorManager->UpdateAllSensors(DeltaTime, true);
 	}
 	if (QuadController)
 	{	

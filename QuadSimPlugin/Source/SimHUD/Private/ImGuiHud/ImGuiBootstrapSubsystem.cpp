@@ -8,6 +8,7 @@
 #include "Engine/GameViewportClient.h"
 #include "ImGuiHud/Style/SimImGuiStyle.h"
 #include "ImGuiHud/ControlPanelUI.h"
+#include "ImGuiHud/SettingsUI.h"
 #include "SimulationCore/Public/Core/SimulationManager.h"
 #include "QuadSimCore/Public/Core/DroneManager.h"
 #include "Pawns/QuadPawn.h"
@@ -88,6 +89,11 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
     {
         ControlPanels = NewObject<UControlPanelUI>(this);
     }
+    // Lazy-create settings panel
+    if (!SettingsUI)
+    {
+        SettingsUI = NewObject<USimSettingsUI>(this);
+    }
 
     // Taskbar at top
     FVector2D ViewSize(1280, 720);
@@ -157,38 +163,9 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
             float labelTopY = FMath::Max(0.f, (BarHeight - LabelH) * 0.5f);
             float btnTopY   = labelTopY + FMath::Max(0.f, (LabelH - btnH) * 0.5f);
 
-            // Left-anchored Settings button and popup (JSON config), vertically centered
+            // Left-anchored Settings button (opens panel), vertically centered
             ImGui::SetCursorPosY(btnTopY);
-            if (ImGui::Button("Settings")) { ImGui::OpenPopup("SettingsMenu"); }
-            if (ImGui::BeginPopup("SettingsMenu"))
-            {
-                auto& Cfg = UDroneJSONConfig::Get().Config;
-                ImGui::Text("Flight Parameters"); ImGui::Separator();
-                ImGui::InputFloat("Max Velocity Bound", &Cfg.FlightParams.MaxVelocityBound);
-                ImGui::InputFloat("Max Velocity", &Cfg.FlightParams.MaxVelocity);
-                ImGui::InputFloat("Max Angle", &Cfg.FlightParams.MaxAngle);
-                ImGui::InputFloat("Max Angle Rate", &Cfg.FlightParams.MaxAngleRate);
-                ImGui::InputFloat("Max PID Output", &Cfg.FlightParams.MaxPIDOutput);
-                ImGui::InputFloat("Max Thrust", &Cfg.FlightParams.MaxThrust);
-                ImGui::InputFloat("Altitude Threshold", &Cfg.FlightParams.AltitudeThreshold);
-                ImGui::InputFloat("Min Altitude Local", &Cfg.FlightParams.MinAltitudeLocal);
-                ImGui::InputFloat("Acceptable Distance", &Cfg.FlightParams.AcceptableDistance);
-                ImGui::Separator();
-                ImGui::Text("Controller Parameters"); ImGui::Separator();
-                ImGui::InputFloat("Altitude Rate", &Cfg.ControllerParams.AltitudeRate);
-                ImGui::InputFloat("Yaw Rate", &Cfg.ControllerParams.YawRate);
-                ImGui::InputFloat("Min Vel For Yaw", &Cfg.ControllerParams.MinVelocityForYaw);
-                ImGui::Separator();
-                ImGui::Text("Obstacle Parameters"); ImGui::Separator();
-                ImGui::InputFloat("Inner Boundary", &Cfg.ObstacleParams.InnerBoundarySize);
-                ImGui::InputFloat("Outer Boundary", &Cfg.ObstacleParams.OuterBoundarySize);
-                ImGui::InputFloat("Spawn Height", &Cfg.ObstacleParams.SpawnHeight);
-                ImGui::Separator();
-                if (ImGui::Button("Save")) { UDroneJSONConfig::Get().SaveConfig(); }
-                ImGui::SameLine();
-                if (ImGui::Button("Reload")) { UDroneJSONConfig::Get().ReloadConfig(); }
-                ImGui::EndPopup();
-            }
+            if (ImGui::Button("Settings")) { if (SettingsUI) SettingsUI->ToggleOpen(); }
             ImGui::SameLine();
             // Pre-compute total width to center the main control group (excluding Settings)
             auto BtnW = [&](const char* txt){ return ImGui::CalcTextSize(txt).x + padX*2.f; };
@@ -464,6 +441,17 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
     if (ControlPanels)
     {
         ControlPanels->TickAndDraw(World);
+    }
+
+    // Apply startup settings once, then draw settings panel
+    if (SettingsUI)
+    {
+        if (!bAppliedStartupSettings)
+        {
+            SettingsUI->ApplyStartupPreferences(World, this);
+            bAppliedStartupSettings = true;
+        }
+        SettingsUI->TickAndDraw(World, this);
     }
 
     // Draw left-side State Data HUD when toggled
@@ -992,5 +980,4 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
     if (bShowMain) ImGui::End();
 #endif
 }
-
 
