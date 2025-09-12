@@ -19,18 +19,14 @@ UMagSensor::UMagSensor()
 
 void UMagSensor::Initialize()
 {
-	if (UWorld* World = GetWorld())
-	{
-		for (TActorIterator<AGeoReferencingSystem> It(World); It; ++It)
-		{
-			GeoRefSystem = *It;
-			break;
-		}
+    if (UWorld* World = GetWorld())
+    {
+        GeoRefSystem = AGeoReferencingSystem::GetGeoReferencingSystem(World);
         
-		if (!GeoRefSystem)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("MagSensor: No GeoReferencingSystem found in level! Please add one."));
-		}
+        if (!GeoRefSystem)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("MagSensor: No GeoReferencingSystem found in level! Please add one."));
+        }
 	}
     // Any initialization if needed
     bEarthMagFieldValid = false;

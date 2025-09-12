@@ -240,13 +240,14 @@ void AQuadPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// Only update controller if NOT being controlled by SimulationManager
-	if (!bIsSimulationControlled)
-	{
-		UpdateControl(DeltaTime);
-	}
+    // Only drive control + sensors from the engine tick when NOT simulation-controlled.
+    // When simulation-controlled, DroneManager invokes UpdateControl with a fixed timestep.
+    if (!bIsSimulationControlled)
+    {
+        UpdateControl(DeltaTime);
+    }
 
-	// Visual updates (propellers) should always happen regardless
+    // Visual updates (propellers) should always happen regardless
 	for (int32 i = 0; i < Propellers.Num(); i++)
 	{
 		if (Propellers[i])

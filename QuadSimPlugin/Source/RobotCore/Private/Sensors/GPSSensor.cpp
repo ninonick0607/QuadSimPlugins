@@ -17,20 +17,15 @@ UGPSSensor::UGPSSensor()
 
 void UGPSSensor::Initialize()
 {
-	// Find the GeoReferencingSystem in the world
-	if (UWorld* World = GetWorld())
-	{
-		for (TActorIterator<AGeoReferencingSystem> It(World); It; ++It)
-		{
-			GeoRefSystem = *It;
-			break;
-		}
-        
-		if (!GeoRefSystem)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("GPSSensor: No GeoReferencingSystem found in level! Please add one."));
-		}
-		else
+    // Find the GeoReferencingSystem in the world
+    if (UWorld* World = GetWorld())
+    {
+        GeoRefSystem = AGeoReferencingSystem::GetGeoReferencingSystem(World);
+        if (!GeoRefSystem)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("GPSSensor: No GeoReferencingSystem found in level! Please add one."));
+        }
+        else
 		{
 			UE_LOG(LogTemp, Display, TEXT("GPSSensor: Found GeoReferencingSystem"));
 		}
@@ -46,7 +41,7 @@ FVector UGPSSensor::GetGeographicCoordinates() const
 	}
     
 	// Get current position in Unreal coordinates
-	FVector WorldPosition = GetOwner()->GetActorLocation();
+	FVector WorldPosition = GetOwner()->GetActorLocation();																									
     
 	// Convert to geographic coordinates using the Georeferencing plugin
 	FGeographicCoordinates GeoCoords;
@@ -76,17 +71,17 @@ void UGPSSensor::UpdateSensor(float DeltaTime, bool bNoise)
 		return;
 	AccumulatedTime -= Period;
 
-	FVector Pos = SampleRawGPS();
+    FVector PosMeters = SampleRawGPS();
 
-	if (bNoise)
-	{
-		Pos.X += SensorNoise() * LatLonNoiseStdDev;
-		Pos.Y += SensorNoise() * LatLonNoiseStdDev;
-		Pos.Z += SensorNoise() * AltNoiseStdDev;
-	}
+    if (bNoise)
+    {
+        PosMeters.X += SensorNoise() * LatLonNoiseStdDev;
+        PosMeters.Y += SensorNoise() * LatLonNoiseStdDev;
+        PosMeters.Z += SensorNoise() * AltNoiseStdDev;
+    }
 
-	LastGPS = Pos;
-	LastGeographicCoords = GetGeographicCoordinates();
+    LastGPS = PosMeters; // meters in engine world frame
+    LastGeographicCoords = GetGeographicCoordinates();
 
 }
 
