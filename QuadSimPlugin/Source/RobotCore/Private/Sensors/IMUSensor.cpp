@@ -116,15 +116,19 @@ void UIMUSensor::UpdateSensor(float DeltaTime, bool bNoise)
 		Attitude.Pitch += SensorNoise() * FMath::RadiansToDegrees(GyroAttNoiseStdDev);
 		Attitude.Yaw += SensorNoise() * FMath::RadiansToDegrees(GyroAttNoiseStdDev);
 	}
-	if (bNeedsFirstAccelSample)
-	{
-		LastAccelerometer = Accel;
-		bNeedsFirstAccelSample = false;
-	}
-	// Store all sensor readings
-	LastGyroscope = Gyro;
-	LastVelocity = Velocity;  // You'll need to add this member variable
-	LastAttitude = Attitude;  // You'll need to add this member variable
+    if (bNeedsFirstAccelSample)
+    {
+        LastAccelerometer = Accel; // seed with first valid sample
+        bNeedsFirstAccelSample = false;
+    }
+    else
+    {
+        LastAccelerometer = Accel; // update every period to avoid stale accel
+    }
+    // Store all sensor readings
+    LastGyroscope = Gyro;
+    LastVelocity = Velocity;  // You'll need to add this member variable
+    LastAttitude = Attitude;  // You'll need to add this member variable
 }
 
 float UIMUSensor::SensorNoise()

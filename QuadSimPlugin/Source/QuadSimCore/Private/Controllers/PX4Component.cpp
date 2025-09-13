@@ -8,6 +8,8 @@
 #include "Sensors/MagSensor.h"
 #include "Common/UdpSocketBuilder.h"
 #include "HAL/PlatformProcess.h"
+#include "GeoReferencingSystem.h"
+#include "GeographicCoordinates.h"
 
 // MAVLink includes - use the correct path structure
 #pragma warning(push)
@@ -416,6 +418,9 @@ void UPX4Component::AcceptTCPConnection()
             // Mark as connected immediately in realtime mode
             bConnectedToPX4 = true;
             UE_LOG(LogPX4, Warning, TEXT("Realtime mode - starting sensor data transmission immediately at 250Hz"));
+
+            // Prepare UDP endpoints for PX4 if requested
+            SetupUDPSockets();
             
             // Close the listen socket
             if (TCPListenSocket)
@@ -540,10 +545,10 @@ void UPX4Component::CleanupSockets()
 
 void UPX4Component::SendMAVLinkMessage(const uint8* MessageBuffer, uint16 MessageLength)
 {
-    if (!TCPClientSocket || !bTCPConnected)
+    bool bAnySent = false;
+    if (TCPClientSocket && bTCPConnected)
     {
-        return;
-    }
+        // existing TCP non-blocking send (unchanged)
     
     // CRITICAL FIX: Don't cast the buffer as mavlink_message_t!
     // The buffer contains the serialized message, not the struct
@@ -618,6 +623,17 @@ void UPX4Component::SendMAVLinkMessage(const uint8* MessageBuffer, uint16 Messag
 		UE_LOG(LogPX4, Warning, TEXT("Successfully sent %d bytes for msg ID=%d"), 
 			   TotalBytesSent, msgid);
 	}
+
+        bAnySent = (TotalBytesSent > 0);
+    }
+
+    // Also send over UDP if configured; some PX4 stacks prefer HIL over UDP
+    if (UDPSendSocket && PX4UDPAddress.IsValid())
+    {
+        int32 BytesSentUDP = 0;
+        UDPSendSocket->SendTo(MessageBuffer, MessageLength, BytesSentUDP, *PX4UDPAddress);
+        bAnySent = bAnySent || (BytesSentUDP > 0);
+    }
 }
 
 // Switch to non-blocking recv with immediate data sending:
@@ -788,12 +804,9 @@ void UPX4Component::SendHeartbeat()
 	// heartbeat.base_mode = MAV_MODE_FLAG_HIL_ENABLED | 
 	// 					 MAV_MODE_FLAG_SAFETY_ARMED |
 	// 					 MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
-	heartbeat.type = MAV_TYPE_GCS; // Or try MAV_TYPE_ONBOARD_CONTROLLER
-	heartbeat.autopilot = MAV_AUTOPILOT_INVALID;
-	heartbeat.base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | 
-						 MAV_MODE_FLAG_HIL_ENABLED |
-						 MAV_MODE_FLAG_SAFETY_ARMED |
-						 MAV_MODE_FLAG_TEST_ENABLED; // Add test mode
+	heartbeat.type = MAV_TYPE_ONBOARD_CONTROLLER;
+	heartbeat.autopilot = MAV_AUTOPILOT_GENERIC;
+	heartbeat.base_mode = MAV_MODE_FLAG_HIL_ENABLED; // simulator present
 	heartbeat.custom_mode = 0;
 	heartbeat.system_status = MAV_STATE_ACTIVE;
 	heartbeat.mavlink_version = 3; // MAVLink 2.0
@@ -817,11 +830,11 @@ void UPX4Component::SendHILStateQuaternion()
     
     memset(&hil_state, 0, sizeof(hil_state));
     
-    // Use same timestamp as HIL_SENSOR for consistency
-    uint64_t timestamp_us = LockstepCounter * 4000;
+    // Monotonic timestamp in microseconds since sim start
+    uint64_t timestamp_us = GetSynchronizedTimestamp();
     hil_state.time_usec = timestamp_us;
     
-    // Convert quaternion (CurrentRotation is already in NED from UpdateCurrentState)
+    // Quaternion in NED body frame (CurrentRotation is already NED from UpdateCurrentState)
 	FQuat NEDQuat = FQuat(CurrentRotation);
     
 	// Fill quaternion array
@@ -840,15 +853,16 @@ void UPX4Component::SendHILStateQuaternion()
 	hil_state.lon = (int32_t)(CurrentGeoCoords.Y * 1e7);
 	hil_state.alt = (int32_t)(CurrentGeoCoords.Z * 1000); // mm
 	
-    // Velocities in m/s
-	hil_state.vx = (int16_t)(CurrentVelocity.X);
-	hil_state.vy = (int16_t)(CurrentVelocity.Y);
-	hil_state.vz = (int16_t)(CurrentVelocity.Z);
+	// Velocities as cm/s (MAVLink int16 convention)
+	hil_state.vx = (int16_t)FMath::Clamp((int32)FMath::RoundToInt(CurrentVelocity.X * 100.0f), INT16_MIN, INT16_MAX);
+	hil_state.vy = (int16_t)FMath::Clamp((int32)FMath::RoundToInt(CurrentVelocity.Y * 100.0f), INT16_MIN, INT16_MAX);
+	hil_state.vz = (int16_t)FMath::Clamp((int32)FMath::RoundToInt(CurrentVelocity.Z * 100.0f), INT16_MIN, INT16_MAX);
     
     // Ground speed
 	float ground_speed_ms = FMath::Sqrt(CurrentVelocity.X * CurrentVelocity.X + CurrentVelocity.Y * CurrentVelocity.Y);
-	hil_state.ind_airspeed = (uint16_t)(ground_speed_ms); // m/s
-	hil_state.true_airspeed = hil_state.ind_airspeed;
+	uint16 gs_cms = (uint16)FMath::Clamp((int32)FMath::RoundToInt(ground_speed_ms * 100.0f), 0, 65535);
+	hil_state.ind_airspeed = gs_cms;   // cm/s
+	hil_state.true_airspeed = gs_cms;  // cm/s
     
     // Accelerations (use gravity-compensated values)
 	hil_state.xacc = (int16_t)(CurrentAccelData.X * 100); // Convert m/s^2 to cm/s^2
@@ -871,8 +885,8 @@ void UPX4Component::SendHILSensor()
     // Zero out the entire structure
     memset(&hil_sensor, 0, sizeof(hil_sensor));
     
-    // CRITICAL: For lockstep, timestamp must advance by exactly 4000us per step
-    uint64_t timestamp_us = LockstepCounter * 4000;
+    // Timestamp in microseconds since sim start
+    uint64_t timestamp_us = GetSynchronizedTimestamp();
     hil_sensor.time_usec = timestamp_us;
     
 	AQuadPawn* QuadPawn = Cast<AQuadPawn>(GetOwner());
@@ -884,7 +898,8 @@ void UPX4Component::SendHILSensor()
 	}
 
 
-	FQuat DroneQuat = UCoordinateTransform::UnrealQuaternionToNED(FQuat(CurrentRotation));
+	// CurrentRotation is already in NED; use it directly for gravity transform
+	FQuat DroneQuat = FQuat(CurrentRotation);
 	FVector GravityWorld(0, 0, 9.81f); // Positive because we subtract it from acceleration
 	FVector GravityBody = DroneQuat.UnrotateVector(GravityWorld);
 	
@@ -964,23 +979,35 @@ void UPX4Component::SendHILGPS()
     
 	memset(&hil_gps, 0, sizeof(hil_gps));
     
-	// Same timestamp as other HIL messages
-	uint64_t timestamp_us = LockstepCounter * 4000;
+    // Timestamp in microseconds since sim start
+    uint64_t timestamp_us = GetSynchronizedTimestamp();
 	hil_gps.time_usec = timestamp_us;
     
-	// GPS position
-	hil_gps.lat = (int32_t)(CurrentGeoCoords.X * 1e7); // Convert to int32 * 1e7
-	hil_gps.lon = (int32_t)(CurrentGeoCoords.Y * 1e7); // Convert to int32 * 1e7
-	hil_gps.alt = (int32_t)(CurrentGeoCoords.Z * 1000); // Altitude in mm
+	// GPS position (validate degrees and wrap longitude into [-180,180])
+	double LatDeg = (double)CurrentGeoCoords.X;
+	double LonDeg = (double)CurrentGeoCoords.Y;
+	if (!FMath::IsFinite(LatDeg) || !FMath::IsFinite(LonDeg))
+	{
+		return; // skip invalid sample
+	}
+	while (LonDeg > 180.0) LonDeg -= 360.0;
+	while (LonDeg < -180.0) LonDeg += 360.0;
+	LatDeg = FMath::Clamp(LatDeg, -90.0, 90.0);
+	
+	hil_gps.lat = (int32_t)FMath::Clamp((int64)FMath::RoundToInt64(LatDeg * 1e7), (int64)INT32_MIN, (int64)INT32_MAX);
+	hil_gps.lon = (int32_t)FMath::Clamp((int64)FMath::RoundToInt64(LonDeg * 1e7), (int64)INT32_MIN, (int64)INT32_MAX);
+    // Altitude: PX4 expects MSL in mm. We use the altitude from GeoReferencing (approx MSL depending on setup)
+    hil_gps.alt = (int32_t)(CurrentGeoCoords.Z * 1000);           // mm MSL (approx)
 	
 	// GPS accuracy
 	hil_gps.eph = 100; // HDOP * 100
 	hil_gps.epv = 100; // VDOP * 100
     
 	// Velocities in m/s
-	hil_gps.vn = (int16_t)(CurrentVelocity.X); // North velocity m/s
-	hil_gps.ve = (int16_t)(CurrentVelocity.Y); // East velocity m/s
-	hil_gps.vd = (int16_t)(CurrentVelocity.Z); // Down velocity m/s
+	// GPS velocities are in cm/s
+	hil_gps.vn = (int16_t)FMath::Clamp((int32)FMath::RoundToInt(CurrentVelocity.X * 100.0f), INT16_MIN, INT16_MAX);
+	hil_gps.ve = (int16_t)FMath::Clamp((int32)FMath::RoundToInt(CurrentVelocity.Y * 100.0f), INT16_MIN, INT16_MAX);
+	hil_gps.vd = (int16_t)FMath::Clamp((int32)FMath::RoundToInt(CurrentVelocity.Z * 100.0f), INT16_MIN, INT16_MAX);
     
 	// Ground speed and course
 	float ground_speed_ms = FMath::Sqrt(CurrentVelocity.X * CurrentVelocity.X + CurrentVelocity.Y * CurrentVelocity.Y);
@@ -1013,14 +1040,14 @@ void UPX4Component::SendHILRCInputs()
     
 	memset(&hil_rc, 0, sizeof(hil_rc));
     
-	// Same timestamp
-	uint64_t timestamp_us = LockstepCounter * 4000;
+    // Timestamp in microseconds since sim start
+    uint64_t timestamp_us = GetSynchronizedTimestamp();
 	hil_rc.time_usec = timestamp_us;
     
 	// RC channels (1000-2000 range, 1500 = center)
 	hil_rc.chan1_raw = 1500; // Roll
 	hil_rc.chan2_raw = 1500; // Pitch
-	hil_rc.chan3_raw = 1000; // Throttle (min for safety)
+	hil_rc.chan3_raw = 1500; // Throttle neutral
 	hil_rc.chan4_raw = 1500; // Yaw
 	hil_rc.chan5_raw = 1800; // Mode switch (position mode)
 	hil_rc.chan6_raw = 1000; // Aux
@@ -1158,12 +1185,13 @@ void UPX4Component::UpdateCurrentState()
 {
 	if (AQuadPawn* QuadPawn = Cast<AQuadPawn>(GetOwner()))
 	{
-		FVector GPSPositionMeters = QuadPawn->SensorManager->GPS->GetLastGPS(); // Already in meters
-		FVector GeographicCoords = QuadPawn->SensorManager->GPS->GetGeographicCoordinates();
-		FVector IMUVelocity = QuadPawn->SensorManager->IMU->GetLastVelocity(); // m/s
-		FVector AccelData = QuadPawn->SensorManager->IMU->GetLastAccelerometer(); // m/s^2 in body frame
-		FRotator IMUAttitude = QuadPawn->SensorManager->IMU->GetLastAttitude(); //deg
-		FVector IMUAngularVelDeg = QuadPawn->SensorManager->IMU->GetLastGyroscopeDegrees(); // deg/s
+        FVector GPSPositionMeters = QuadPawn->SensorManager->GPS->GetLastGPS(); // world meters (engine frame)
+        FVector GeographicCoords = QuadPawn->SensorManager->GPS->GetGeographicCoordinates();
+        // Use world linear velocity for GPS velocity (not body-yaw frame)
+        FVector WorldVelMS = QuadPawn->GetVelocity() / 100.0f; // cm/s -> m/s
+        FVector AccelData = QuadPawn->SensorManager->IMU->GetLastAccelerometer(); // m/s^2 in body frame
+        FRotator IMUAttitude = QuadPawn->SensorManager->IMU->GetLastAttitude(); //deg
+        FVector IMUAngularVelDeg = QuadPawn->SensorManager->IMU->GetLastGyroscopeDegrees(); // deg/s
 
 		float Pressure = QuadPawn->SensorManager->Barometer->GetLastPressure(); // Pascal
 		float Temperature = QuadPawn->SensorManager->Barometer->GetLastTemperature(); // Celsius
@@ -1171,15 +1199,16 @@ void UPX4Component::UpdateCurrentState()
 
 		FVector MagData = QuadPawn->SensorManager->Magnetometer->GetLastMagField(); // Gauss in body frame
 
-		// Transform to NED coordinates
-		CurrentPosition = UCoordinateTransform::UnrealToNED(GPSPositionMeters); // Now in NED meters
-		CurrentVelocity = UCoordinateTransform::UnrealVelocityToNED(IMUVelocity); // Now in NED m/s
+        // Transform to NED coordinates from Unreal world frame
+        CurrentPosition = UCoordinateTransform::UnrealToNED(GPSPositionMeters);
+        // Velocity in NED using axis mapping (avoid calling GeoRef on comm thread)
+        CurrentVelocity = UCoordinateTransform::UnrealVelocityToNED(WorldVelMS);
 		CurrentAccelData = UCoordinateTransform::UnrealToNED(AccelData);
 		CurrentRotation = UCoordinateTransform::UnrealRotationToNED(IMUAttitude); // Now in NED frame
         
-		// Angular velocity needs special handling - it's already in body frame from IMU
-		// Just convert deg/s to rad/s for NED
-		CurrentAngularVelocity = FVector(FMath::DegreesToRadians(IMUAngularVelDeg.X),FMath::DegreesToRadians(IMUAngularVelDeg.Y),FMath::DegreesToRadians(-IMUAngularVelDeg.Z));
+        // Angular velocity: convert from Unreal body frame to NED body frame (rad/s)
+        FVector IMUAngularVelRad = QuadPawn->SensorManager->IMU->GetLastGyroscope(); // rad/s in Unreal body axes
+        CurrentAngularVelocity = UCoordinateTransform::UnrealToNED(IMUAngularVelRad);
         
 		// Geographic coordinates stay the same (lat/lon/alt)
 		CurrentGeoCoords = GeographicCoords;
@@ -1236,4 +1265,3 @@ void UPX4Component::SetLockstepMode(bool bEnabled)
 		}
 	}
 }
-
