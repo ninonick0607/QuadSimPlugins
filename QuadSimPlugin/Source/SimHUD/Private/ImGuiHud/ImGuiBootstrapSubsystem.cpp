@@ -27,6 +27,32 @@
 #include "Misc/FileHelper.h"
 #include <string>
 
+#include "Kismet/GameplayStatics.h"
+
+static const char* ModeToLabel(ESimMode M)
+{
+    switch (M)
+    {
+    case ESimMode::Cinematic: return "Cinematic";
+    case ESimMode::Robotics:  return "Robotics";
+    case ESimMode::Lockstep:  return "PX4 Lockstep";
+    case ESimMode::Paused:    return "Paused";
+    default:                  return "Unknown";
+    }
+}
+
+static ESimMode LabelToMode(int idx)
+{
+    switch (idx)
+    {
+    case 0: return ESimMode::Cinematic;
+    case 1: return ESimMode::Robotics;
+    case 2: return ESimMode::Lockstep;
+    case 3: return ESimMode::Paused;
+    default: return ESimMode::Robotics;
+    }
+}
+
 void USimHUDTaskbarSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
@@ -149,7 +175,21 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
 
             // Controls column
             ImGui::TableSetColumnIndex(0);
-            // Pre-compute sizing to vertically center content
+
+            // Resolve SimulationManager once
+            ASimulationManager* SM = ASimulationManager::Get(World);
+
+            // Query current mode and speed/dilation
+            ESimMode curMode = SM ? SM->GetMode() : ESimMode::Robotics;
+            float simSpeed = 1.0f;
+            float cineScale = 1.0f;
+            if (SM)
+            {
+                simSpeed  = SM->GetSimSpeed();            // Robotics meaning
+                cineScale = SM->GetCinematicTimeScale();  // Cinematic meaning
+            }
+
+            // Layout constants (reuse your style)
             ImGuiStyle& st = ImGui::GetStyle();
             const float padX = st.FramePadding.x;
             const float padY = st.FramePadding.y;
@@ -158,19 +198,46 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
             const float WMLabelW  = 170.f;
             const float LabelH    = BarHeight - 12.f;
             const float SpeedBoxW = 56.f;
-            const char* PauseTxt  = bPaused ? "Play" : "Pause";
+
+            // Buttons/labels math (as before)
+            const char* PauseTxt = (curMode == ESimMode::Paused) ? "Play" : "Pause";
             float btnH   = ImGui::GetTextLineHeight() + padY * 2.f;
             float labelTopY = FMath::Max(0.f, (BarHeight - LabelH) * 0.5f);
             float btnTopY   = labelTopY + FMath::Max(0.f, (LabelH - btnH) * 0.5f);
 
-            // Left-anchored Settings button (opens panel), vertically centered
+            // Left-anchored Settings button
             ImGui::SetCursorPosY(btnTopY);
             if (ImGui::Button("Settings")) { if (SettingsUI) SettingsUI->ToggleOpen(); }
             ImGui::SameLine();
-            // Pre-compute total width to center the main control group (excluding Settings)
+
+            // MODE DROPDOWN (to the left of simulation controls)
+            {
+                ImGui::SetCursorPosY(btnTopY);
+                const char* modeItems[] = { "Cinematic", "Robotics", "PX4 Lockstep", "Paused" };
+                int modeIdx = 1; // default Robotics
+                switch (curMode)
+                {
+                    case ESimMode::Cinematic: modeIdx = 0; break;
+                    case ESimMode::Robotics:  modeIdx = 1; break;
+                    case ESimMode::Lockstep:  modeIdx = 2; break;
+                    case ESimMode::Paused:    modeIdx = 3; break;
+                }
+                ImGui::SetNextItemWidth(150.f);
+                if (ImGui::Combo("##ModeCombo", &modeIdx, modeItems, IM_ARRAYSIZE(modeItems)))
+                {
+                    if (SM)
+                    {
+                        ESimMode newMode = LabelToMode(modeIdx);
+                        SM->SetMode(newMode);
+                    }
+                }
+            }
+            ImGui::SameLine();
+
+            // Compute total width to center the remainder (same as you had)
             auto BtnW = [&](const char* txt){ return ImGui::CalcTextSize(txt).x + padX*2.f; };
             float totalW = 0.f;
-            totalW += LabelBoxW;                                   // Sim label
+            totalW += LabelBoxW;             // "Simulation Manager" label
             totalW += itemX;
             totalW += BtnW("Slower");
             totalW += itemX;
@@ -178,25 +245,25 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
             totalW += itemX;
             totalW += BtnW("Faster>>");
             totalW += itemX;
-            totalW += SpeedBoxW;                                   // speed box
+            totalW += SpeedBoxW;             // speed box
             totalW += itemX;
             totalW += BtnW("Step");
             totalW += itemX;
             totalW += BtnW("Reset");
-            totalW += itemX + 40.f;                                // extra spacing before WM
-            totalW += WMLabelW;                                    // World label
+            totalW += itemX + 40.f;          // extra spacing before WM
+            totalW += WMLabelW;              // "World Manager" label
             totalW += itemX;
             totalW += BtnW("Spawn Drone");
 
-            // Center main group excluding Settings which is anchored left
+            // Center main group (excluding Settings + Mode dropdown)
             float colStartX = ImGui::GetCursorPosX();
             float avail = ImGui::GetContentRegionAvail().x;
-            float remainingW = avail - (ImGui::CalcTextSize("Settings").x + padX*2.f + itemX);
-            float startXWithin = FMath::Max(0.f, (remainingW - totalW) * 0.5f);
+            float leftW = (ImGui::CalcTextSize("Settings").x + padX*2.f + itemX) + (150.f + itemX); // settings + mode combo approx
+            float startXWithin = FMath::Max(0.f, (avail - leftW - totalW) * 0.5f);
             ImGui::SetCursorPosY(labelTopY);
-            ImGui::SetCursorPosX(colStartX + (ImGui::CalcTextSize("Settings").x + padX*2.f + itemX) + startXWithin);
+            ImGui::SetCursorPosX(colStartX + leftW + startXWithin);
 
-            // Centered "Simulation Manager" clickable label with rounded background
+            // Centered "Simulation Manager" label
             {
                 ImGui::InvisibleButton("##SimMgrLabelBtn", ImVec2(LabelBoxW, LabelH));
                 ImVec2 min = ImGui::GetItemRectMin();
@@ -209,58 +276,89 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
                 dl->AddRect(min, max, br, r, 0, 1.0f);
                 ImVec2 tsize = ImGui::CalcTextSize("Simulation Manager");
                 ImVec2 tpos(min.x + (LabelBoxW - tsize.x) * 0.5f, min.y + (LabelH - tsize.y) * 0.5f);
-                ImU32 tc = bSimMgrActive ? ImGui::GetColorU32(ImVec4(0.2f,0.9f,0.3f,1.0f))
-                                         : ImGui::GetColorU32(st.Colors[ImGuiCol_Text]);
-                dl->AddText(tpos, tc, "Simulation Manager");
-                if (ImGui::IsItemClicked()) bSimMgrActive = !bSimMgrActive;
+                dl->AddText(tpos, ImGui::GetColorU32(st.Colors[ImGuiCol_Text]), "Simulation Manager");
                 ImGui::SameLine();
             }
 
+            // --- Controls row depends on Mode semantics ---
+            const bool robotics = (curMode == ESimMode::Robotics);
+            const bool cine     = (curMode == ESimMode::Cinematic);
+            const bool lockstep = (curMode == ESimMode::Lockstep);
+            const bool paused   = (curMode == ESimMode::Paused);
+
+            // Slower
             ImGui::SetCursorPosY(btnTopY);
-            if (ImGui::Button("Slower"))
             {
-                // Reduce current speed scale by 0.10x and apply via SimulationManager
-                SpeedMode = -1;
-                SpeedScale = FMath::Clamp(SpeedScale - 0.10f, 0.05f, 100.0f);
-                if (ASimulationManager* SM = ASimulationManager::Get(World))
+                // Disable in Lockstep (speed knobs don’t apply)
+                ImGui::BeginDisabled(lockstep || !SM);
+                if (ImGui::Button("Slower"))
                 {
-                    SM->SetSimulationMode(ESimulationMode::FastForward);
-                    SM->SetTimeScale(SpeedScale);
-                }
-            }
-            ImGui::SameLine();
-            ImGui::SetCursorPosY(btnTopY);
-            if (ImGui::Button(bPaused ? "Play" : "Pause"))
-            {
-                if (ASimulationManager* SM = ASimulationManager::Get(World))
-                {
-                    if (bPaused)
+                    if (SM)
                     {
-                        SM->ResumePhysics();
-                        SM->SetSimulationMode(ESimulationMode::Realtime);
-                    }
-                    else
-                    {
-                        SM->PausePhysics();
-                        SM->SetSimulationMode(ESimulationMode::Paused);
+                        if (robotics)
+                        {
+                            float ns = FMath::Clamp(SM->GetSimSpeed() * 0.9f, 0.05f, 100.f);
+                            SM->SetSimSpeed(ns);
+                        }
+                        else if (cine)
+                        {
+                            float ns = FMath::Clamp(SM->GetCinematicTimeScale() - 0.10f, 0.05f, 100.f);
+                            SM->SetCinematicTimeScale(ns);
+                        }
+                        // Paused: leave disabled—no-op
                     }
                 }
-                bPaused = !bPaused;
+                ImGui::EndDisabled();
             }
             ImGui::SameLine();
+
+            // Pause/Play
             ImGui::SetCursorPosY(btnTopY);
-            if (ImGui::Button("Faster>>"))
             {
-                SpeedMode = 1;
-                SpeedScale = FMath::Max(1.0f, SpeedScale + 0.25f);
-                if (ASimulationManager* SM = ASimulationManager::Get(World))
+                if (ImGui::Button(PauseTxt))
                 {
-                    SM->SetSimulationMode(ESimulationMode::FastForward);
-                    SM->SetTimeScale(SpeedScale);
+                    if (SM)
+                    {
+                        if (curMode == ESimMode::Paused)
+                        {
+                            // Resume: default to Robotics (or you can remember last non-paused mode)
+                            SM->SetMode(ESimMode::Robotics);
+                        }
+                        else
+                        {
+                            SM->SetMode(ESimMode::Paused);
+                        }
+                    }
                 }
             }
             ImGui::SameLine();
-            // Speed display box with same rounded background (vertically centered with buttons)
+
+            // Faster>>
+            ImGui::SetCursorPosY(btnTopY);
+            {
+                ImGui::BeginDisabled(lockstep || !SM);
+                if (ImGui::Button("Faster>>"))
+                {
+                    if (SM)
+                    {
+                        if (robotics)
+                        {
+                            float ns = FMath::Clamp(SM->GetSimSpeed() * 1.10f, 0.05f, 100.f);
+                            SM->SetSimSpeed(ns);
+                        }
+                        else if (cine)
+                        {
+                            float ns = FMath::Clamp(SM->GetCinematicTimeScale() + 0.25f, 0.05f, 100.f);
+                            SM->SetCinematicTimeScale(ns);
+                        }
+                        // Paused: leave disabled—no-op
+                    }
+                }
+                ImGui::EndDisabled();
+            }
+            ImGui::SameLine();
+
+            // Speed display (shows SimSpeed in Robotics, TimeScale in Cinematic)
             {
                 const float BoxH = 28.f;
                 ImGui::SetCursorPosY(btnTopY + (btnH - BoxH) * 0.5f);
@@ -273,35 +371,45 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
                 ImU32 br = ImGui::GetColorU32(Theme.Border);
                 dl->AddRectFilled(min, max, bg, r);
                 dl->AddRect(min, max, br, r, 0, 1.0f);
-                char buf[32]; snprintf(buf, sizeof(buf), "x%.2f", SpeedScale);
+                char buf[32];
+                float shown = robotics ? simSpeed : (cine ? cineScale : 1.0f);
+                snprintf(buf, sizeof(buf), "x%.2f", shown);
                 ImVec2 tsize = ImGui::CalcTextSize(buf);
                 ImVec2 tpos(min.x + (SpeedBoxW - tsize.x) * 0.5f, min.y + (BoxH - tsize.y) * 0.5f);
                 dl->AddText(tpos, ImGui::GetColorU32(st.Colors[ImGuiCol_Text]), buf);
             }
             ImGui::SameLine();
+
+            // Step (Robotics: one fixed dt; Lockstep: one handshake step; Paused: one fixed dt)
             ImGui::SetCursorPosY(btnTopY);
-            if (ImGui::Button("Step"))
             {
-                if (ASimulationManager* SM = ASimulationManager::Get(World))
+                bool stepEnabled = (curMode == ESimMode::Robotics) || (curMode == ESimMode::Lockstep) || (curMode == ESimMode::Paused);
+                ImGui::BeginDisabled(!stepEnabled || !SM);
+                if (ImGui::Button("Step"))
                 {
-                    SM->RequestSimulationStep();
+                    if (SM) SM->StepOnce();
                 }
+                ImGui::EndDisabled();
             }
             ImGui::SameLine();
+
+            // Reset (returns to Robotics, speed=1, cine=1)
             ImGui::SetCursorPosY(btnTopY);
             if (ImGui::Button("Reset"))
             {
-                SpeedMode = 0; bPaused = false; SpeedScale = 1.0f;
-                if (ASimulationManager* SM = ASimulationManager::Get(World))
+                if (SM)
                 {
-                    SM->SetSimulationMode(ESimulationMode::Realtime);
-                    SM->SetTimeScale(1.0f);
+                    SM->SetMode(ESimMode::Robotics);
+                    SM->SetSimSpeed(1.0f);
+                    SM->SetCinematicTimeScale(1.0f);
                     SM->ResetSimulation();
                 }
             }
-            // Extra spacing before World Manager
+
+            // Extra spacing before World Manager (unchanged)
             ImGui::SameLine(); ImGui::Dummy(ImVec2(40.f, 0.f)); ImGui::SameLine();
-            // Centered clickable World Manager label with rounded background
+
+            // "World Manager" label + "Spawn Drone" button (unchanged from your code)
             {
                 ImGui::SetCursorPosY(labelTopY);
                 ImGui::InvisibleButton("##WorldMgrLabelBtn", ImVec2(WMLabelW, LabelH));
@@ -315,13 +423,9 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
                 dl->AddRect(min, max, br, r, 0, 1.0f);
                 ImVec2 tsize = ImGui::CalcTextSize("World Manager");
                 ImVec2 tpos(min.x + (WMLabelW - tsize.x) * 0.5f, min.y + (LabelH - tsize.y) * 0.5f);
-                ImU32 tc = bWorldMgrActive ? ImGui::GetColorU32(ImVec4(0.2f,0.9f,0.3f,1.0f))
-                                           : ImGui::GetColorU32(st.Colors[ImGuiCol_Text]);
-                dl->AddText(tpos, tc, "World Manager");
-                if (ImGui::IsItemClicked()) bWorldMgrActive = !bWorldMgrActive;
+                dl->AddText(tpos, ImGui::GetColorU32(st.Colors[ImGuiCol_Text]), "World Manager");
                 ImGui::SameLine();
             }
-            ImGui::SameLine();
             ImGui::SetCursorPosY(btnTopY);
             if (ImGui::Button("Spawn Drone"))
             {
@@ -335,22 +439,14 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
                             {
                                 PC->Possess(NewDrone);
                                 PC->SetViewTarget(NewDrone);
-                                // Return to game-only input for control
-                                if (AQuadSimPlayerController* QPC = Cast<AQuadSimPlayerController>(PC))
-                                {
-                                    QPC->ApplyGameOnly();
-                                }
-                                else
-                                {
-                                    FInputModeGameOnly Mode; Mode.SetConsumeCaptureMouseDown(true);
-                                    PC->SetInputMode(Mode);
-                                    PC->bShowMouseCursor = false;
-                                }
+                                if (AQuadSimPlayerController* QPC = Cast<AQuadSimPlayerController>(PC)) QPC->ApplyGameOnly();
+                                else { FInputModeGameOnly Mode; Mode.SetConsumeCaptureMouseDown(true); PC->SetInputMode(Mode); PC->bShowMouseCursor = false; }
                             }
                         }
                     }
                 }
             }
+
 
             // Status column (FPS) with rounded background like labels
             ImGui::TableSetColumnIndex(1);

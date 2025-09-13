@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Interfaces/SimAggregate.h"
 #include "SimulationCore/Public/Interfaces/ISimulatable.h"
 #include "DroneManager.generated.h"
 
@@ -10,7 +11,7 @@ class AQuadPawn;
 enum class EFlightMode : uint8;
 
 UCLASS(Blueprintable, BlueprintType)
-class QUADSIMCORE_API ADroneManager : public AActor, public ISimulatable
+class QUADSIMCORE_API ADroneManager : public AActor, public ISimulatable,public ISimAggregate
 {
 	GENERATED_BODY()
 
