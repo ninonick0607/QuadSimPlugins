@@ -2,261 +2,225 @@
 #include "SimulationCore/Public/Core/TimeController.h"
 #include "SimulationCore/Public/Interfaces/ISimulatable.h"
 #include "Engine/World.h"
-#include "GameFramework/WorldSettings.h"
-#include "Interfaces/SimAggregate.h"
 #include "Kismet/GameplayStatics.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "Physics/PhysicsInterfaceCore.h"
+#include "imgui.h"
+#include "Physics/PhysicsInterfaceCore.h"
 
 ASimulationManager::ASimulationManager()
 {
     PrimaryActorTick.bCanEverTick = true;
-    PrimaryActorTick.TickGroup = TG_PrePhysics; // own sim time before physics
-    Mode = ESimMode::Robotics;                  // default
+    PrimaryActorTick.TickGroup = TG_PrePhysics;
+    
+    CurrentSimulationMode = ESimulationMode::Realtime;
+    CurrentSimulationTime = 0.0f;
+    CurrentEpisode = 0;
+    CurrentStep = 0;
+    bWaitingForExternalCommand = false;
+    MaxStepsPerFrame = 10;
+    bShowImGuiWindow = true;
+    SelectedRobotIndex = 0;
+
+    bStepRequested = false;
+    bIsStepping = false;
+
 }
 
 void ASimulationManager::BeginPlay()
 {
     Super::BeginPlay();
-
-    // Time controller for Robotics/Lockstep
+    
+    // Create Time Controller
     TimeController = NewObject<UTimeController>(this, TEXT("TimeController"));
-    // Default robotics dt = 0.004 s (250 Hz) already set in ctor
-
-    // Enable sub-stepping (safer physics) and back up
-    if (UPhysicsSettings* PS = UPhysicsSettings::Get())
+    
+    // Configure physics settings for better control
+    if (UPhysicsSettings* PhysicsSettings = UPhysicsSettings::Get())
     {
-        OriginalMaxPhysicsStep = PS->MaxPhysicsDeltaTime;
-        OriginalSubstepping   = PS->bSubstepping;
-
-        PS->bSubstepping        = true;
-        PS->MaxSubstepDeltaTime = 0.004f; // match FixedTimestep
-        PS->MaxSubsteps         = 8;      // protects 30 FPS budget
+        // Store original settings
+        OriginalMaxPhysicsStep = PhysicsSettings->MaxPhysicsDeltaTime;
+        OriginalSubstepping = PhysicsSettings->bSubstepping;
+        
+        // Enable substepping for more deterministic physics
+        PhysicsSettings->bSubstepping = true;
+        PhysicsSettings->MaxSubstepDeltaTime = 0.01667f; // 60Hz
+        PhysicsSettings->MaxSubsteps = 6;
     }
-
-    TArray<AActor*> Found;
-    UGameplayStatics::GetAllActorsWithInterface(GetWorld(), USimulatable::StaticClass(), Found);
-
-    RegisteredRobots.Empty();
-    for (AActor* A : Found)
+    
+    UE_LOG(LogTemp, Warning, TEXT("SimulationManager initialized with mode: %s"), 
+           *UEnum::GetValueAsString(CurrentSimulationMode));
+    
+    // Find existing robots in the scene
+    TArray<AActor*> FoundActors;
+    UGameplayStatics::GetAllActorsWithInterface(GetWorld(), USimulatable::StaticClass(), FoundActors);
+    
+    for (AActor* Actor : FoundActors)
     {
-        if (!A) continue;
-        // Only accept actors that are also marked as sim aggregates
-        if (A->GetClass()->ImplementsInterface(USimAggregate::StaticClass()))
-        {
-            RegisteredRobots.Add(A);
-        }
-        else
-        {
-            // Ignore pawns or leaf nodes even if someone accidentally gave them ISimulatable
-            UE_LOG(LogTemp, Verbose, TEXT("Ignored non-aggregate simulatable: %s"), *A->GetName());
-        }
+        RegisterRobot(Actor);
     }
-    UE_LOG(LogTemp, Display, TEXT("SimulationManager: registered %d sim aggregates"), RegisteredRobots.Num());
-
-    // Apply initial mode policy
-    SetMode(Mode);
+    
+    UE_LOG(LogTemp, Warning, TEXT("Found and registered %d robots"), RegisteredRobots.Num());
 }
 
 void ASimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-    if (UPhysicsSettings* PS = UPhysicsSettings::Get())
+    // Restore original physics settings
+    if (UPhysicsSettings* PhysicsSettings = UPhysicsSettings::Get())
     {
-        PS->MaxPhysicsDeltaTime = OriginalMaxPhysicsStep;
-        PS->bSubstepping        = OriginalSubstepping;
+        PhysicsSettings->MaxPhysicsDeltaTime = OriginalMaxPhysicsStep;
+        PhysicsSettings->bSubstepping = OriginalSubstepping;
     }
-
+    
     RegisteredRobots.Empty();
     Super::EndPlay(EndPlayReason);
 }
 
+// In SimulationManager.cpp
+
 void ASimulationManager::Tick(float DeltaTime)
 {
-    Super::Tick(DeltaTime);
+	Super::Tick(DeltaTime);
 
-    switch (Mode)
+	// Handle different simulation modes
+	switch (CurrentSimulationMode)
+	{
+	case ESimulationMode::Realtime:
+		// Normal real-time simulation
+		StepSimulation(DeltaTime);
+		break;
+        
+	case ESimulationMode::FastForward:
+		// Accelerated simulation
+		StepSimulation(DeltaTime);
+		break;
+        
+	case ESimulationMode::Paused:
+		// Only step when requested
+		if (bStepRequested)
+		{
+			ExecuteSimulationStep(TimeController->GetFixedDeltaTime());
+			bStepRequested = false;
+		}
+		break;
+        
+	case ESimulationMode::Lockstep:
+		// Step once, then wait for external command
+		if (!bWaitingForExternalCommand)
+		{
+			ExecuteSimulationStep(TimeController->GetFixedDeltaTime());
+			bWaitingForExternalCommand = true;
+		}
+		break;
+	}
+}
+void ASimulationManager::StepSimulation(float DeltaTime)
+{
+    if (!TimeController)
     {
-    case ESimMode::Cinematic: Tick_Cinematic(DeltaTime); break;
-    case ESimMode::Robotics:  Tick_Robotics(DeltaTime);  break;
-    case ESimMode::Lockstep:  Tick_Lockstep(DeltaTime);  break;
-    case ESimMode::Paused:    /* idle */ if (bStepRequested) { ExecuteFixedStep(TimeController->GetFixedDeltaTime()); bStepRequested = false; } break;
+        return;
     }
-}
-
-void ASimulationManager::Tick_Cinematic(float /*DeltaTime*/)
-{
-    // In Cinematic, Unreal’s world clock is scaled.
-    // We still integrate physics via the engine; no manual fixed stepping.
-    // (Nothing to do here; visual time dilation already applied in SetMode/SetCinematicTimeScale.)
-}
-
-void ASimulationManager::Tick_Robotics(float DeltaTime)
-{
-    if (!TimeController) return;
-
-    // Accumulate scaled wall time (SimSpeed is applied inside TimeController)
-    TimeController->AccumulateTime(DeltaTime);
-
-    int32 Steps = 0;
-    const int32 Budget = MaxStepsPerFrame;
-
-    while (TimeController->ShouldStep() && Steps < Budget)
+    
+    // For lockstep and paused modes, use fixed timestep directly
+    if (CurrentSimulationMode == ESimulationMode::Lockstep || 
+        CurrentSimulationMode == ESimulationMode::Paused)
     {
-        ExecuteFixedStep(TimeController->GetFixedDeltaTime());
-        TimeController->ConsumeOneStep();
-        ++Steps;
+        ExecuteSimulationStep(TimeController->GetFixedDeltaTime());
     }
-
-    if (TimeController->ShouldStep() && Steps >= Budget)
+    else
     {
-        UE_LOG(LogTemp, Verbose, TEXT("Robotics: hit per-frame cap %d; backlog=%.4f s"),
-               Budget, TimeController->GetAccumulator());
-        ShedLoadIfNeeded();
-    }
-}
-
-void ASimulationManager::Tick_Lockstep(float /*DeltaTime*/)
-{
-    // In lockstep we only step on explicit external command (e.g., PX4 handshake)
-    if (!bWaitingForExternalCommand)
-    {
-        ExecuteFixedStep(TimeController ? TimeController->GetFixedDeltaTime() : 0.004f);
-        bWaitingForExternalCommand = true; // wait until RequestSimulationStep()
-    }
-}
-
-void ASimulationManager::ExecuteFixedStep(float FixedDeltaTime)
-{
-    if (FixedDeltaTime <= 0.f) return;
-
-    SimTimeSeconds += FixedDeltaTime;
-    ++CurrentStep;
-
-    // Integrate physics & drive all robots/sensors in fixed dt
-    UpdateAllRobots(FixedDeltaTime);
-
-    // You can publish /clock here (ROS 2), stamp with SimTimeSeconds
-    // e.g., RosClockPublisher->Publish(SimTimeSeconds);
-}
-
-void ASimulationManager::UpdateAllRobots(float FixedDeltaTime)
-{
-    for (AActor* Robot : RegisteredRobots)
-    {
-        if (!Robot) continue;
-        if (Robot->GetClass()->ImplementsInterface(USimulatable::StaticClass()))
+        // For realtime and fast forward, use the accumulator pattern
+        TimeController->AccumulateTime(DeltaTime);
+        
+        int32 StepsExecuted = 0;
+        while (TimeController->ShouldStep() && StepsExecuted < MaxStepsPerFrame)
         {
-            ISimulatable::Execute_SimulationUpdate(Robot, FixedDeltaTime);
+            float FixedDeltaTime = TimeController->GetFixedDeltaTime();
+            ExecuteSimulationStep(FixedDeltaTime);
+            TimeController->ConsumeTime();
+            StepsExecuted++;
+        }
+        
+        // Only warn if we truly still have leftover time to consume.
+        // Hitting the per-frame cap with no leftover is expected when fast-forwarding.
+        if (StepsExecuted >= MaxStepsPerFrame && TimeController->ShouldStep())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Simulation falling behind: hit per-frame cap %d and still have leftover (accum=%.4fs, fixed=%.4fs)"),
+                   MaxStepsPerFrame,
+                   TimeController->GetAccumulatedTime(),
+                   TimeController->GetFixedDeltaTime());
         }
     }
 }
 
-void ASimulationManager::SetMode(ESimMode NewMode)
+void ASimulationManager::ExecuteSimulationStep(float FixedDeltaTime)
 {
-    if (Mode == NewMode) return;
-
-    // Reset world dilation unless Cinematic
-    if (AWorldSettings* WS = GetWorld() ? GetWorld()->GetWorldSettings() : nullptr)
-    {
-        WS->SetTimeDilation(1.0f);
-    }
-
-    Mode = NewMode;
-    bWaitingForExternalCommand = false;
-    if (TimeController) TimeController->Reset();
-
-    switch (Mode)
-    {
-    case ESimMode::Cinematic:
-        if (AWorldSettings* WS = GetWorld() ? GetWorld()->GetWorldSettings() : nullptr)
-            WS->SetTimeDilation(FMath::Clamp(CinematicTimeScale, 0.01f, 100.f));
-        break;
-    case ESimMode::Robotics:
-        // Fixed-dt steppable; engine time remains 1.0
-        if (TimeController) TimeController->SetPaused(false);
-        break;
-    case ESimMode::Lockstep:
-        // One fixed step per external handshake; engine time at 1.0
-        if (TimeController) TimeController->SetPaused(false);
-        break;
-    case ESimMode::Paused:
-        if (TimeController) TimeController->SetPaused(true);
-        break;
-    }
-
-    UE_LOG(LogTemp, Display, TEXT("Mode switched to %s"), *UEnum::GetValueAsString(Mode));
+    // Update simulation time
+    CurrentSimulationTime += FixedDeltaTime;
+    CurrentStep++;
+    
+    // Update all robots with fixed timestep
+    UpdateAllRobots(FixedDeltaTime);
 }
 
-void ASimulationManager::SetSimSpeed(float NewSpeed)
+void ASimulationManager::UpdateAllRobots(float DeltaTime)
 {
-    if (!TimeController) return;
-    if (Mode != ESimMode::Robotics) return; // no-op outside Robotics
-    TimeController->SetSimSpeed(NewSpeed);
-}
-
-float ASimulationManager::GetSimSpeed() const
-{
-    return TimeController ? TimeController->GetSimSpeed() : 1.0f;
-}
-
-void ASimulationManager::SetCinematicTimeScale(float NewScale)
-{
-    CinematicTimeScale = FMath::Clamp(NewScale, 0.01f, 100.f);
-    if (Mode == ESimMode::Cinematic)
-    {
-        if (AWorldSettings* WS = GetWorld() ? GetWorld()->GetWorldSettings() : nullptr)
-            WS->SetTimeDilation(CinematicTimeScale);
-    }
-}
-
-void ASimulationManager::Pause()
-{
-    SetMode(ESimMode::Paused);
-}
-
-void ASimulationManager::Resume()
-{
-    // Resume to Robotics by default (you can make this configurable)
-    SetMode(ESimMode::Robotics);
-}
-
-void ASimulationManager::StepOnce()
-{
-    if (Mode == ESimMode::Robotics)
-    {
-        ExecuteFixedStep(TimeController ? TimeController->GetFixedDeltaTime() : 0.004f);
-    }
-    else if (Mode == ESimMode::Lockstep)
-    {
-        // External step request (e.g., PX4) clears wait flag
-        bWaitingForExternalCommand = false;
-    }
-    else if (Mode == ESimMode::Paused)
-    {
-        bStepRequested = true;
-    }
-}
-
-void ASimulationManager::ResetSimulation()
-{
-    SimTimeSeconds = 0.0;
-    CurrentStep = 0;
-    if (TimeController) TimeController->Reset();
-
     for (AActor* Robot : RegisteredRobots)
     {
         if (Robot && Robot->GetClass()->ImplementsInterface(USimulatable::StaticClass()))
         {
-            ISimulatable::Execute_ResetRobot(Robot);
+            ISimulatable::Execute_SimulationUpdate(Robot, DeltaTime);
         }
     }
+}
 
-    UE_LOG(LogTemp, Display, TEXT("Simulation reset"));
+void ASimulationManager::SetSimulationMode(ESimulationMode NewMode)
+{
+    if (CurrentSimulationMode != NewMode)
+    {
+        // Restore normal time dilation when leaving non-realtime modes
+        if (CurrentSimulationMode != ESimulationMode::Realtime)
+        {
+            GetWorld()->GetWorldSettings()->SetTimeDilation(1.0f);
+        }
+        
+        CurrentSimulationMode = NewMode;
+        bWaitingForExternalCommand = false;
+        
+        UE_LOG(LogTemp, Display, TEXT("Simulation mode changed to: %s"), 
+               *UEnum::GetValueAsString(NewMode));
+        
+        // Reset time controller when switching modes
+        if (TimeController)
+        {
+            TimeController->Reset();
+        }
+        
+        // Apply initial settings for new mode
+        switch (NewMode)
+        {
+        case ESimulationMode::Paused:
+        case ESimulationMode::Lockstep:
+            GetWorld()->GetWorldSettings()->SetTimeDilation(0.0001f);
+            break;
+        case ESimulationMode::FastForward:
+            // Use the TimeController to scale time; keep world dilation at 1.0 to avoid double scaling
+            GetWorld()->GetWorldSettings()->SetTimeDilation(1.0f);
+            break;
+        default:
+            GetWorld()->GetWorldSettings()->SetTimeDilation(1.0f);
+            break;
+        }
+    }
 }
 
 void ASimulationManager::RegisterRobot(AActor* Robot)
 {
-    if (!Robot || RegisteredRobots.Contains(Robot)) return;
-
+    if (!Robot || RegisteredRobots.Contains(Robot))
+    {
+        return;
+    }
+    
+    // Check if it implements ISimulatable
     if (Robot->GetClass()->ImplementsInterface(USimulatable::StaticClass()))
     {
         RegisteredRobots.Add(Robot);
@@ -264,28 +228,90 @@ void ASimulationManager::RegisterRobot(AActor* Robot)
     }
     else
     {
-        UE_LOG(LogTemp, Warning, TEXT("Actor %s does not implement ISimulatable"), *Robot->GetName());
+        UE_LOG(LogTemp, Warning, TEXT("Actor %s does not implement ISimulatable interface"), 
+               *Robot->GetName());
     }
 }
 
 void ASimulationManager::UnregisterRobot(AActor* Robot)
 {
-    if (!Robot) return;
-    RegisteredRobots.Remove(Robot);
-    UE_LOG(LogTemp, Display, TEXT("Unregistered robot: %s"), *Robot->GetName());
+    if (Robot)
+    {
+        RegisteredRobots.Remove(Robot);
+        UE_LOG(LogTemp, Display, TEXT("Unregistered robot: %s"), *Robot->GetName());
+    }
 }
 
-ASimulationManager* ASimulationManager::Get(UWorld* World)
+void ASimulationManager::SetTimeScale(float NewTimeScale)
 {
-    if (!World) return nullptr;
-    TArray<AActor*> Found;
-    UGameplayStatics::GetAllActorsOfClass(World, ASimulationManager::StaticClass(), Found);
-    return Found.Num() > 0 ? Cast<ASimulationManager>(Found[0]) : nullptr;
+    if (TimeController)
+    {
+        // Drive global sim speed via world time dilation so physics and game systems follow.
+        // Avoid double-scaling by keeping the internal TimeController at 1x.
+        TimeController->SetTimeScale(1.0f);
+
+        const float Clamped = FMath::Clamp(NewTimeScale, 0.0001f, 100.0f);
+        if (UWorld* World = GetWorld())
+        {
+            if (AWorldSettings* WS = World->GetWorldSettings())
+            {
+                WS->SetTimeDilation(Clamped);
+            }
+        }
+    }
 }
 
-void ASimulationManager::ShedLoadIfNeeded()
+void ASimulationManager::ResetSimulation()
 {
-    // Stub: this is where you’d throttle cameras/lidar, reduce resolution,
-    // or clamp SimSpeed slightly when FPS dips under MinTargetFPS.
-    // You can sample GEngine->GetAverageFPS() or measure step costs yourself.
+    CurrentSimulationTime = 0.0f;
+    CurrentStep = 0;
+    
+    if (TimeController)
+    {
+        TimeController->Reset();
+    }
+    
+    // Reset all robots
+    for (AActor* Robot : RegisteredRobots)
+    {
+        if (Robot && Robot->GetClass()->ImplementsInterface(USimulatable::StaticClass()))
+        {
+            ISimulatable::Execute_ResetRobot(Robot);
+        }
+    }
+    
+    UE_LOG(LogTemp, Display, TEXT("Simulation reset"));
+}
+
+void ASimulationManager::PausePhysics()
+{
+    SetSimulationMode(ESimulationMode::Paused);
+}
+
+void ASimulationManager::ResumePhysics()
+{
+    SetSimulationMode(ESimulationMode::Realtime);
+}
+
+void ASimulationManager::RequestSimulationStep()
+{
+    if (CurrentSimulationMode == ESimulationMode::Lockstep && bWaitingForExternalCommand)
+    {
+        bWaitingForExternalCommand = false;
+        UE_LOG(LogTemp, Verbose, TEXT("External step command received"));
+    }
+    else if (CurrentSimulationMode == ESimulationMode::Paused)
+    {
+        // Setting the flag instead of calling the functions directly
+        bStepRequested = true;
+    }
+}
+
+void ASimulationManager::StartNewEpisode()
+{
+    CurrentEpisode++;
+    CurrentStep = 0;
+    ResetSimulation();
+    
+    UE_LOG(LogTemp, Display, TEXT("Started episode %d"), CurrentEpisode);
 }

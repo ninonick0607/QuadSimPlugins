@@ -12,60 +12,59 @@ class SIMULATIONCORE_API UTimeController : public UObject
 public:
     UTimeController();
 
-    // Called each render frame with wall-clock DeltaTime
-    void AccumulateTime(float DeltaWallSeconds);
-
-    // Whether at least one fixed step can run
+    // Time accumulation
+    void AccumulateTime(float DeltaTime);
+    
+    // Check if we should execute a fixed timestep
     bool ShouldStep() const;
-
-    // Consume one fixed step from the accumulator
-    void ConsumeOneStep();
-
-    // Reset accumulated time (does not change SimTime elsewhere)
+    
+    // Consume one fixed timestep from accumulator
+    void ConsumeTime();
+    
+    // Reset the time controller
     void Reset();
-
-    // --- Getters
+    
+    // Getters
     UFUNCTION(BlueprintCallable, Category = "Time Control")
     float GetFixedDeltaTime() const { return FixedTimestep; }
-
+    
     UFUNCTION(BlueprintCallable, Category = "Time Control")
-    float GetAccumulator() const { return Accumulator; }
-
+    float GetTimeScale() const { return TimeScale; }
+    
     UFUNCTION(BlueprintCallable, Category = "Time Control")
-    float GetSimSpeed() const { return SimSpeed; }
-
+    float GetAccumulatedTime() const { return TimeAccumulator; }
+    
     UFUNCTION(BlueprintCallable, Category = "Time Control")
     bool IsPaused() const { return bPaused; }
-
-    // --- Setters
+    
+    // Setters
     UFUNCTION(BlueprintCallable, Category = "Time Control")
     void SetFixedTimestep(float NewTimestep);
-
-    // SimSpeed multiplies wall time before accumulation (Robotics mode)
+    
     UFUNCTION(BlueprintCallable, Category = "Time Control")
-    void SetSimSpeed(float NewSimSpeed);
-
+    void SetTimeScale(float NewTimeScale);
+    
     UFUNCTION(BlueprintCallable, Category = "Time Control")
     void SetPaused(bool bNewPaused);
 
 protected:
-    // Fixed physics dt in seconds (e.g., 0.004 = 250 Hz)
+    // Fixed timestep value (default 0.01 = 100Hz)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time Control")
     float FixedTimestep;
-
-    // Accumulated (scaled) wall time waiting to be stepped
+    
+    // Time accumulator
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Time Control")
-    float Accumulator;
-
-    // Wall->sim scaling used ONLY in Robotics (steppable) mode
+    float TimeAccumulator;
+    
+    // Time scale multiplier
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time Control")
-    float SimSpeed;
-
-    // Pause flag (prevents accumulation)
+    float TimeScale;
+    
+    // Pause state
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Time Control")
     bool bPaused;
-
-    // Prevent spiral-of-death
+    
+    // Maximum accumulated time (prevents spiral of death)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time Control")
     float MaxAccumulatedTime;
 };

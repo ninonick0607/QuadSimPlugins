@@ -6,7 +6,6 @@
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
-#include "SimulationCore/Public/Core/SimulationManager.h"
 #include "imgui.h"
 #include "Engine/Engine.h"
 #include "Controllers/PX4Component.h"
@@ -50,7 +49,6 @@ void ADroneManager::BeginPlay()
         if (AQuadPawn* Pawn = Cast<AQuadPawn>(Actor))
         {
             AllDrones.Add(Pawn);
-            Pawn->bIsSimulationControlled = true; // manager owns control
         }
     }
     // Initialize last spawn location to the most recently found drone (assumed ground level)
@@ -61,12 +59,6 @@ void ADroneManager::BeginPlay()
             LastSpawnLocation = LastPawn->GetActorLocation();
         }
     }
-
-    // Ensure this aggregate registers with the SimulationManager even if spawned later
-    if (ASimulationManager* SimMgr = ASimulationManager::Get(GetWorld()))
-    {
-        SimMgr->RegisterRobot(this);
-    }
 }
 
 void ADroneManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -74,11 +66,6 @@ void ADroneManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
     if (UWorld* World = GetWorld())
     {
         World->RemoveOnActorSpawnedHandler(OnActorSpawnedHandle);
-    }
-
-    if (ASimulationManager* SimMgr = ASimulationManager::Get(GetWorld()))
-    {
-        SimMgr->UnregisterRobot(this);
     }
     Super::EndPlay(EndPlayReason);
 }
@@ -88,9 +75,9 @@ void ADroneManager::OnActorSpawned(AActor* SpawnedActor)
     if (AQuadPawn* Pawn = Cast<AQuadPawn>(SpawnedActor))
     {
         AllDrones.Add(Pawn);
-        Pawn->bIsSimulationControlled = true; // manager owns control
     }
 }
+
 
 // Register a Quad Drone Controller to receive global flight mode broadcasts
 void ADroneManager::RegisterDroneController(UQuadDroneController* Controller)
@@ -190,23 +177,27 @@ TArray<AQuadPawn*> ADroneManager::GetDroneList() const
 
 void ADroneManager::SimulationUpdate_Implementation(float FixedDeltaTime)
 {
-    for (TWeakObjectPtr<AQuadPawn> DronePtr : AllDrones)
-    {
-        if (AQuadPawn* Drone = DronePtr.Get())
-        {
-            // Ensure sim-controlled ONCE (e.g., set in BeginPlay/OnActorSpawned)
-            if (UPX4Component* PX4Comp = Drone->FindComponentByClass<UPX4Component>())
-            {
-                if (PX4Comp->bIsActive())
-                {
-                    PX4Comp->SimulationUpdate(FixedDeltaTime);
-                }
-            }
-            Drone->UpdateControl(FixedDeltaTime); // no toggling
-        }
-    }
+	// Update all drones with fixed timestep
+	for (TWeakObjectPtr<AQuadPawn> DronePtr : AllDrones)
+	{
+		if (AQuadPawn* Drone = DronePtr.Get())
+		{
+			// Make sure PX4Component updates are synchronized
+			if (UPX4Component* PX4Comp = Drone->FindComponentByClass<UPX4Component>())
+			{
+				if (PX4Comp->bIsActive())
+				{
+					PX4Comp->SimulationUpdate(FixedDeltaTime);
+				}
+			}
+            
+			// Then update control
+			Drone->bIsSimulationControlled = true;
+			Drone->UpdateControl(FixedDeltaTime);
+			Drone->bIsSimulationControlled = false;
+		}
+	}
 }
-
 
 void ADroneManager::ResetRobot_Implementation()
 {
