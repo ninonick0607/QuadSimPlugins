@@ -10,6 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Core/DroneJSONConfig.h"
 #include "Misc/ConfigCacheIni.h"
+// No soft object loading here; classes are set on BP_DroneManager
 
 void USimSettingsUI::TickAndDraw(UWorld* World, USimHUDTaskbarSubsystem* TaskbarSubsystem)
 {
@@ -43,6 +44,7 @@ void USimSettingsUI::ApplyStartupPreferences(UWorld* World, USimHUDTaskbarSubsys
     if (!World || !TaskbarSubsystem) return;
     // Load persisted toggles before applying
     LoadPersistent();
+    // Class selection is done in BP_DroneManager details; nothing to load here
 
     // Apply persistent panel states at startup
     if (bPersistentControlPanel)
@@ -77,6 +79,12 @@ void USimSettingsUI::ApplyStartupPreferences(UWorld* World, USimHUDTaskbarSubsys
                 }
             }
         }
+    }
+
+    // Apply obstacle spawning preference at startup
+    if (ADroneManager* DM = ADroneManager::Get(World))
+    {
+        DM->SetSpawnObstacles(bSpawnObstacles, /*bApplyImmediately*/ true);
     }
 }
 
@@ -132,6 +140,21 @@ void USimSettingsUI::DrawTogglablesTab(UWorld* World, USimHUDTaskbarSubsystem* T
     {
         TaskbarSubsystem->SetStateHUDVisible(bPersistentStateHUD);
     }
+
+    ImGui::Separator();
+    ImGui::Text("Spawning");
+    // Spawn Obstacles toggle (applies immediately)
+    bool prevSpawnOb = bSpawnObstacles;
+    ImGui::Checkbox("Spawn Obstacles", &bSpawnObstacles);
+    if (ImGui::IsItemDeactivatedAfterEdit())
+    {
+        SavePersistent();
+        if (ADroneManager* DM = ADroneManager::Get(World))
+        {
+            DM->SetSpawnObstacles(bSpawnObstacles, /*bApplyImmediately*/ true);
+        }
+    }
+    // Classes are selected in BP_DroneManager details; no class path UI here.
 }
 
 void USimSettingsUI::DrawConfigTab()
@@ -179,6 +202,10 @@ void USimSettingsUI::LoadPersistent()
     {
         bAutoSpawnPossessOnStart = v;
     }
+    if (GConfig->GetBool(Section, TEXT("SpawnObstacles"), v, GGameUserSettingsIni))
+    {
+        bSpawnObstacles = v;
+    }
 }
 
 void USimSettingsUI::SavePersistent()
@@ -187,5 +214,8 @@ void USimSettingsUI::SavePersistent()
     GConfig->SetBool(Section, TEXT("PersistentControlPanel"), bPersistentControlPanel, GGameUserSettingsIni);
     GConfig->SetBool(Section, TEXT("PersistentStateHUD"), bPersistentStateHUD, GGameUserSettingsIni);
     GConfig->SetBool(Section, TEXT("AutoSpawnPossessOnStart"), bAutoSpawnPossessOnStart, GGameUserSettingsIni);
+    GConfig->SetBool(Section, TEXT("SpawnObstacles"), bSpawnObstacles, GGameUserSettingsIni);
     GConfig->Flush(false, GGameUserSettingsIni);
 }
+
+// No class pref I/O; left intentionally empty

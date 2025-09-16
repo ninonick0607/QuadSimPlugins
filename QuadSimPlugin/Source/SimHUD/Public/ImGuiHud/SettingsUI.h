@@ -25,6 +25,7 @@ private:
     bool bPersistentControlPanel = false;
     bool bPersistentStateHUD = false;
     bool bAutoSpawnPossessOnStart = false;
+    bool bSpawnObstacles = true; // new toggle
 
     // Internal helper
     void DrawTogglablesTab(UWorld* World, class USimHUDTaskbarSubsystem* TaskbarSubsystem);
@@ -33,4 +34,7 @@ private:
     // Persistence helpers
     void LoadPersistent();
     void SavePersistent();
+
+    // Internal helpers for class I/O
+    // no class prefs; classes are set on BP_DroneManager via details panel
 };

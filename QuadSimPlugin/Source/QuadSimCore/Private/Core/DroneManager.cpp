@@ -59,6 +59,22 @@ void ADroneManager::BeginPlay()
             LastSpawnLocation = LastPawn->GetActorLocation();
         }
     }
+
+    // Optionally spawn the Obstacle Manager at startup if enabled
+    if (bSpawnObstacles && ObstacleManagerClass)
+    {
+        if (UWorld* World = GetWorld())
+        {
+            FActorSpawnParameters Params;
+            Params.Owner = this;
+            Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+            AActor* ObMgr = World->SpawnActor<AActor>(ObstacleManagerClass, GetActorLocation(), GetActorRotation(), Params);
+            if (ObMgr)
+            {
+                SpawnedObstacleManager = ObMgr;
+            }
+        }
+    }
 }
 
 void ADroneManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -173,6 +189,81 @@ TArray<AQuadPawn*> ADroneManager::GetDroneList() const
         }
     }
     return DroneList;
+}
+
+void ADroneManager::SetQuadPawnClass(TSubclassOf<AQuadPawn> InClass, bool bRespawn)
+{
+    QuadPawnClass = InClass;
+
+    if (!bRespawn)
+    {
+        return;
+    }
+
+    // Respawn is optional; not implemented here because manager doesn't own a single pawn.
+    // If needed, caller should destroy/recreate drones via their own flow.
+}
+
+void ADroneManager::SetObstacleManagerClass(TSubclassOf<AActor> InClass, bool bRespawn)
+{
+    ObstacleManagerClass = InClass;
+
+    if (!bRespawn)
+    {
+        return;
+    }
+
+    if (!GetWorld())
+    {
+        return;
+    }
+
+    if (SpawnedObstacleManager.IsValid())
+    {
+        if (AActor* Ob = SpawnedObstacleManager.Get())
+        {
+            Ob->Destroy();
+        }
+        SpawnedObstacleManager.Reset();
+    }
+
+    if (bSpawnObstacles && ObstacleManagerClass)
+    {
+        FActorSpawnParameters Params;
+        Params.Owner = this;
+        Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+        SpawnedObstacleManager = GetWorld()->SpawnActor<AActor>(ObstacleManagerClass, GetActorLocation(), GetActorRotation(), Params);
+    }
+}
+
+void ADroneManager::SetSpawnObstacles(bool bEnabled, bool bApplyImmediately)
+{
+    bSpawnObstacles = bEnabled;
+
+    if (!bApplyImmediately || !GetWorld())
+    {
+        return;
+    }
+
+    // Turning off: destroy if exists
+    if (!bSpawnObstacles)
+    {
+        if (AActor* Ob = SpawnedObstacleManager.Get())
+        {
+            Ob->Destroy();
+        }
+        SpawnedObstacleManager.Reset();
+        return;
+    }
+
+    // Turning on: spawn if not present
+    if (!SpawnedObstacleManager.IsValid() && ObstacleManagerClass)
+    {
+        FActorSpawnParameters Params;
+        Params.Owner = this;
+        Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+        SpawnedObstacleManager = GetWorld()->SpawnActor<AActor>(ObstacleManagerClass, GetActorLocation(), GetActorRotation(), Params);
+    }
 }
 
 void ADroneManager::SimulationUpdate_Implementation(float FixedDeltaTime)

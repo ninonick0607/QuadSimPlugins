@@ -531,6 +531,10 @@ void UQuadDroneController::SetFlightMode(EFlightMode NewMode)
 	float Altitude = dronePawn->SensorManager->Barometer->GetEstimatedAltitude()*100;
 	const FVector  currPos = {GPSData.X, GPSData.Y, Altitude};     
     currentFlightMode = NewMode;
+
+    // Enable direct gamepad control path for joystick-driven modes
+    bGamepadModeUI = (NewMode == EFlightMode::JoyStickAngleControl ||
+                      NewMode == EFlightMode::JoyStickAcroControl);
     // On selecting AutoWaypoint, generate and load the figure-8 navigation plan
     if (NewMode == EFlightMode::AutoWaypoint && dronePawn)
     {
