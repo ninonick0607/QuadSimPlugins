@@ -217,6 +217,7 @@ private:
     void ParseMAVLinkData(const uint8* Data, int32 DataLength);
     void SendHILStateQuaternion();
     void SendHILSensor();
+    void SendHILSensorSecondary();
     void SendHILGPS();
     void SendHILRCInputs();
 

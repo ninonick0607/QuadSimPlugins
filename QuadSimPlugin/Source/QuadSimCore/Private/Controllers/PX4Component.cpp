@@ -778,6 +778,7 @@ void UPX4Component::ThreadSimulationStep()
 
 	// Send High-Frequency Data (250Hz)
 	SendHILSensor();
+	SendHILSensorSecondary(); // Send secondary barometer data to prevent PX4 switching
 	SendHILStateQuaternion();
 
 	// Send GPS and RC inputs at 50Hz (every 5 steps)
@@ -918,10 +919,11 @@ void UPX4Component::SendHILSensor()
 	hil_sensor.ymag = CurrentMagData.Y;
 	hil_sensor.zmag = CurrentMagData.Z;
 	
-	hil_sensor.abs_pressure = CurrentPressure/ 100.0f; // Convert Pa to mbar
+	// Barometer data - ensure values are valid and non-zero
+	hil_sensor.abs_pressure = FMath::Max(CurrentPressure / 100.0f, 850.0f); // Convert Pa to mbar, min 850mbar
 	hil_sensor.diff_pressure = 0.0f; // No airspeed sensor
 	hil_sensor.pressure_alt = CurrentAltitude;
-	hil_sensor.temperature = CurrentTemperature;
+	hil_sensor.temperature = FMath::Max(CurrentTemperature, -40.0f); // Minimum temperature
     
     // CRITICAL: Set ALL required fields
     hil_sensor.fields_updated = 
@@ -971,6 +973,48 @@ void UPX4Component::SendHILSensor()
 	SendMAVLinkMessage(buffer, len);
 }
 
+void UPX4Component::SendHILSensorSecondary()
+{
+    mavlink_message_t msg;
+    mavlink_hil_sensor_t hil_sensor;
+
+    // Zero out the entire structure
+    memset(&hil_sensor, 0, sizeof(hil_sensor));
+
+    // Timestamp in microseconds since sim start
+    uint64_t timestamp_us = GetSynchronizedTimestamp();
+    hil_sensor.time_usec = timestamp_us;
+
+	AQuadPawn* QuadPawn = Cast<AQuadPawn>(GetOwner());
+	if (!QuadPawn || !QuadPawn->SensorManager)
+	{
+		return; // Skip if no data
+	}
+
+	// Secondary barometer data (slight offset for redundancy)
+	hil_sensor.abs_pressure = FMath::Max((CurrentPressure + 1.0f) / 100.0f, 850.0f); // +1Pa offset, convert to mbar
+	hil_sensor.diff_pressure = 0.0f;
+	hil_sensor.pressure_alt = CurrentAltitude + 0.01f; // Small altitude offset
+	hil_sensor.temperature = FMath::Max(CurrentTemperature + 0.1f, -40.0f); // +0.1°C offset
+
+    // Set only barometer fields for secondary sensor
+    hil_sensor.fields_updated =
+        (1 << 9) |  // abs_pressure
+        (1 << 10) | // diff_pressure
+        (1 << 11) | // pressure_alt
+        (1 << 12);  // temperature
+
+    hil_sensor.id = 1; // Secondary sensor instance ID
+
+    // Encode the message
+	uint16 msg_len = mavlink_msg_hil_sensor_encode(SystemID, ComponentID, &msg, &hil_sensor);
+
+    // Create buffer and serialize
+    uint8 buffer[MAVLINK_MAX_PACKET_LEN];
+    uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
+
+	SendMAVLinkMessage(buffer, len);
+}
 
 void UPX4Component::SendHILGPS()
 {

@@ -132,24 +132,24 @@ void USensorManagerComponent::UpdateAllSensors(float DeltaTime, bool bAddNoise)
 	{
 		const float MagPeriod = 1.0f / 100.0f; // 0.01 seconds (10ms)
 		float RemainingTime = DeltaTime;
-        
+
 		while (RemainingTime > 0.0f)
 		{
 			float StepTime = FMath::Min(RemainingTime, MagPeriod);
 			Magnetometer->UpdateSensor(StepTime, bAddNoise);
-			RemainingTime -= MagPeriod;
+			RemainingTime -= StepTime;
 		}
 	}
 	if (Barometer)
 	{
 		const float BaroPeriod = 1.0f / 20.0f; // 0.05 seconds (50ms)
 		float RemainingTime = DeltaTime;
-        
+
 		while (RemainingTime > 0.0f)
 		{
 			float StepTime = FMath::Min(RemainingTime, BaroPeriod);
 			Barometer->UpdateSensor(StepTime, bAddNoise);
-			RemainingTime -= BaroPeriod;
+			RemainingTime -= StepTime;
 		}
 	}
 }
