@@ -128,7 +128,24 @@ public:
     static FVector UnrealAngularVelocityToENU(const FVector& UnrealAngVel);
 
     // ==================== FRAME TRANSFORMS ====================
-    
+
+    /**
+     * Transform accelerometer data from Unreal body frame (FLU) to PX4 body frame (FRD)
+     * This is critical for PX4 integration - gravity must appear as negative Z in FRD frame
+     * @param UnrealBodyAccel Acceleration in Unreal body frame (FLU, m/s²)
+     * @return Acceleration in PX4 body frame (FRD, m/s²)
+     */
+    UFUNCTION(BlueprintPure, Category = "Coordinate Transform")
+    static FVector UnrealBodyAccelToFRD(const FVector& UnrealBodyAccel);
+
+    /**
+     * Transform angular velocity from Unreal body frame (FLU) to PX4 body frame (FRD)
+     * @param UnrealBodyAngVel Angular velocity in Unreal body frame (FLU, deg/s)
+     * @return Angular velocity in PX4 body frame (FRD, rad/s)
+     */
+    UFUNCTION(BlueprintPure, Category = "Coordinate Transform")
+    static FVector UnrealBodyAngVelToFRD(const FVector& UnrealBodyAngVel);
+
     /**
      * Transform vector from world frame to body frame
      * @param WorldVector Vector in world frame

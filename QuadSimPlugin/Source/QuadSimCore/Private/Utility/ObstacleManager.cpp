@@ -318,7 +318,8 @@ void AObstacleManager::MoveDroneToOppositeOfGoal(EGoalPosition GoalPos) {
             break;
     }
     
-    DroneLocation.Z = ObstacleSpawnHeight; // Set proper height
+    // Keep drone at ground level instead of obstacle height
+    DroneLocation.Z = CenterPoint.Z; // Use the same Z as the ObstacleManager center point
     
     // Additional logging for debugging
     UE_LOG(LogTemp, Display, TEXT("Moving drone to %s based on opposite position %d"), 

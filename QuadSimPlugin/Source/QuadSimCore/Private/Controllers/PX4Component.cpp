@@ -8,8 +8,6 @@
 #include "Sensors/MagSensor.h"
 #include "Common/UdpSocketBuilder.h"
 #include "HAL/PlatformProcess.h"
-#include "GeoReferencingSystem.h"
-#include "GeographicCoordinates.h"
 
 // MAVLink includes - use the correct path structure
 #pragma warning(push)
@@ -58,18 +56,24 @@ uint32 FPX4CommunicationThread::Run()
 	double LastTime = FPlatformTime::Seconds();
 	const double TargetInterval = 1.0 / static_cast<double>(TARGET_FREQUENCY_HZ); // 4ms
 
+	// CRITICAL DEBUG: Track thread performance
+	static int32 ThreadCycleCount = 0;
+	static int32 MissedCycles = 0;
+	static double TotalRunTime = 0.0;
+
 	while (!bStopRequested)
 	{
 		double StartTime = FPlatformTime::Seconds();
+		ThreadCycleCount++;
 
 		if (PX4Component && PX4Component->IsConnectedToPX4())
 		{
 			// Update the drone's state from the main game thread
-			PX4Component->UpdateCurrentState();
+			PX4Component->UpdateThreadSafeState();
 
 			// Handle the simulation step (sends HIL data, heartbeats, etc.)
 			PX4Component->ThreadSimulationStep();
-            
+
 			// Process any data received from PX4
 			PX4Component->ProcessIncomingMAVLinkData();
 		}
@@ -77,6 +81,7 @@ uint32 FPX4CommunicationThread::Run()
 		// Precise sleep to maintain the target frequency (e.g., 250Hz)
 		double ElapsedTime = FPlatformTime::Seconds() - StartTime;
 		double SleepTime = TargetInterval - ElapsedTime;
+		TotalRunTime += ElapsedTime;
 
 		if (SleepTime > 0)
 		{
@@ -84,8 +89,18 @@ uint32 FPX4CommunicationThread::Run()
 		}
 		else if (PX4Component && PX4Component->IsConnectedToPX4())
 		{
-			// Log if we are falling behind schedule
-			UE_LOG(LogPX4, Warning, TEXT("Communication thread fell behind schedule by %.2f ms"), -SleepTime * 1000.0);
+			// Count missed cycles for debugging
+			MissedCycles++;
+			UE_LOG(LogPX4, Warning, TEXT("Communication thread fell behind schedule by %.2f ms (total missed: %d)"),
+				   -SleepTime * 1000.0, MissedCycles);
+		}
+
+		// Log thread performance every 10 seconds
+		if (ThreadCycleCount % (TARGET_FREQUENCY_HZ * 10) == 0)
+		{
+			double AvgRunTime = TotalRunTime / ThreadCycleCount * 1000.0; // ms
+			UE_LOG(LogPX4, Warning, TEXT("Thread performance: %d cycles, %.2fms avg, %d missed"),
+				   ThreadCycleCount, AvgRunTime, MissedCycles);
 		}
 	}
 
@@ -214,34 +229,15 @@ void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 	if (bConnectedToPX4 && QuadController)
 	{
 		FMotorCommand Command;
-		int32 ProcessedCount = 0;
 		while (PendingMotorCommands.Dequeue(Command))
 		{
 			// Now we're safely on the game thread
 			QuadController->ApplyMotorCommands(Command.Commands);
-			ProcessedCount++;
-			
-			// Log the actual motor commands being applied
-			if (ProcessedCount == 1) // Log first command in batch
+			if (!PendingMotorCommands.IsEmpty())
 			{
-				UE_LOG(LogPX4, Warning, TEXT("Applying motor commands to QuadController: [%.3f, %.3f, %.3f, %.3f]"),
-					   Command.Commands[0], Command.Commands[1], Command.Commands[2], Command.Commands[3]);
+				UE_LOG(LogPX4, Warning, TEXT("Motor command queue depth: %d"), 
+					   PendingMotorCommands.IsEmpty() ? 0 : 1);
 			}
-		}
-		
-		if (ProcessedCount > 0)
-		{
-			UE_LOG(LogPX4, VeryVerbose, TEXT("Processed %d motor commands this tick"), ProcessedCount);
-		}
-	}
-	else
-	{
-		// Debug why we're not processing
-		static int32 DebugCounter = 0;
-		if (++DebugCounter % 100 == 0) // Every 100 ticks
-		{
-			UE_LOG(LogPX4, Warning, TEXT("Not processing motor commands: bConnectedToPX4=%d, QuadController=%s"),
-				   bConnectedToPX4 ? 1 : 0, QuadController ? TEXT("Valid") : TEXT("NULL"));
 		}
 	}
 }
@@ -249,8 +245,51 @@ void UPX4Component::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 // In PX4Component.cpp - SimulationUpdate
 void UPX4Component::SimulationUpdate(float FixedDeltaTime)
 {
-	// Remove lockstep mode - all updates now handled by communication thread at 250Hz
-	// This prevents double-sending of data and timing conflicts
+	if (!bTCPConnected || !bUseLockstep) return;
+    
+	// Update state from drone
+	UpdateCurrentState();
+    
+	// Calculate how many sensor updates we need to send
+	const float SensorUpdateInterval = 0.004f; // 250Hz = 4ms
+	int32 UpdatesNeeded = FMath::RoundToInt(FixedDeltaTime / SensorUpdateInterval);
+	UpdatesNeeded = FMath::Max(1, UpdatesNeeded);
+    
+	for (int32 i = 0; i < UpdatesNeeded; i++)
+	{
+		// Increment counter for each sensor update
+		SimulationStepCounter++;
+		LockstepCounter++; // Each step advances lockstep counter
+        
+		// Send sensor data
+		SendHILSensor();
+		SendHILStateQuaternion();
+        
+		// Send GPS and RC at lower rates
+		if (SimulationStepCounter % 5 == 0) // 50Hz
+		{
+			SendHILGPS();
+			SendHILRCInputs();
+		}
+	}
+    
+	// Send heartbeat occasionally
+	static float HeartbeatAccumulator = 0.0f;
+	HeartbeatAccumulator += FixedDeltaTime;
+	if (HeartbeatAccumulator >= 0.5f) // 2Hz
+	{
+		SendHeartbeat();
+		HeartbeatAccumulator = 0.0f;
+	}
+
+	// Send position setpoints for offboard mode (required to maintain offboard mode)
+	static float SetpointAccumulator = 0.0f;
+	SetpointAccumulator += FixedDeltaTime;
+	if (SetpointAccumulator >= 0.1f) // 10Hz position setpoints
+	{
+		SendPositionSetpoint();
+		SetpointAccumulator = 0.0f;
+	}
 }
 
 void UPX4Component::SetPX4Active(bool bActive)
@@ -295,12 +334,16 @@ void UPX4Component::ConnectToPX4()
         UE_LOG(LogPX4, Warning, TEXT("Start PX4 with: make px4_sitl none_iris"));
     }
 
+	if (bUseLockstep)
+	{
+		UE_LOG(LogPX4, Warning, TEXT("Using LOCKSTEP mode - PX4 will sync with Unreal frame rate"));
+	}
     if (!CommunicationThread)
     {
         CommunicationThread = new FPX4CommunicationThread(this);
         CommunicationThread->StartThread();
         UE_LOG(LogPX4, Warning, TEXT("Started PX4 communication thread:"));
-        UE_LOG(LogPX4, Warning, TEXT("  - Mode: REALTIME (250Hz)"));
+        UE_LOG(LogPX4, Warning, TEXT("  - Mode: %s"), bUseLockstep ? TEXT("LOCKSTEP") : TEXT("REALTIME"));
         UE_LOG(LogPX4, Warning, TEXT("  - Frequency: 250Hz (4ms interval)"));
         UE_LOG(LogPX4, Warning, TEXT("  - Priority: TimeCritical"));
         UE_LOG(LogPX4, Warning, TEXT("  - Frame-independent: YES"));
@@ -333,6 +376,54 @@ bool UPX4Component::IsConnectedToPX4() const
     return bConnectedToPX4 && bTCPConnected;
 }
 
+void UPX4Component::UpdateThreadSafeState()
+{
+	UpdateCurrentState();
+}
+
+void UPX4Component::SendHILDataFromThread()
+{
+	// In lockstep mode, this is handled by ThreadSimulationStep
+	if (bUseLockstep)
+	{
+		return;
+	}
+	
+	FScopeLock Lock(&StateMutex);
+    
+	if (!bThreadSafeDataValid) 
+	{
+		CurrentPosition = FVector::ZeroVector;
+		CurrentVelocity = FVector::ZeroVector;
+		CurrentRotation = FRotator::ZeroRotator;
+		CurrentAngularVelocity = FVector::ZeroVector;
+	}
+	else
+	{
+		CurrentPosition		   = ThreadSafePosition;
+		CurrentVelocity		   = ThreadSafeVelocity;
+		CurrentRotation		   = ThreadSafeRotation;
+		CurrentAngularVelocity = ThreadSafeAngularVelocity;
+	}
+    
+	// Send sensor data EVERY cycle at 250Hz
+	SendHILSensor();
+	SendHILStateQuaternion();
+    
+	// Send GPS at 50Hz (every 5 cycles instead of 10)
+	static int32 GPSCounter = 0;
+	if (++GPSCounter % 5 == 0)  // Was % 10
+	{
+		SendHILGPS();
+	}
+    
+	// Send RC at 50Hz
+	static int32 RCCounter = 0;
+	if (++RCCounter % 5 == 0)  // Was % 10
+	{
+		SendHILRCInputs();
+	}
+}
 
 void UPX4Component::SetupTCPServer()
 {
@@ -415,12 +506,11 @@ void UPX4Component::AcceptTCPConnection()
             UE_LOG(LogPX4, Warning, TEXT("TCP connection established with NoDelay=true"));
             UE_LOG(LogPX4, Warning, TEXT("TCP buffers: Send=%d, Recv=%d"), ActualSendSize, ActualRecvSize);
             
-            // Mark as connected immediately in realtime mode
-            bConnectedToPX4 = true;
-            UE_LOG(LogPX4, Warning, TEXT("Realtime mode - starting sensor data transmission immediately at 250Hz"));
-
-            // Prepare UDP endpoints for PX4 if requested
-            SetupUDPSockets();
+            if (bUseLockstep)
+            {
+                bConnectedToPX4 = true;
+                UE_LOG(LogPX4, Warning, TEXT("Lockstep mode - starting sensor data transmission immediately"));
+            }
             
             // Close the listen socket
             if (TCPListenSocket)
@@ -545,10 +635,10 @@ void UPX4Component::CleanupSockets()
 
 void UPX4Component::SendMAVLinkMessage(const uint8* MessageBuffer, uint16 MessageLength)
 {
-    bool bAnySent = false;
-    if (TCPClientSocket && bTCPConnected)
+    if (!TCPClientSocket || !bTCPConnected)
     {
-        // existing TCP non-blocking send (unchanged)
+        return;
+    }
     
     // CRITICAL FIX: Don't cast the buffer as mavlink_message_t!
     // The buffer contains the serialized message, not the struct
@@ -623,17 +713,6 @@ void UPX4Component::SendMAVLinkMessage(const uint8* MessageBuffer, uint16 Messag
 		UE_LOG(LogPX4, Warning, TEXT("Successfully sent %d bytes for msg ID=%d"), 
 			   TotalBytesSent, msgid);
 	}
-
-        bAnySent = (TotalBytesSent > 0);
-    }
-
-    // Also send over UDP if configured; some PX4 stacks prefer HIL over UDP
-    if (UDPSendSocket && PX4UDPAddress.IsValid())
-    {
-        int32 BytesSentUDP = 0;
-        UDPSendSocket->SendTo(MessageBuffer, MessageLength, BytesSentUDP, *PX4UDPAddress);
-        bAnySent = bAnySent || (BytesSentUDP > 0);
-    }
 }
 
 // Switch to non-blocking recv with immediate data sending:
@@ -725,15 +804,22 @@ void UPX4Component::ParseMAVLinkData(const uint8* Data, int32 DataLength)
                         float Frequency = IntervalUs > 0 ? 1000000.0f / IntervalUs : 0.0f;
                         UE_LOG(LogPX4, Warning, TEXT("PX4 requested message ID %d at %f Hz"), MessageID, Frequency);
                         
-                        // Send ACK
+                        // Send ACK with proper target information
                         mavlink_message_t ack_msg;
                         mavlink_command_ack_t ack;
                         ack.command = cmd.command;
                         ack.result = MAV_RESULT_ACCEPTED;
+                        ack.target_system = msg.sysid; // ACK back to sender
+                        ack.target_component = msg.compid; // ACK back to sender component
+
                         mavlink_msg_command_ack_encode(SystemID, ComponentID, &ack_msg, &ack);
-                        
+
                         uint8 buffer[MAVLINK_MAX_PACKET_LEN];
                         uint16 len = mavlink_msg_to_send_buffer(buffer, &ack_msg);
+
+                        UE_LOG(LogPX4, Warning, TEXT("Sending COMMAND_ACK for cmd=%d to sys=%d comp=%d"),
+                               ack.command, ack.target_system, ack.target_component);
+
                         SendMAVLinkMessage(buffer, len);
                     }
                 }
@@ -752,75 +838,216 @@ void UPX4Component::ParseMAVLinkData(const uint8* Data, int32 DataLength)
 	
 }
 
-void UPX4Component::ThreadSimulationStep()
-{
-	// This function is called from the communications thread's 250Hz loop.
-	// It is responsible for sending all periodic HIL data.
-
-	FScopeLock Lock(&StateMutex);
-	if (!bThreadSafeDataValid) return; // Don't send if we don't have fresh data
-
-	// Update local state from the thread-safe copies (including all sensor data)
-	CurrentPosition = ThreadSafePosition;
-	CurrentVelocity = ThreadSafeVelocity;
-	CurrentRotation = ThreadSafeRotation;
-	CurrentAngularVelocity = ThreadSafeAngularVelocity;
-	CurrentGeoCoords = ThreadSafeGeoCoords;
-	CurrentMagData = ThreadSafeMagData;
-	CurrentAccelData = ThreadSafeAccelData;
-	CurrentPressure = ThreadSafePressureData;
-	CurrentTemperature = ThreadSafeTemperatureData;
-	CurrentAltitude = ThreadSafeAltitudeData;
-    
-	// Increment timestamp counter for proper timing
-	LockstepCounter++; 
-	SimulationStepCounter++;
-
-	// Send High-Frequency Data (250Hz)
-	SendHILSensor();
-	SendHILSensorSecondary(); // Send secondary barometer data to prevent PX4 switching
-	SendHILStateQuaternion();
-
-	// Send GPS and RC inputs at 50Hz (every 5 steps)
-	if (SimulationStepCounter % 5 == 0) 
-	{
-		SendHILGPS();
-		SendHILRCInputs();
-	}
-    
-	// Send heartbeat at 2Hz (every 125 steps)
-	if (SimulationStepCounter % 125 == 0)
-	{
-		SendHeartbeat();
-	}
-}
-
 void UPX4Component::SendHeartbeat()
 {
 	mavlink_message_t msg;
 	mavlink_heartbeat_t heartbeat;
 
-	// heartbeat.type = MAV_TYPE_QUADROTOR;  // or MAV_TYPE_GCS for ground station
-	// heartbeat.autopilot = MAV_AUTOPILOT_PX4;
-	// heartbeat.base_mode = MAV_MODE_FLAG_HIL_ENABLED | 
-	// 					 MAV_MODE_FLAG_SAFETY_ARMED |
-	// 					 MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
-	heartbeat.type = MAV_TYPE_ONBOARD_CONTROLLER;
-	heartbeat.autopilot = MAV_AUTOPILOT_GENERIC;
-	heartbeat.base_mode = MAV_MODE_FLAG_HIL_ENABLED; // simulator present
+	heartbeat.type = MAV_TYPE_GCS; // Ground Control Station
+	heartbeat.autopilot = MAV_AUTOPILOT_INVALID;
+	heartbeat.base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED |
+						 MAV_MODE_FLAG_HIL_ENABLED |
+						 MAV_MODE_FLAG_SAFETY_ARMED |
+						 MAV_MODE_FLAG_TEST_ENABLED;
 	heartbeat.custom_mode = 0;
 	heartbeat.system_status = MAV_STATE_ACTIVE;
 	heartbeat.mavlink_version = 3; // MAVLink 2.0
-    
+
 	mavlink_msg_heartbeat_encode(SystemID, ComponentID, &msg, &heartbeat);
-    
+
 	uint8 buffer[MAVLINK_MAX_PACKET_LEN];
 	uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
-    
-	UE_LOG(LogPX4, Warning, TEXT("Sending heartbeat: type=%d, base_mode=0x%X, len=%d"), 
-		   heartbeat.type, heartbeat.base_mode, len);
-    
+
+	static int32 HeartbeatCount = 0;
+	if (++HeartbeatCount % 10 == 1) // Log every 10th heartbeat (every 5 seconds)
+	{
+		UE_LOG(LogPX4, Warning, TEXT("Sending heartbeat #%d: type=%d, base_mode=0x%X"),
+			   HeartbeatCount, heartbeat.type, heartbeat.base_mode);
+	}
+
 	SendMAVLinkMessage(buffer, len);
+
+	// Staged initialization sequence for PX4
+	if (HeartbeatCount == 5) // After ~2.5 seconds
+	{
+		SendGPSOriginCommand();
+	}
+	else if (HeartbeatCount == 10) // After ~5 seconds
+	{
+		SendAttitudeResetCommand();
+	}
+	else if (HeartbeatCount == 15) // After ~7.5 seconds
+	{
+		SendEKF2ResetCommand();
+	}
+	else if (HeartbeatCount == 25) // After ~12.5 seconds
+	{
+		SendOffboardModeCommand();
+	}
+}
+
+void UPX4Component::SendOffboardModeCommand()
+{
+	UE_LOG(LogPX4, Warning, TEXT("Attempting to enable OFFBOARD mode for autonomous flight"));
+
+	// Send command to set mode to OFFBOARD
+	mavlink_message_t msg;
+	mavlink_command_long_t cmd;
+
+	cmd.target_system = TargetSystem;
+	cmd.target_component = TargetComponent;
+	cmd.command = MAV_CMD_DO_SET_MODE;
+	cmd.confirmation = 0;
+	cmd.param1 = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | MAV_MODE_FLAG_SAFETY_ARMED; // base mode
+	cmd.param2 = 6; // PX4_CUSTOM_MAIN_MODE_OFFBOARD
+	cmd.param3 = 0; // sub mode
+	cmd.param4 = 0;
+	cmd.param5 = 0;
+	cmd.param6 = 0;
+	cmd.param7 = 0;
+
+	mavlink_msg_command_long_encode(SystemID, ComponentID, &msg, &cmd);
+
+	uint8 buffer[MAVLINK_MAX_PACKET_LEN];
+	uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
+
+	SendMAVLinkMessage(buffer, len);
+
+	UE_LOG(LogPX4, Warning, TEXT("Sent OFFBOARD mode command to PX4"));
+}
+
+void UPX4Component::SendGPSOriginCommand()
+{
+	UE_LOG(LogPX4, Warning, TEXT("Setting GPS origin/home position for PX4"));
+
+	// Send GPS global origin message
+	mavlink_message_t msg;
+	mavlink_set_gps_global_origin_t origin;
+
+	origin.target_system = TargetSystem;
+	origin.latitude = (int32_t)(47.6174755 * 1e7); // Seattle coordinates
+	origin.longitude = (int32_t)(-122.3137982 * 1e7);
+	origin.altitude = 100000; // 100m in mm
+	origin.time_usec = LockstepCounter * 4000;
+
+	mavlink_msg_set_gps_global_origin_encode(SystemID, ComponentID, &msg, &origin);
+
+	uint8 buffer[MAVLINK_MAX_PACKET_LEN];
+	uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
+
+	SendMAVLinkMessage(buffer, len);
+	UE_LOG(LogPX4, Warning, TEXT("Sent GPS origin: Lat=%.6f, Lon=%.6f, Alt=100m"),
+		   47.6174755, -122.3137982);
+}
+
+void UPX4Component::SendAttitudeResetCommand()
+{
+	UE_LOG(LogPX4, Warning, TEXT("Sending attitude estimator reset command"));
+
+	mavlink_message_t msg;
+	mavlink_command_long_t cmd;
+
+	cmd.target_system = TargetSystem;
+	cmd.target_component = TargetComponent;
+	cmd.command = MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN;
+	cmd.confirmation = 0;
+	cmd.param1 = 0; // No autopilot reboot
+	cmd.param2 = 0; // No companion computer reboot
+	cmd.param3 = 0; // No camera reboot
+	cmd.param4 = 2; // Reset attitude estimation only
+	cmd.param5 = 0;
+	cmd.param6 = 0;
+	cmd.param7 = 0;
+
+	mavlink_msg_command_long_encode(SystemID, ComponentID, &msg, &cmd);
+
+	uint8 buffer[MAVLINK_MAX_PACKET_LEN];
+	uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
+
+	SendMAVLinkMessage(buffer, len);
+}
+
+void UPX4Component::SendEKF2ResetCommand()
+{
+	UE_LOG(LogPX4, Warning, TEXT("Sending EKF2 reset command"));
+
+	mavlink_message_t msg;
+	mavlink_command_long_t cmd;
+
+	cmd.target_system = TargetSystem;
+	cmd.target_component = TargetComponent;
+	cmd.command = MAV_CMD_PREFLIGHT_CALIBRATION;
+	cmd.confirmation = 0;
+	cmd.param1 = 0; // No gyro calibration
+	cmd.param2 = 0; // No mag calibration
+	cmd.param3 = 0; // No ground pressure calibration
+	cmd.param4 = 0; // No radio calibration
+	cmd.param5 = 2; // Reset attitude estimation
+	cmd.param6 = 0; // No acceleration calibration
+	cmd.param7 = 0; // No airspeed calibration
+
+	mavlink_msg_command_long_encode(SystemID, ComponentID, &msg, &cmd);
+
+	uint8 buffer[MAVLINK_MAX_PACKET_LEN];
+	uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
+
+	SendMAVLinkMessage(buffer, len);
+}
+
+void UPX4Component::SendPositionSetpoint()
+{
+	// Send position setpoint to maintain offboard mode
+	// This tells PX4 to hold position at current location
+	mavlink_message_t msg;
+	mavlink_set_position_target_local_ned_t setpoint;
+
+	setpoint.time_boot_ms = LockstepCounter * 4; // Convert to milliseconds
+	setpoint.target_system = TargetSystem;
+	setpoint.target_component = TargetComponent;
+	setpoint.coordinate_frame = MAV_FRAME_LOCAL_NED;
+
+	// Position hold at current position (in NED frame)
+	setpoint.x = CurrentPosition.X;
+	setpoint.y = CurrentPosition.Y;
+	setpoint.z = CurrentPosition.Z - 1.0f; // Hover 1 meter above ground
+
+	// Zero velocity (position hold)
+	setpoint.vx = 0.0f;
+	setpoint.vy = 0.0f;
+	setpoint.vz = 0.0f;
+
+	// Zero acceleration
+	setpoint.afx = 0.0f;
+	setpoint.afy = 0.0f;
+	setpoint.afz = 0.0f;
+
+	// Zero yaw rate, maintain current yaw
+	setpoint.yaw = FMath::DegreesToRadians(CurrentRotation.Yaw);
+	setpoint.yaw_rate = 0.0f;
+
+	// Use position and yaw control
+	setpoint.type_mask =
+		POSITION_TARGET_TYPEMASK_VX_IGNORE |
+		POSITION_TARGET_TYPEMASK_VY_IGNORE |
+		POSITION_TARGET_TYPEMASK_VZ_IGNORE |
+		POSITION_TARGET_TYPEMASK_AX_IGNORE |
+		POSITION_TARGET_TYPEMASK_AY_IGNORE |
+		POSITION_TARGET_TYPEMASK_AZ_IGNORE |
+		POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE;
+
+	mavlink_msg_set_position_target_local_ned_encode(SystemID, ComponentID, &msg, &setpoint);
+
+	uint8 buffer[MAVLINK_MAX_PACKET_LEN];
+	uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
+
+	SendMAVLinkMessage(buffer, len);
+
+	static int32 SetpointCount = 0;
+	if (++SetpointCount % 100 == 1) // Log every 100th setpoint (every 10 seconds)
+	{
+		UE_LOG(LogPX4, Log, TEXT("Sent position setpoint #%d: [%.2f, %.2f, %.2f] yaw=%.1f°"),
+			   SetpointCount, setpoint.x, setpoint.y, setpoint.z, FMath::RadiansToDegrees(setpoint.yaw));
+	}
 }
 
 
@@ -831,13 +1058,46 @@ void UPX4Component::SendHILStateQuaternion()
     
     memset(&hil_state, 0, sizeof(hil_state));
     
-    // Monotonic timestamp in microseconds since sim start
-    uint64_t timestamp_us = GetSynchronizedTimestamp();
+    // Use same timestamp as HIL_SENSOR for consistency
+    uint64_t timestamp_us = LockstepCounter * 4000;
     hil_state.time_usec = timestamp_us;
     
-    // Quaternion in NED body frame (CurrentRotation is already NED from UpdateCurrentState)
+    // Convert quaternion (CurrentRotation is already in NED from UpdateCurrentState)
 	FQuat NEDQuat = FQuat(CurrentRotation);
-    
+
+    // CRITICAL DEBUG: Disable forced identity quaternion now that we have proper init
+    static bool bForceIdentityQuat = false;
+    if (bForceIdentityQuat)
+    {
+        UE_LOG(LogPX4, Error, TEXT("ORIGINAL quaternion: W=%.3f, X=%.3f, Y=%.3f, Z=%.3f"),
+               NEDQuat.W, NEDQuat.X, NEDQuat.Y, NEDQuat.Z);
+        NEDQuat = FQuat::Identity; // Force identity quaternion (level attitude)
+        UE_LOG(LogPX4, Error, TEXT("FORCING IDENTITY quaternion: W=%.3f, X=%.3f, Y=%.3f, Z=%.3f"),
+               NEDQuat.W, NEDQuat.X, NEDQuat.Y, NEDQuat.Z);
+    }
+    else
+    {
+        // Normal quaternion validation (disabled for now)
+        if (FMath::IsNaN(NEDQuat.W) || FMath::IsNaN(NEDQuat.X) ||
+            FMath::IsNaN(NEDQuat.Y) || FMath::IsNaN(NEDQuat.Z))
+        {
+            UE_LOG(LogPX4, Warning, TEXT("Invalid quaternion detected, using identity"));
+            NEDQuat = FQuat::Identity; // Identity quaternion (no rotation)
+        }
+        else
+        {
+            // Ensure quaternion is normalized
+            NEDQuat.Normalize();
+
+            // Check if normalization was successful
+            if (!NEDQuat.IsNormalized())
+            {
+                UE_LOG(LogPX4, Warning, TEXT("Failed to normalize quaternion, using identity"));
+                NEDQuat = FQuat::Identity;
+            }
+        }
+    }
+
 	// Fill quaternion array
 	hil_state.attitude_quaternion[0] = NEDQuat.W;  // w
 	hil_state.attitude_quaternion[1] = NEDQuat.X;  // x
@@ -854,16 +1114,15 @@ void UPX4Component::SendHILStateQuaternion()
 	hil_state.lon = (int32_t)(CurrentGeoCoords.Y * 1e7);
 	hil_state.alt = (int32_t)(CurrentGeoCoords.Z * 1000); // mm
 	
-	// Velocities as cm/s (MAVLink int16 convention)
-	hil_state.vx = (int16_t)FMath::Clamp((int32)FMath::RoundToInt(CurrentVelocity.X * 100.0f), INT16_MIN, INT16_MAX);
-	hil_state.vy = (int16_t)FMath::Clamp((int32)FMath::RoundToInt(CurrentVelocity.Y * 100.0f), INT16_MIN, INT16_MAX);
-	hil_state.vz = (int16_t)FMath::Clamp((int32)FMath::RoundToInt(CurrentVelocity.Z * 100.0f), INT16_MIN, INT16_MAX);
+    // Velocities in m/s
+	hil_state.vx = (int16_t)(CurrentVelocity.X);
+	hil_state.vy = (int16_t)(CurrentVelocity.Y);
+	hil_state.vz = (int16_t)(CurrentVelocity.Z);
     
     // Ground speed
 	float ground_speed_ms = FMath::Sqrt(CurrentVelocity.X * CurrentVelocity.X + CurrentVelocity.Y * CurrentVelocity.Y);
-	uint16 gs_cms = (uint16)FMath::Clamp((int32)FMath::RoundToInt(ground_speed_ms * 100.0f), 0, 65535);
-	hil_state.ind_airspeed = gs_cms;   // cm/s
-	hil_state.true_airspeed = gs_cms;  // cm/s
+	hil_state.ind_airspeed = (uint16_t)(ground_speed_ms); // m/s
+	hil_state.true_airspeed = hil_state.ind_airspeed;
     
     // Accelerations (use gravity-compensated values)
 	hil_state.xacc = (int16_t)(CurrentAccelData.X * 100); // Convert m/s^2 to cm/s^2
@@ -886,44 +1145,113 @@ void UPX4Component::SendHILSensor()
     // Zero out the entire structure
     memset(&hil_sensor, 0, sizeof(hil_sensor));
     
-    // Timestamp in microseconds since sim start
-    uint64_t timestamp_us = GetSynchronizedTimestamp();
+    // CRITICAL: For lockstep, timestamp must advance by exactly 4000us per step
+    uint64_t timestamp_us = LockstepCounter * 4000;
     hil_sensor.time_usec = timestamp_us;
     
 	AQuadPawn* QuadPawn = Cast<AQuadPawn>(GetOwner());
 	if (!QuadPawn || !QuadPawn->SensorManager)
 	{
-		UE_LOG(LogPX4, Warning, TEXT("No  or SensorManager found, using default sensor values"));
-		SendMAVLinkMessage(nullptr, 0); // Don't send if no data
+		UE_LOG(LogPX4, Error, TEXT("No QuadPawn or SensorManager found, cannot send HIL sensor data"));
+		return; // Don't send invalid messages
+	}
+
+	// Validate that sensors are actually providing data
+	if (!QuadPawn->SensorManager->GPS || !QuadPawn->SensorManager->IMU ||
+		!QuadPawn->SensorManager->Magnetometer || !QuadPawn->SensorManager->Barometer)
+	{
+		UE_LOG(LogPX4, Error, TEXT("One or more sensors are missing in SensorManager"));
 		return;
 	}
 
 
-	// CurrentRotation is already in NED; use it directly for gravity transform
-	FQuat DroneQuat = FQuat(CurrentRotation);
-	FVector GravityWorld(0, 0, 9.81f); // Positive because we subtract it from acceleration
-	FVector GravityBody = DroneQuat.UnrotateVector(GravityWorld);
-	
-    // Accelerometer (m/s^2) - includes gravity
-	hil_sensor.xacc = CurrentAccelData.X + GravityBody.X;
-	hil_sensor.yacc = CurrentAccelData.Y + GravityBody.Y;
-	hil_sensor.zacc = CurrentAccelData.Z + GravityBody.Z;
+	// For PX4, we need acceleration INCLUDING gravity (specific force)
+	// CurrentAccelData is already in NED frame and in m/s^2 from coordinate transform
+	// The IMU should include gravity in the Z-axis when the drone is level
+	FQuat DroneQuat = FQuat(CurrentRotation); // Already in NED from coordinate transform
+	FVector GravityNED(0, 0, 9.81f); // Down is positive in NED
+	FVector GravityBody = DroneQuat.UnrotateVector(GravityNED);
+
+    // Accelerometer (m/s^2) - includes gravity (specific force measurement)
+    // Validate acceleration data
+    FVector TotalAccel = CurrentAccelData + GravityBody;
+
+    // Check for NaN or unreasonable acceleration values
+    if (FMath::IsNaN(TotalAccel.X) || FMath::Abs(TotalAccel.X) > 50.0f)
+    {
+        UE_LOG(LogPX4, Warning, TEXT("Invalid X acceleration: %.2f, using 0"), TotalAccel.X);
+        TotalAccel.X = 0.0f;
+    }
+    if (FMath::IsNaN(TotalAccel.Y) || FMath::Abs(TotalAccel.Y) > 50.0f)
+    {
+        UE_LOG(LogPX4, Warning, TEXT("Invalid Y acceleration: %.2f, using 0"), TotalAccel.Y);
+        TotalAccel.Y = 0.0f;
+    }
+    if (FMath::IsNaN(TotalAccel.Z) || FMath::Abs(TotalAccel.Z) > 50.0f)
+    {
+        UE_LOG(LogPX4, Warning, TEXT("Invalid Z acceleration: %.2f, using 9.81"), TotalAccel.Z);
+        TotalAccel.Z = 9.81f; // Default gravity when stationary
+    }
+
+	hil_sensor.xacc = TotalAccel.X;
+	hil_sensor.yacc = TotalAccel.Y;
+	hil_sensor.zacc = TotalAccel.Z;
     
-    // Gyroscope (rad/s)
-	hil_sensor.xgyro = CurrentAngularVelocity.X;
-	hil_sensor.ygyro = CurrentAngularVelocity.Y;
-	hil_sensor.zgyro = CurrentAngularVelocity.Z;
+    // Gyroscope (rad/s) - validate angular velocity data
+    FVector ValidatedAngVel = CurrentAngularVelocity;
+
+    if (FMath::IsNaN(ValidatedAngVel.X) || FMath::Abs(ValidatedAngVel.X) > 100.0f)
+    {
+        UE_LOG(LogPX4, Warning, TEXT("Invalid X angular velocity: %.2f, using 0"), ValidatedAngVel.X);
+        ValidatedAngVel.X = 0.0f;
+    }
+    if (FMath::IsNaN(ValidatedAngVel.Y) || FMath::Abs(ValidatedAngVel.Y) > 100.0f)
+    {
+        UE_LOG(LogPX4, Warning, TEXT("Invalid Y angular velocity: %.2f, using 0"), ValidatedAngVel.Y);
+        ValidatedAngVel.Y = 0.0f;
+    }
+    if (FMath::IsNaN(ValidatedAngVel.Z) || FMath::Abs(ValidatedAngVel.Z) > 100.0f)
+    {
+        UE_LOG(LogPX4, Warning, TEXT("Invalid Z angular velocity: %.2f, using 0"), ValidatedAngVel.Z);
+        ValidatedAngVel.Z = 0.0f;
+    }
+
+	hil_sensor.xgyro = ValidatedAngVel.X;
+	hil_sensor.ygyro = ValidatedAngVel.Y;
+	hil_sensor.zgyro = ValidatedAngVel.Z;
     
     // Magnetometer (Gauss) - normalized earth field
 	hil_sensor.xmag = CurrentMagData.X;
 	hil_sensor.ymag = CurrentMagData.Y;
 	hil_sensor.zmag = CurrentMagData.Z;
-	
-	// Barometer data - ensure values are valid and non-zero
-	hil_sensor.abs_pressure = FMath::Max(CurrentPressure / 100.0f, 850.0f); // Convert Pa to mbar, min 850mbar
+
+	// Validate pressure data (must be reasonable atmospheric pressure)
+	float PressureHPa = CurrentPressure / 100.0f;
+	if (PressureHPa < 300.0f || PressureHPa > 1200.0f || FMath::IsNaN(PressureHPa))
+	{
+		UE_LOG(LogPX4, Warning, TEXT("Invalid pressure data: %.2f hPa, using default 1013.25"), PressureHPa);
+		PressureHPa = 1013.25f; // Sea level standard
+	}
+	hil_sensor.abs_pressure = PressureHPa;
 	hil_sensor.diff_pressure = 0.0f; // No airspeed sensor
-	hil_sensor.pressure_alt = CurrentAltitude;
-	hil_sensor.temperature = FMath::Max(CurrentTemperature, -40.0f); // Minimum temperature
+
+	// Validate altitude
+	float ValidatedAltitude = CurrentAltitude;
+	if (FMath::IsNaN(ValidatedAltitude) || FMath::Abs(ValidatedAltitude) > 10000.0f)
+	{
+		UE_LOG(LogPX4, Warning, TEXT("Invalid altitude: %.2f, using 0"), ValidatedAltitude);
+		ValidatedAltitude = 0.0f;
+	}
+	hil_sensor.pressure_alt = ValidatedAltitude;
+
+	// Validate temperature
+	float ValidatedTemp = CurrentTemperature;
+	if (FMath::IsNaN(ValidatedTemp) || ValidatedTemp < -100.0f || ValidatedTemp > 100.0f)
+	{
+		UE_LOG(LogPX4, Warning, TEXT("Invalid temperature: %.2f, using 20°C"), ValidatedTemp);
+		ValidatedTemp = 20.0f;
+	}
+	hil_sensor.temperature = ValidatedTemp;
     
     // CRITICAL: Set ALL required fields
     hil_sensor.fields_updated = 
@@ -941,9 +1269,15 @@ void UPX4Component::SendHILSensor()
         (1 << 11) | // pressure_alt
         (1 << 12);  // temperature
     
-    // Don't set lockstep flag - running in realtime mode at 250Hz
+    // Set lockstep flag
+    if (bUseLockstep)
+    {
+        hil_sensor.fields_updated |= (uint32)(1 << 31); // Set bit 31 for lockstep
+    }
     
-    hil_sensor.id = 0; // Sensor instance ID
+    // Set sensor instance IDs for different sensor types
+    // PX4 expects: 0 = main IMU/accel/gyro, 1 = baro, 2 = mag, etc.
+    hil_sensor.id = 0; // Use 0 for main sensor suite (IMU/accel/gyro/mag/baro combined)
     
     // Encode the message
 	uint16 msg_len = mavlink_msg_hil_sensor_encode(SystemID, ComponentID, &msg, &hil_sensor);
@@ -952,69 +1286,38 @@ void UPX4Component::SendHILSensor()
     uint8 buffer[MAVLINK_MAX_PACKET_LEN];
     uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
     
-    // Debug logging
+    // CRITICAL DEBUG: Check for sensor data staleness
 	static int32 DbgCounter = 0;
+	static uint64_t LastTimestamp = 0;
+	static int32 StaleDataCounter = 0;
+
+	uint64_t TimeDelta = hil_sensor.time_usec - LastTimestamp;
+	if (LastTimestamp > 0 && TimeDelta != 4000) // Should be exactly 4ms in lockstep
+	{
+		StaleDataCounter++;
+		UE_LOG(LogPX4, Error, TEXT("SENSOR TIMING ERROR: Expected 4000us, got %llu us (gap=%llu)"),
+			   TimeDelta, hil_sensor.time_usec - LastTimestamp);
+	}
+	LastTimestamp = hil_sensor.time_usec;
+
 	if (++DbgCounter % 50 == 0)
 	{
-		UE_LOG(LogPX4, Warning, TEXT("HIL_SENSOR[%d]: time=%llu us, acc=[%.2f,%.2f,%.2f], gyro=[%.2f,%.2f,%.2f], mag=[%.2f,%.2f,%.2f], pres=%.1f, temp=%.1f"), 
-			   DbgCounter, hil_sensor.time_usec, 
+		UE_LOG(LogPX4, Warning, TEXT("=== HIL_SENSOR[%d] TIMING CHECK ==="), DbgCounter);
+		UE_LOG(LogPX4, Warning, TEXT("Time: %llu us, Delta: %llu us, Stale errors: %d"),
+			   hil_sensor.time_usec, TimeDelta, StaleDataCounter);
+		UE_LOG(LogPX4, Warning, TEXT("Fields: 0x%X, Lockstep: %s"),
+			   hil_sensor.fields_updated, bUseLockstep ? TEXT("ON") : TEXT("OFF"));
+		UE_LOG(LogPX4, Warning, TEXT("Accel: %.3f,%.3f,%.3f | Gyro: %.3f,%.3f,%.3f"),
 			   hil_sensor.xacc, hil_sensor.yacc, hil_sensor.zacc,
-			   hil_sensor.xgyro, hil_sensor.ygyro, hil_sensor.zgyro,
-			   hil_sensor.xmag, hil_sensor.ymag, hil_sensor.zmag,
-			   hil_sensor.abs_pressure, hil_sensor.temperature);
-			   
-		// Additional debug for magnetometer
-		if (CurrentMagData.IsNearlyZero())
-		{
-			UE_LOG(LogPX4, Error, TEXT("WARNING: Magnetometer data is ZERO! Check GeoReferencingSystem in level."));
-		}
+			   hil_sensor.xgyro, hil_sensor.ygyro, hil_sensor.zgyro);
+		UE_LOG(LogPX4, Warning, TEXT("Mag: %.3f,%.3f,%.3f | Press: %.1fmbar"),
+			   hil_sensor.xmag, hil_sensor.ymag, hil_sensor.zmag, hil_sensor.abs_pressure);
+		UE_LOG(LogPX4, Warning, TEXT("==========================="));
 	}
 
 	SendMAVLinkMessage(buffer, len);
 }
 
-void UPX4Component::SendHILSensorSecondary()
-{
-    mavlink_message_t msg;
-    mavlink_hil_sensor_t hil_sensor;
-
-    // Zero out the entire structure
-    memset(&hil_sensor, 0, sizeof(hil_sensor));
-
-    // Timestamp in microseconds since sim start
-    uint64_t timestamp_us = GetSynchronizedTimestamp();
-    hil_sensor.time_usec = timestamp_us;
-
-	AQuadPawn* QuadPawn = Cast<AQuadPawn>(GetOwner());
-	if (!QuadPawn || !QuadPawn->SensorManager)
-	{
-		return; // Skip if no data
-	}
-
-	// Secondary barometer data (slight offset for redundancy)
-	hil_sensor.abs_pressure = FMath::Max((CurrentPressure + 1.0f) / 100.0f, 850.0f); // +1Pa offset, convert to mbar
-	hil_sensor.diff_pressure = 0.0f;
-	hil_sensor.pressure_alt = CurrentAltitude + 0.01f; // Small altitude offset
-	hil_sensor.temperature = FMath::Max(CurrentTemperature + 0.1f, -40.0f); // +0.1°C offset
-
-    // Set only barometer fields for secondary sensor
-    hil_sensor.fields_updated =
-        (1 << 9) |  // abs_pressure
-        (1 << 10) | // diff_pressure
-        (1 << 11) | // pressure_alt
-        (1 << 12);  // temperature
-
-    hil_sensor.id = 1; // Secondary sensor instance ID
-
-    // Encode the message
-	uint16 msg_len = mavlink_msg_hil_sensor_encode(SystemID, ComponentID, &msg, &hil_sensor);
-
-    // Create buffer and serialize
-    uint8 buffer[MAVLINK_MAX_PACKET_LEN];
-    uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
-
-	SendMAVLinkMessage(buffer, len);
-}
 
 void UPX4Component::SendHILGPS()
 {
@@ -1023,35 +1326,23 @@ void UPX4Component::SendHILGPS()
     
 	memset(&hil_gps, 0, sizeof(hil_gps));
     
-    // Timestamp in microseconds since sim start
-    uint64_t timestamp_us = GetSynchronizedTimestamp();
+	// Same timestamp as other HIL messages
+	uint64_t timestamp_us = LockstepCounter * 4000;
 	hil_gps.time_usec = timestamp_us;
     
-	// GPS position (validate degrees and wrap longitude into [-180,180])
-	double LatDeg = (double)CurrentGeoCoords.X;
-	double LonDeg = (double)CurrentGeoCoords.Y;
-	if (!FMath::IsFinite(LatDeg) || !FMath::IsFinite(LonDeg))
-	{
-		return; // skip invalid sample
-	}
-	while (LonDeg > 180.0) LonDeg -= 360.0;
-	while (LonDeg < -180.0) LonDeg += 360.0;
-	LatDeg = FMath::Clamp(LatDeg, -90.0, 90.0);
-	
-	hil_gps.lat = (int32_t)FMath::Clamp((int64)FMath::RoundToInt64(LatDeg * 1e7), (int64)INT32_MIN, (int64)INT32_MAX);
-	hil_gps.lon = (int32_t)FMath::Clamp((int64)FMath::RoundToInt64(LonDeg * 1e7), (int64)INT32_MIN, (int64)INT32_MAX);
-    // Altitude: PX4 expects MSL in mm. We use the altitude from GeoReferencing (approx MSL depending on setup)
-    hil_gps.alt = (int32_t)(CurrentGeoCoords.Z * 1000);           // mm MSL (approx)
+	// GPS position
+	hil_gps.lat = (int32_t)(CurrentGeoCoords.X * 1e7); // Convert to int32 * 1e7
+	hil_gps.lon = (int32_t)(CurrentGeoCoords.Y * 1e7); // Convert to int32 * 1e7
+	hil_gps.alt = (int32_t)(CurrentGeoCoords.Z * 1000); // Altitude in mm
 	
 	// GPS accuracy
 	hil_gps.eph = 100; // HDOP * 100
 	hil_gps.epv = 100; // VDOP * 100
     
 	// Velocities in m/s
-	// GPS velocities are in cm/s
-	hil_gps.vn = (int16_t)FMath::Clamp((int32)FMath::RoundToInt(CurrentVelocity.X * 100.0f), INT16_MIN, INT16_MAX);
-	hil_gps.ve = (int16_t)FMath::Clamp((int32)FMath::RoundToInt(CurrentVelocity.Y * 100.0f), INT16_MIN, INT16_MAX);
-	hil_gps.vd = (int16_t)FMath::Clamp((int32)FMath::RoundToInt(CurrentVelocity.Z * 100.0f), INT16_MIN, INT16_MAX);
+	hil_gps.vn = (int16_t)(CurrentVelocity.X); // North velocity m/s
+	hil_gps.ve = (int16_t)(CurrentVelocity.Y); // East velocity m/s
+	hil_gps.vd = (int16_t)(CurrentVelocity.Z); // Down velocity m/s
     
 	// Ground speed and course
 	float ground_speed_ms = FMath::Sqrt(CurrentVelocity.X * CurrentVelocity.X + CurrentVelocity.Y * CurrentVelocity.Y);
@@ -1084,23 +1375,24 @@ void UPX4Component::SendHILRCInputs()
     
 	memset(&hil_rc, 0, sizeof(hil_rc));
     
-    // Timestamp in microseconds since sim start
-    uint64_t timestamp_us = GetSynchronizedTimestamp();
+	// Same timestamp
+	uint64_t timestamp_us = LockstepCounter * 4000;
 	hil_rc.time_usec = timestamp_us;
     
 	// RC channels (1000-2000 range, 1500 = center)
-	hil_rc.chan1_raw = 1500; // Roll
-	hil_rc.chan2_raw = 1500; // Pitch
-	hil_rc.chan3_raw = 1500; // Throttle neutral
-	hil_rc.chan4_raw = 1500; // Yaw
-	hil_rc.chan5_raw = 1800; // Mode switch (position mode)
-	hil_rc.chan6_raw = 1000; // Aux
-	hil_rc.chan7_raw = 1000;
-	hil_rc.chan8_raw = 1000;
-	hil_rc.chan9_raw = 1000;
-	hil_rc.chan10_raw = 1000;
-	hil_rc.chan11_raw = 1000;
-	hil_rc.chan12_raw = 1000;
+	// Set up for autonomous mode operation
+	hil_rc.chan1_raw = 1500; // Roll (center)
+	hil_rc.chan2_raw = 1500; // Pitch (center)
+	hil_rc.chan3_raw = 1500; // Throttle (center for autonomous mode)
+	hil_rc.chan4_raw = 1500; // Yaw (center)
+	hil_rc.chan5_raw = 2000; // Mode switch (high = autonomous/offboard mode)
+	hil_rc.chan6_raw = 1500; // Aux
+	hil_rc.chan7_raw = 1500; // Arm switch (center/high = armed when in autonomous)
+	hil_rc.chan8_raw = 2000; // Kill switch (high = normal operation)
+	hil_rc.chan9_raw = 1500;
+	hil_rc.chan10_raw = 1500;
+	hil_rc.chan11_raw = 1500;
+	hil_rc.chan12_raw = 1500;
     
 	hil_rc.rssi = 255; // Max signal
     
@@ -1111,6 +1403,12 @@ void UPX4Component::SendHILRCInputs()
 	uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
     
 	SendMAVLinkMessage(buffer, len);
+}
+
+void UPX4Component::SendBasicHILData()
+{
+    // This method is kept for compatibility but is now handled by SendHILDataFromThread
+    SendHILDataFromThread();
 }
 
 void UPX4Component::HandleActuatorOutputs(const uint8* MessageBuffer, uint16 MessageLength)
@@ -1159,7 +1457,6 @@ void UPX4Component::HandleActuatorOutputs(const uint8* MessageBuffer, uint16 Mes
 			   NewCommand.Commands[2], NewCommand.Commands[3]);
 	}
 }
-
 void UPX4Component::HandleHeartbeat(const uint8* MessageBuffer, uint16 MessageLength)
 {
 	mavlink_message_t* msg = (mavlink_message_t*)MessageBuffer;
@@ -1229,39 +1526,170 @@ void UPX4Component::UpdateCurrentState()
 {
 	if (AQuadPawn* QuadPawn = Cast<AQuadPawn>(GetOwner()))
 	{
-        FVector GPSPositionMeters = QuadPawn->SensorManager->GPS->GetLastGPS(); // world meters (engine frame)
-        FVector GeographicCoords = QuadPawn->SensorManager->GPS->GetGeographicCoordinates();
-        // Use world linear velocity for GPS velocity (not body-yaw frame)
-        FVector WorldVelMS = QuadPawn->GetVelocity() / 100.0f; // cm/s -> m/s
-        FVector AccelData = QuadPawn->SensorManager->IMU->GetLastAccelerometer(); // m/s^2 in body frame
-        FRotator IMUAttitude = QuadPawn->SensorManager->IMU->GetLastAttitude(); //deg
-        FVector IMUAngularVelDeg = QuadPawn->SensorManager->IMU->GetLastGyroscopeDegrees(); // deg/s
+		// CRITICAL: Always log sensor status to debug initialization issues
+		static int32 SensorStatusCounter = 0;
+		if (++SensorStatusCounter % 50 == 1)
+		{
+			UE_LOG(LogPX4, Error, TEXT("=== SENSOR STATUS CHECK ==="));
+			UE_LOG(LogPX4, Error, TEXT("SensorManager: %s"), QuadPawn->SensorManager ? TEXT("VALID") : TEXT("NULL"));
+			if (QuadPawn->SensorManager)
+			{
+				UE_LOG(LogPX4, Error, TEXT("GPS: %s"), QuadPawn->SensorManager->GPS ? TEXT("VALID") : TEXT("NULL"));
+				UE_LOG(LogPX4, Error, TEXT("IMU: %s"), QuadPawn->SensorManager->IMU ? TEXT("VALID") : TEXT("NULL"));
+				UE_LOG(LogPX4, Error, TEXT("Barometer: %s"), QuadPawn->SensorManager->Barometer ? TEXT("VALID") : TEXT("NULL"));
+				UE_LOG(LogPX4, Error, TEXT("Magnetometer: %s"), QuadPawn->SensorManager->Magnetometer ? TEXT("VALID") : TEXT("NULL"));
+			}
+			UE_LOG(LogPX4, Error, TEXT("==============================="));
+		}
 
-		float Pressure = QuadPawn->SensorManager->Barometer->GetLastPressure(); // Pascal
-		float Temperature = QuadPawn->SensorManager->Barometer->GetLastTemperature(); // Celsius
-		float BaroAltitude = QuadPawn->SensorManager->Barometer->GetEstimatedAltitude(); // meters
+		// Get sensor data with fallback values
+		FVector GPSPositionMeters = QuadPawn->SensorManager->GPS ? QuadPawn->SensorManager->GPS->GetLastGPS() : FVector::ZeroVector;
+		FVector GeographicCoords = QuadPawn->SensorManager->GPS ? QuadPawn->SensorManager->GPS->GetGeographicCoordinates() : FVector(47.6174755, -122.3137982, 100.0f); // Default Seattle coords with altitude
 
-		FVector MagData = QuadPawn->SensorManager->Magnetometer->GetLastMagField(); // Gauss in body frame
+		// FORCE realistic GPS coordinates for initial testing
+		if (GeographicCoords.X == 0.0f && GeographicCoords.Y == 0.0f)
+		{
+			GeographicCoords = FVector(47.6174755, -122.3137982, 100.0f); // Force Seattle coordinates
+			UE_LOG(LogPX4, Warning, TEXT("FORCING GPS coordinates to Seattle: %.6f, %.6f, %.1f"),
+				   GeographicCoords.X, GeographicCoords.Y, GeographicCoords.Z);
+		}
+		FVector IMUVelocity = QuadPawn->SensorManager->IMU ? QuadPawn->SensorManager->IMU->GetLastVelocity() : FVector::ZeroVector;
+		FVector AccelData = QuadPawn->SensorManager->IMU ? QuadPawn->SensorManager->IMU->GetLastAccelerometer() : FVector(0, 0, 9.81f);
+		FRotator IMUAttitude = QuadPawn->SensorManager->IMU ? QuadPawn->SensorManager->IMU->GetLastAttitude() : FRotator::ZeroRotator;
+		FVector IMUAngularVelDeg = QuadPawn->SensorManager->IMU ? QuadPawn->SensorManager->IMU->GetLastGyroscopeDegrees() : FVector::ZeroVector;
 
-        // Transform to NED coordinates from Unreal world frame
-        CurrentPosition = UCoordinateTransform::UnrealToNED(GPSPositionMeters);
-        // Velocity in NED using axis mapping (avoid calling GeoRef on comm thread)
-        CurrentVelocity = UCoordinateTransform::UnrealVelocityToNED(WorldVelMS);
-		CurrentAccelData = UCoordinateTransform::UnrealToNED(AccelData);
+		float Pressure = QuadPawn->SensorManager->Barometer ? QuadPawn->SensorManager->Barometer->GetLastPressure() : 101325.0f;
+		float Temperature = QuadPawn->SensorManager->Barometer ? QuadPawn->SensorManager->Barometer->GetLastTemperature() : 20.0f;
+		float BaroAltitude = QuadPawn->SensorManager->Barometer ? QuadPawn->SensorManager->Barometer->GetEstimatedAltitude() : 0.0f;
+
+		FVector MagData = QuadPawn->SensorManager->Magnetometer ? QuadPawn->SensorManager->Magnetometer->GetLastMagField() : FVector(0.3f, 0.0f, 0.5f);
+
+		// Check for sensor failures and provide fallback values
+		bool bSensorFailure = false;
+
+		// Check GPS data
+		if (FMath::IsNaN(GPSPositionMeters.X) || FMath::IsNaN(GPSPositionMeters.Y) || FMath::IsNaN(GPSPositionMeters.Z))
+		{
+			UE_LOG(LogPX4, Error, TEXT("GPS sensor failure - NaN values detected"));
+			GPSPositionMeters = FVector::ZeroVector;
+			bSensorFailure = true;
+		}
+
+		// Check IMU acceleration - critical for attitude estimation
+		if (FMath::IsNaN(AccelData.X) || FMath::IsNaN(AccelData.Y) || FMath::IsNaN(AccelData.Z))
+		{
+			UE_LOG(LogPX4, Error, TEXT("IMU accelerometer failure - NaN values detected, using gravity fallback"));
+			AccelData = FVector(0, 0, 9.81f); // Stationary, level attitude
+			bSensorFailure = true;
+		}
+
+		// CRITICAL DEBUG: Disable forced level attitude now that we have proper init sequence
+		static bool bForceLevel = false;
+		if (bForceLevel)
+		{
+			UE_LOG(LogPX4, Error, TEXT("ORIGINAL IMU attitude: R=%.2f, P=%.2f, Y=%.2f"),
+				   IMUAttitude.Roll, IMUAttitude.Pitch, IMUAttitude.Yaw);
+			IMUAttitude = FRotator(0.0f, 0.0f, 0.0f); // Completely level
+			UE_LOG(LogPX4, Error, TEXT("FORCING LEVEL attitude: R=%.2f, P=%.2f, Y=%.2f"),
+				   IMUAttitude.Roll, IMUAttitude.Pitch, IMUAttitude.Yaw);
+			bSensorFailure = true;
+		}
+		else
+		{
+			// Normal attitude validation (disabled for now)
+			bool bAttitudeInvalid = false;
+			if (FMath::IsNaN(IMUAttitude.Roll) || FMath::IsNaN(IMUAttitude.Pitch) || FMath::IsNaN(IMUAttitude.Yaw))
+			{
+				UE_LOG(LogPX4, Error, TEXT("IMU attitude NaN detected: R=%.1f, P=%.1f, Y=%.1f"),
+					   IMUAttitude.Roll, IMUAttitude.Pitch, IMUAttitude.Yaw);
+				bAttitudeInvalid = true;
+			}
+
+			// Check if roll/pitch exceed PX4 safe limits (typically ±60 degrees)
+			if (FMath::Abs(IMUAttitude.Roll) > 45.0f || FMath::Abs(IMUAttitude.Pitch) > 45.0f)
+			{
+				UE_LOG(LogPX4, Error, TEXT("IMU attitude exceeds safe limits: R=%.1f, P=%.1f, Y=%.1f"),
+					   IMUAttitude.Roll, IMUAttitude.Pitch, IMUAttitude.Yaw);
+				bAttitudeInvalid = true;
+			}
+
+			if (bAttitudeInvalid)
+			{
+				// Force level attitude for PX4 safety
+				IMUAttitude = FRotator(0.0f, IMUAttitude.Yaw, 0.0f); // Keep yaw, zero roll/pitch
+				UE_LOG(LogPX4, Warning, TEXT("Forcing level attitude for PX4 safety"));
+				bSensorFailure = true;
+			}
+		}
+
+		// Check angular velocity
+		if (FMath::IsNaN(IMUAngularVelDeg.X) || FMath::IsNaN(IMUAngularVelDeg.Y) || FMath::IsNaN(IMUAngularVelDeg.Z))
+		{
+			UE_LOG(LogPX4, Error, TEXT("IMU gyroscope failure - NaN values detected"));
+			IMUAngularVelDeg = FVector::ZeroVector;
+			bSensorFailure = true;
+		}
+
+		// Check barometer
+		if (FMath::IsNaN(Pressure) || Pressure < 50000.0f || Pressure > 120000.0f)
+		{
+			UE_LOG(LogPX4, Error, TEXT("Barometer failure - invalid pressure: %.1f Pa"), Pressure);
+			Pressure = 101325.0f; // Sea level standard
+			BaroAltitude = 0.0f;
+			bSensorFailure = true;
+		}
+
+		// Debug sensor data (every 250 frames to reduce spam)
+		static int32 SensorDbgCounter = 0;
+		if (++SensorDbgCounter % 250 == 0 || bSensorFailure)
+		{
+			UE_LOG(LogPX4, Warning, TEXT("=== RAW SENSOR DATA (Frame %d) ==="), SensorDbgCounter);
+			UE_LOG(LogPX4, Warning, TEXT("GPS Position (m): %.2f, %.2f, %.2f"), GPSPositionMeters.X, GPSPositionMeters.Y, GPSPositionMeters.Z);
+			UE_LOG(LogPX4, Warning, TEXT("Geographic: Lat=%.6f, Lon=%.6f, Alt=%.2f"), GeographicCoords.X, GeographicCoords.Y, GeographicCoords.Z);
+			UE_LOG(LogPX4, Warning, TEXT("IMU Velocity (m/s): %.2f, %.2f, %.2f"), IMUVelocity.X, IMUVelocity.Y, IMUVelocity.Z);
+			UE_LOG(LogPX4, Warning, TEXT("IMU Accel (m/s²): %.2f, %.2f, %.2f"), AccelData.X, AccelData.Y, AccelData.Z);
+			UE_LOG(LogPX4, Warning, TEXT("==> IMU Attitude RAW (deg): R=%.2f, P=%.2f, Y=%.2f"), IMUAttitude.Roll, IMUAttitude.Pitch, IMUAttitude.Yaw);
+
+			// Show the transformed attitude that will be sent to PX4
+			FRotator NEDAttitude = UCoordinateTransform::UnrealRotationToNED(IMUAttitude);
+			UE_LOG(LogPX4, Warning, TEXT("==> NED Attitude TRANSFORMED (deg): R=%.2f, P=%.2f, Y=%.2f"), NEDAttitude.Roll, NEDAttitude.Pitch, NEDAttitude.Yaw);
+
+			UE_LOG(LogPX4, Warning, TEXT("IMU AngVel (deg/s): %.2f, %.2f, %.2f"), IMUAngularVelDeg.X, IMUAngularVelDeg.Y, IMUAngularVelDeg.Z);
+			UE_LOG(LogPX4, Warning, TEXT("Mag (Gauss): %.3f, %.3f, %.3f"), MagData.X, MagData.Y, MagData.Z);
+			UE_LOG(LogPX4, Warning, TEXT("Baro: Press=%.1f Pa, Alt=%.2f m, Temp=%.1f C"), Pressure, BaroAltitude, Temperature);
+			if (bSensorFailure)
+			{
+				UE_LOG(LogPX4, Error, TEXT("*** SENSOR FAILURE DETECTED - USING FALLBACK VALUES ***"));
+			}
+			UE_LOG(LogPX4, Warning, TEXT("======================="));
+		}
+
+		// Transform to NED coordinates
+		CurrentPosition = UCoordinateTransform::UnrealToNED(GPSPositionMeters); // Now in NED meters
+		CurrentVelocity = UCoordinateTransform::UnrealVelocityToNED(IMUVelocity); // Now in NED m/s
+		// CRITICAL FIX: Transform accelerometer data from Unreal FLU body frame to PX4 FRD body frame
+		CurrentAccelData = UCoordinateTransform::UnrealBodyAccelToFRD(AccelData); // Now in FRD m/s² body frame
+
+		// DEBUG: Log coordinate frame transformation to verify gravity appears as negative Z
+		static int32 DebugLogCounter = 0;
+		if (DebugLogCounter % 250 == 0) // Log every second at 250Hz
+		{
+			UE_LOG(LogPX4, Warning, TEXT("COORD TRANSFORM DEBUG - FLU->FRD: AccelIn(%.3f,%.3f,%.3f) -> AccelOut(%.3f,%.3f,%.3f)"),
+				AccelData.X, AccelData.Y, AccelData.Z,
+				CurrentAccelData.X, CurrentAccelData.Y, CurrentAccelData.Z);
+		}
+		DebugLogCounter++;
 		CurrentRotation = UCoordinateTransform::UnrealRotationToNED(IMUAttitude); // Now in NED frame
         
-        // Angular velocity: convert from Unreal body frame to NED body frame (rad/s)
-        FVector IMUAngularVelRad = QuadPawn->SensorManager->IMU->GetLastGyroscope(); // rad/s in Unreal body axes
-        CurrentAngularVelocity = UCoordinateTransform::UnrealToNED(IMUAngularVelRad);
+		// Angular velocity: IMU gives deg/s in FLU body frame, need rad/s in FRD body frame for PX4
+		// Convert deg/s to rad/s and handle coordinate system conversion from FLU to FRD
+		CurrentAngularVelocity = UCoordinateTransform::UnrealBodyAngVelToFRD(IMUAngularVelDeg);
         
 		// Geographic coordinates stay the same (lat/lon/alt)
 		CurrentGeoCoords = GeographicCoords;
 		CurrentAltitude = BaroAltitude;
 
-		// Magnetometer data is in body frame but needs axis transformation for NED
-		// In body frame: X=forward, Y=right, Z=down (both Unreal and NED use this)
-		// But the actual magnetic field vector needs to be transformed
-		CurrentMagData = UCoordinateTransform::UnrealToNED(MagData);
+		CurrentMagData = MagData;
 
 		CurrentPressure = Pressure;
 		CurrentTemperature = Temperature;
@@ -1307,5 +1735,59 @@ void UPX4Component::SetLockstepMode(bool bEnabled)
 		{
 			UE_LOG(LogPX4, Warning, TEXT("Realtime mode: PX4 will run at 250Hz with best-effort timing"));
 		}
+	}
+}
+
+void UPX4Component::ThreadSimulationStep()
+{
+	// This function is now called directly from the communications thread's 250Hz loop.
+	// It is responsible for sending all periodic HIL data.
+
+	FScopeLock Lock(&StateMutex);
+	if (!bThreadSafeDataValid) return; // Don't send if we don't have fresh data
+
+	// --- Update local state from the thread-safe copies ---
+	CurrentPosition = ThreadSafePosition;
+	CurrentVelocity = ThreadSafeVelocity;
+	CurrentRotation = ThreadSafeRotation;
+	CurrentAngularVelocity = ThreadSafeAngularVelocity;
+    
+	// --- Increment Counters ---
+	// The timestamp is based on the lockstep counter, advancing by 4000us (4ms) each step.
+	LockstepCounter++;
+	SimulationStepCounter++;
+
+	// Add timestamp debugging
+	static uint64_t LastStepTimestamp = 0;
+	uint64_t CurrentTimestamp = LockstepCounter * 4000;
+	if (LastStepTimestamp > 0)
+	{
+		uint64_t TimeDelta = CurrentTimestamp - LastStepTimestamp;
+		if (TimeDelta != 4000)
+		{
+			UE_LOG(LogPX4, Error, TEXT("LOCKSTEP TIMING ERROR: Expected 4000us, got %llu us"),
+				   TimeDelta);
+		}
+	}
+	LastStepTimestamp = CurrentTimestamp;
+
+	// --- Send High-Frequency Data (250Hz) ---
+	// These must be sent on every single step.
+	SendHILSensor();
+	SendHILStateQuaternion();
+
+	// --- Send Lower-Frequency Data ---
+	// Send GPS and RC inputs at 50Hz (every 5 steps).
+	if (SimulationStepCounter % 5 == 0) 
+	{
+		SendHILGPS();
+		SendHILRCInputs();
+	}
+    
+	// --- Send Heartbeat (2Hz) ---
+	// Send a heartbeat every 125 steps (250Hz / 2Hz = 125).
+	if (SimulationStepCounter % 125 == 0)
+	{
+		SendHeartbeat();
 	}
 }
