@@ -158,8 +158,14 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Input")
 	FGamepadInputs GamepadInputs;
-	UFUNCTION(BlueprintCallable, Category = "ROS Control")
-	void SetExternalAttitudeCommand(float InRoll, float InPitch);
+    UFUNCTION(BlueprintCallable, Category = "ROS Control")
+    void SetExternalAttitudeCommand(float InRoll, float InPitch);
+
+    UFUNCTION(BlueprintCallable, Category = "ROS Control")
+    void SetExternalVelocityCommand(const FVector& LinearMps, const FVector& AngularRadps);
+
+    UFUNCTION(BlueprintCallable, Category = "ROS Control")
+    void SetExternalHoverHeight(float HeightMeters);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Simulation")
 	bool bIsSimulationControlled = false;

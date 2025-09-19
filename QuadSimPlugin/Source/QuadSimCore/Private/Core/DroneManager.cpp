@@ -306,8 +306,15 @@ void ADroneManager::ResetRobot_Implementation()
     {
         if (AQuadPawn* Drone = DronePtr.Get())
         {
-            // Teleport the drone to the reset location
-            Drone->SetActorTransform(ResetTransform, false, nullptr, ETeleportType::ResetPhysics);
+            // Teleport the drone to the reset location but preserve current scale
+            const FVector CurrentScale = Drone->GetActorScale3D();
+            Drone->SetActorLocationAndRotation(
+                ResetTransform.GetLocation(),
+                ResetTransform.GetRotation().Rotator(),
+                false,
+                nullptr,
+                ETeleportType::ResetPhysics);
+            Drone->SetActorScale3D(CurrentScale);
 
             // Also call your controller's reset logic for other things (like motor values)
             if (UQuadDroneController* Controller = Drone->QuadController)

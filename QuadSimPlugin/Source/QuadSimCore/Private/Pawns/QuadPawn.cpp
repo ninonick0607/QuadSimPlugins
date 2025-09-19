@@ -478,19 +478,26 @@ void AQuadPawn::ResetRotation()
 
 void AQuadPawn::ResetPosition()
 {
-	if (GetWorld())
-	{
-		AActor* PlayerStart = UGameplayStatics::GetActorOfClass(GetWorld(), APlayerStart::StaticClass());
+    if (GetWorld())
+    {
+        AActor* PlayerStart = UGameplayStatics::GetActorOfClass(GetWorld(), APlayerStart::StaticClass());
 
-		if (PlayerStart)
-		{
+        if (PlayerStart)
+        {
+            // Preserve current scale when resetting position/orientation
+            const FVector CurrentScale = GetActorScale3D();
+            SetActorLocationAndRotation(
+                PlayerStart->GetActorLocation(),
+                PlayerStart->GetActorRotation(),
+                false,
+                nullptr,
+                ETeleportType::TeleportPhysics);
+            SetActorScale3D(CurrentScale);
 
-			SetActorTransform(PlayerStart->GetActorTransform(), false, nullptr, ETeleportType::TeleportPhysics);
-
-			if (QuadController)
-			{
-				QuadController->ResetPID();
-			}
+            if (QuadController)
+            {
+                QuadController->ResetPID();
+            }
 
 			UE_LOG(LogTemp, Log, TEXT("Drone position reset to PlayerStart."));
 		}
@@ -514,6 +521,39 @@ void AQuadPawn::SetExternalAttitudeCommand(float InRoll, float InPitch)
         
 		UE_LOG(LogTemp, Log, TEXT("QuadPawn: Passed external attitude to controller (Roll: %.2f, Pitch: %.2f)"), InRoll, InPitch);
 	}
+}
+
+void AQuadPawn::SetExternalVelocityCommand(const FVector& LinearMps, const FVector& AngularRadps)
+{
+    if (!QuadController)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("QuadPawn::SetExternalVelocityCommand: QuadController is null"));
+        return;
+    }
+
+    // Ensure the controller uses velocity mode
+    QuadController->SetFlightMode(EFlightMode::VelocityControl);
+
+    // Desired linear velocity is expected in local FLU (m/s)
+    QuadController->SetDesiredVelocity(LinearMps);
+
+    // Controller yaw rate is in deg/s; convert from rad/s
+    const float YawRateDeg = FMath::RadiansToDegrees(AngularRadps.Z);
+    QuadController->SetDesiredYawRate(YawRateDeg);
+
+    UE_LOG(LogTemp, Log, TEXT("QuadPawn: External velocity set v=(%.2f,%.2f,%.2f) m/s, yawRate=%.2f deg/s"),
+           LinearMps.X, LinearMps.Y, LinearMps.Z, YawRateDeg);
+}
+
+void AQuadPawn::SetExternalHoverHeight(float HeightMeters)
+{
+    if (!QuadController)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("QuadPawn::SetExternalHoverHeight: QuadController is null"));
+        return;
+    }
+    QuadController->SetHoverMode(true, HeightMeters*100.f); // controller expects cm for altitude target
+    UE_LOG(LogTemp, Log, TEXT("QuadPawn: External hover height set to %.2f m"), HeightMeters);
 }
 void AQuadPawn::DebugDrawMagnetometer()
 {

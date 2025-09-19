@@ -371,14 +371,15 @@ void UControlPanelUI::TickAndDraw(UWorld* World)
         ImGui::SameLine();
         if (ImGui::Button("Reset High"))
         {
-            if (Controller) Controller->SetHoverMode(true, 250.0f);
+            // Do not force hover mode when resetting
+            if (Controller) Controller->SetHoverMode(false, 0.0f);
             if (ActivePawn) ActivePawn->ResetRotation();
         }
         ImGui::SameLine();
         if (ImGui::Button("Reset Low"))
         {
-            const float lowAlt = FMath::Max(0.0f, UDroneJSONConfig::Get().Config.FlightParams.MinAltitudeLocal);
-            if (Controller) Controller->SetHoverMode(true, lowAlt);
+            // Do not force hover mode when resetting
+            if (Controller) Controller->SetHoverMode(false, 0.0f);
             if (ActivePawn) ActivePawn->ResetPosition();
         }
         ImGui::PopStyleVar();
