@@ -130,6 +130,7 @@ public:
     void SendGPSOriginCommand();
     void SendAttitudeResetCommand();
     void SendEKF2ResetCommand();
+	void SendArmDisarm(bool bArm);
 	void SimulationUpdate(float FixedDeltaTime);
 	bool bIsActive() const { return bUsePX4 && bConnectedToPX4; }
 	void SendLockstepData(uint64 StepNumber);

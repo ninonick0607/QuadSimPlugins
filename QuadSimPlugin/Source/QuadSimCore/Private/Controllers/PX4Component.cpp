@@ -884,6 +884,10 @@ void UPX4Component::SendHeartbeat()
 	{
 		SendOffboardModeCommand();
 	}
+	else if (HeartbeatCount == 30) // After ~15 seconds, request arming explicitly
+	{
+		SendArmDisarm(true);
+	}
 }
 
 void UPX4Component::SendOffboardModeCommand()
@@ -985,6 +989,28 @@ void UPX4Component::SendEKF2ResetCommand()
 	cmd.param5 = 2; // Reset attitude estimation
 	cmd.param6 = 0; // No acceleration calibration
 	cmd.param7 = 0; // No airspeed calibration
+
+	mavlink_msg_command_long_encode(SystemID, ComponentID, &msg, &cmd);
+
+	uint8 buffer[MAVLINK_MAX_PACKET_LEN];
+	uint16 len = mavlink_msg_to_send_buffer(buffer, &msg);
+
+	SendMAVLinkMessage(buffer, len);
+}
+
+void UPX4Component::SendArmDisarm(bool bArm)
+{
+	UE_LOG(LogPX4, Warning, TEXT("%s PX4 (MAV_CMD_COMPONENT_ARM_DISARM)"), bArm ? TEXT("Arming") : TEXT("Disarming"));
+
+	mavlink_message_t msg;
+	mavlink_command_long_t cmd;
+
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.target_system = TargetSystem;
+	cmd.target_component = TargetComponent;
+	cmd.command = MAV_CMD_COMPONENT_ARM_DISARM;
+	cmd.confirmation = 0;
+	cmd.param1 = bArm ? 1.0f : 0.0f; // 1=arm, 0=disarm
 
 	mavlink_msg_command_long_encode(SystemID, ComponentID, &msg, &cmd);
 
