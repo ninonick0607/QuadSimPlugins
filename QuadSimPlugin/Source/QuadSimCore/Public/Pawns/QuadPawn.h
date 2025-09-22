@@ -193,8 +193,12 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	ECameraMode CurrentCameraMode;
-	void ResetGroundCameraPosition();
-	void UpdateGroundCameraTracking();
+    void ResetGroundCameraPosition();
+    void UpdateGroundCameraTracking();
+
+public:
+    UFUNCTION(BlueprintCallable, Category = "Camera")
+    void ForceFPVCameraActive();
 
 private:
 	float LastCollisionTime;

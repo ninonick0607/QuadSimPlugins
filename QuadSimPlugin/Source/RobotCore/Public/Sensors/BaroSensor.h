@@ -34,7 +34,7 @@ public:
     
 private:
 	// Sensor update rate (20Hz from PX4)
-	float UpdateRate = 20.0f;
+	float UpdateRate = 50.0f;
 	float AccumulatedTime = 0.0f;
     
 	// Last sensor readings

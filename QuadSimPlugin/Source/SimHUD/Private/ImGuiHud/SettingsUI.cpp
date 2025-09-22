@@ -162,7 +162,16 @@ void USimSettingsUI::DrawConfigTab()
     auto& Cfg = UDroneJSONConfig::Get().Config;
     ImGui::Text("Flight Parameters"); ImGui::Separator();
     ImGui::InputFloat("Max Velocity Bound", &Cfg.FlightParams.MaxVelocityBound);
+    if (ImGui::IsItemDeactivatedAfterEdit())
+    {
+        Cfg.FlightParams.MaxVelocity = FMath::Clamp(Cfg.FlightParams.MaxVelocity, 0.0f, Cfg.FlightParams.MaxVelocityBound);
+    }
     ImGui::InputFloat("Max Velocity", &Cfg.FlightParams.MaxVelocity);
+    ImGui::InputFloat("Max Angle Bound", &Cfg.FlightParams.MaxAngleBound);
+    if (ImGui::IsItemDeactivatedAfterEdit())
+    {
+        Cfg.FlightParams.MaxAngle = FMath::Clamp(Cfg.FlightParams.MaxAngle, 0.0f, Cfg.FlightParams.MaxAngleBound);
+    }
     ImGui::InputFloat("Max Angle", &Cfg.FlightParams.MaxAngle);
     ImGui::InputFloat("Max Angle Rate", &Cfg.FlightParams.MaxAngleRate);
     ImGui::InputFloat("Max PID Output", &Cfg.FlightParams.MaxPIDOutput);

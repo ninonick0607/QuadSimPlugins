@@ -73,6 +73,10 @@ public:
     UFUNCTION(BlueprintPure, Category = "Drone Manager")
     FVector GetSpawnOrigin() const { return SpawnOrigin; }
 
+    // Select a drone by index and optionally possess it (switch camera)
+    UFUNCTION(BlueprintCallable, Category = "Drone Manager")
+    void SelectDroneByIndex(int32 Index, bool bAlsoPossess = true);
+
 
     virtual void SimulationUpdate_Implementation(float FixedDeltaTime) override;
     virtual void ResetRobot_Implementation() override;

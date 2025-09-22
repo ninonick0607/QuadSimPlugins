@@ -17,6 +17,7 @@ UDroneJSONConfig::UDroneJSONConfig()
     // These mirror the defaults shipped in Plugins/QuadSimPlugin/Config/DroneConfig.json
     Config.FlightParams.MaxVelocityBound   = 8.f;
     Config.FlightParams.MaxVelocity        = 8.f;
+    Config.FlightParams.MaxAngleBound      = 30.f;
     Config.FlightParams.MaxAngle           = 15.f;
     Config.FlightParams.MaxAngleRate       = 10.f;
     Config.FlightParams.MaxPIDOutput       = 10000.f;
@@ -82,7 +83,8 @@ bool UDroneJSONConfig::LoadConfig()
     {
         (*FlightParams)->TryGetNumberField(TEXT("max_velocity_bound"), Config.FlightParams.MaxVelocityBound); 
         (*FlightParams)->TryGetNumberField(TEXT("max_velocity"), Config.FlightParams.MaxVelocity); 
-        (*FlightParams)->TryGetNumberField(TEXT("max_angle"), Config.FlightParams.MaxAngle);
+        (*FlightParams)->TryGetNumberField(TEXT("max_angle_bound"), Config.FlightParams.MaxAngleBound);
+        (*FlightParams)->TryGetNumberField(TEXT("max_angle"),        Config.FlightParams.MaxAngle);
         (*FlightParams)->TryGetNumberField(TEXT("max_angle_rate"), Config.FlightParams.MaxAngleRate);
         (*FlightParams)->TryGetNumberField(TEXT("max_pid_output"), Config.FlightParams.MaxPIDOutput);
         (*FlightParams)->TryGetNumberField(TEXT("max_thrust"), Config.FlightParams.MaxThrust);
@@ -135,6 +137,7 @@ bool UDroneJSONConfig::SaveConfig()
      TSharedPtr<FJsonObject> FlightParamsObj = MakeShared<FJsonObject>();
      FlightParamsObj->SetNumberField(TEXT("max_velocity_bound"),    Config.FlightParams.MaxVelocityBound);
      FlightParamsObj->SetNumberField(TEXT("max_velocity"),          Config.FlightParams.MaxVelocity);
+     FlightParamsObj->SetNumberField(TEXT("max_angle_bound"),       Config.FlightParams.MaxAngleBound);
      FlightParamsObj->SetNumberField(TEXT("max_angle"),             Config.FlightParams.MaxAngle);
      FlightParamsObj->SetNumberField(TEXT("max_angle_rate"),        Config.FlightParams.MaxAngleRate);
      FlightParamsObj->SetNumberField(TEXT("max_pid_output"),        Config.FlightParams.MaxPIDOutput);

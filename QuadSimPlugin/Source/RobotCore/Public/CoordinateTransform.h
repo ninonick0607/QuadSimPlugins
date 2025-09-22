@@ -9,7 +9,7 @@
  * Handles all coordinate system conversions, unit conversions, and frame transformations
  * 
  * Coordinate Systems:
- * - Unreal: Forward-Left-Up (FLU), centimeters
+ * - Unreal: Forward-Right-Up (FRU), centimeters (Unreal's native left-handed)
  * - NED: North-East-Down, meters (aerospace/PX4 standard)
  * - ENU: East-North-Up, meters (ROS standard)
  * - Body: Vehicle-fixed frame
@@ -40,6 +40,13 @@ public:
      */
     UFUNCTION(BlueprintPure, Category = "Coordinate Transform")
     static FVector NEDToUnreal(const FVector& NEDPos);
+
+    /**
+     * Convert position from Unreal (FRU, meters) to NED (m)
+     * Use when your input is already meters (e.g., GPS sensor which returns m)
+     */
+    UFUNCTION(BlueprintPure, Category = "Coordinate Transform")
+    static FVector UnrealMetersToNED(const FVector& UnrealPosMeters);
     
     /**
      * Convert position from Unreal (FLU, cm) to ENU (m)
@@ -74,6 +81,13 @@ public:
      */
     UFUNCTION(BlueprintPure, Category = "Coordinate Transform")
     static FVector UnrealVelocityToENU(const FVector& UnrealVel);
+
+    /**
+     * Convert velocity from Unreal (FRU, m/s) to NED (m/s)
+     * Use when your input is already m/s (e.g., IMU velocity)
+     */
+    UFUNCTION(BlueprintPure, Category = "Coordinate Transform")
+    static FVector UnrealMetersVelocityToNED(const FVector& UnrealVelMS);
 
     // ==================== ROTATION TRANSFORMS ====================
     
@@ -145,6 +159,13 @@ public:
      */
     UFUNCTION(BlueprintPure, Category = "Coordinate Transform")
     static FVector UnrealBodyAngVelToFRD(const FVector& UnrealBodyAngVel);
+
+    /**
+     * Generic body-frame vector transform from Unreal body (FRU) to PX4 body (FRD)
+     * Use for vectors like magnetometer that are already in body frame
+     */
+    UFUNCTION(BlueprintPure, Category = "Coordinate Transform")
+    static FVector UnrealBodyToFRD(const FVector& UnrealBodyVec);
 
     /**
      * Transform vector from world frame to body frame

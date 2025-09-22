@@ -29,42 +29,50 @@
 
 namespace DroneWaypointConfig
 {
-	static constexpr float startHeight = 500.0f;
-	static constexpr float maxHeight = 1000.0f;
-	static constexpr float radius = 1000.0f;
-	static constexpr float heightStep = 100.0f;
-	static constexpr int32 pointsPerLoop = 8;
-	static constexpr float angleStep = 2.0f * PI / pointsPerLoop;
+	// All values in meters to keep flight control domain in meters
+	static constexpr float startHeight     = 5.0f;    // m above current Z
+	static constexpr float totalHeight     = 20.0f;   // m rise across the spiral
+	static constexpr float radius          = 10.0f;   // m spiral radius
+	static constexpr int32 segmentsPerRev  = 72;      // higher = smoother curve
+	static constexpr int32 numRevolutions  = 3;       // total revolutions
 }
 
 const FVector start = FVector(0, 0, 1000);
 
-// Generate a spiral of waypoints around a given start position
+// Generate a vertical spiral (helix) of waypoints above a given start position (all in meters)
 static TArray<FVector> spiralWaypoints(const FVector& startPos)
 {
     TArray<FVector> waypoints;
-    // Initial ascent to specified start height
-    FVector basePos = startPos;
-    const float initialAltitude = DroneWaypointConfig::startHeight;
-    const float targetZ = basePos.Z + initialAltitude;
-    waypoints.Add(FVector(basePos.X, basePos.Y, targetZ));
 
-    // Figure-8 parameters
-    // Increase resolution for smoother curves
-    const int32 numPoints = 360;
-    const float twoPi = 2.0f * PI;
-    // Dimensions: roughly a 10m x 10m box (cm units)
-    const float width = DroneWaypointConfig::radius * 0.5f; // ~5m half-width
-    const float height = width;                            // symmetrical loops
+    // Base position in meters
+    const FVector basePos = startPos;
 
-    // Generate waypoints along the figure-8 curve at constant altitude
-    for (int32 i = 0; i <= numPoints; ++i)
+    // Parameters
+    const float startHeight = DroneWaypointConfig::startHeight;    // m
+    const float totalHeight = DroneWaypointConfig::totalHeight;    // m
+    const float radius      = DroneWaypointConfig::radius;         // m
+    const int32 segPerRev   = DroneWaypointConfig::segmentsPerRev; // segments per revolution
+    const int32 revs        = DroneWaypointConfig::numRevolutions; // total revolutions
+    const int32 totalSeg    = segPerRev * revs;
+    const float dTheta      = 2.0f * PI / static_cast<float>(segPerRev);
+    const float dzPerSeg    = totalHeight / static_cast<float>(totalSeg);
+
+    // Add a vertical climb to the start height for clarity
+    const float startZ = basePos.Z + startHeight;
+    waypoints.Add(FVector(basePos.X, basePos.Y, basePos.Z));
+    waypoints.Add(FVector(basePos.X, basePos.Y, startZ));
+
+    // Build a helix that rises totalHeight over 'revs' revolutions
+    float z = startZ;
+    for (int32 i = 0; i <= totalSeg; ++i)
     {
-        float t = twoPi * static_cast<float>(i) / static_cast<float>(numPoints);
-        float x = basePos.X + width * FMath::Sin(t);
-        float y = basePos.Y + height * FMath::Sin(2.0f * t);
-        waypoints.Add(FVector(x, y, targetZ));
+        const float theta = i * dTheta;
+        const float x = basePos.X + radius * FMath::Cos(theta);
+        const float y = basePos.Y + radius * FMath::Sin(theta);
+        waypoints.Add(FVector(x, y, z));
+        z += dzPerSeg;
     }
+
     return waypoints;
 }
 
@@ -279,23 +287,29 @@ void AQuadPawn::Tick(float DeltaTime)
 
 void AQuadPawn::UpdateControl(float DeltaTime)
 {
-	if (SensorManager)
-	{
-		SensorManager->UpdateAllSensors(DeltaTime, true);
-	}
-	if (QuadController)
-	{	
-		QuadController->Update(DeltaTime);
-	}
-	if (NavigationComponent)
-	{
-		NavigationComponent->UpdateNavigation(SensorManager->GPS->GetLastGPS());
-		FVector NextGoal = NavigationComponent->GetCurrentSetpoint();
-		if (QuadController)
-		{
-			QuadController->SetDestination(NextGoal);
-		}
-	}
+    if (SensorManager)
+    {
+        SensorManager->UpdateAllSensors(DeltaTime, true);
+    }
+    if (QuadController)
+    {	
+        QuadController->Update(DeltaTime);
+    }
+    if (NavigationComponent)
+    {
+        // Navigation and flight control operate in meters; use GPS XY and barometer Z for consistency
+        FVector posMeters = SensorManager->GPS->GetLastGPS();
+        if (SensorManager && SensorManager->Barometer)
+        {
+            posMeters.Z = SensorManager->Barometer->GetEstimatedAltitude();
+        }
+        NavigationComponent->UpdateNavigation(posMeters);
+        FVector NextGoal = NavigationComponent->GetCurrentSetpoint(); // meters
+        if (QuadController)
+        {
+            QuadController->SetDestination(NextGoal);
+        }
+    }
 }
 
 void AQuadPawn::SwitchCamera()
@@ -446,13 +460,23 @@ float AQuadPawn::GetMass()
 void AQuadPawn::PossessedBy(AController* NewController)
 {
     Super::PossessedBy(NewController);
-	
+    // Ensure FPV camera is the active view on possession
+    ForceFPVCameraActive();
 }
 
 void AQuadPawn::UnPossessed()
 {
     Super::UnPossessed();
 
+}
+
+void AQuadPawn::ForceFPVCameraActive()
+{
+    if (!Camera || !CameraFPV || !CameraGroundTrack) return;
+    Camera->SetActive(false);
+    CameraGroundTrack->SetActive(false);
+    CameraFPV->SetActive(true);
+    CurrentCameraMode = ECameraMode::FPV;
 }
 
 void AQuadPawn::ResetRotation()

@@ -156,13 +156,28 @@ AQuadPawn* ADroneManager::SpawnDrone(const FVector& SpawnLocation, const FRotato
         SpawnParams.Owner = this;
         SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-        // Always spawn at PlayerStart if present; otherwise fall back to origin (0,0,0)
+        // Spawn 1 meter from the currently possessed drone if any; otherwise at PlayerStart
         FVector UseLoc = FVector::ZeroVector;
         FRotator UseRot = SpawnRotation;
-        if (AActor* PS = UGameplayStatics::GetActorOfClass(World, APlayerStart::StaticClass()))
+
+        if (APlayerController* PC = UGameplayStatics::GetPlayerController(World, 0))
         {
-            UseLoc = PS->GetActorLocation();
-            UseRot = PS->GetActorRotation();
+            if (AQuadPawn* Cur = Cast<AQuadPawn>(PC->GetPawn()))
+            {
+                // Offset 1 meter to the right to avoid overlap
+                const FVector Right = Cur->GetActorRightVector();
+                UseLoc = Cur->GetActorLocation() + Right * 100.0f; // 100 cm = 1 m
+                UseRot = Cur->GetActorRotation();
+            }
+        }
+
+        if (UseLoc.IsZero())
+        {
+            if (AActor* PS = UGameplayStatics::GetActorOfClass(World, APlayerStart::StaticClass()))
+            {
+                UseLoc = PS->GetActorLocation();
+                UseRot = PS->GetActorRotation();
+            }
         }
 
         AQuadPawn* NewDrone = World->SpawnActor<AQuadPawn>(QuadPawnClass, UseLoc, UseRot, SpawnParams);
@@ -170,10 +185,44 @@ AQuadPawn* ADroneManager::SpawnDrone(const FVector& SpawnLocation, const FRotato
         {
             // Set selection to the newly spawned drone
             SelectedDroneIndex = GetDroneIndex(NewDrone);
+
+            // Possess the newly spawned drone and switch to its camera
+            if (APlayerController* PC = UGameplayStatics::GetPlayerController(World, 0))
+            {
+                PC->Possess(NewDrone);
+                PC->SetViewTarget(NewDrone);
+                NewDrone->ForceFPVCameraActive();
+            }
         }
         return NewDrone;
     }
     return nullptr;
+}
+
+void ADroneManager::SelectDroneByIndex(int32 Index, bool bAlsoPossess)
+{
+    if (Index < 0 || Index >= AllDrones.Num())
+        return;
+
+    if (AQuadPawn* Target = AllDrones[Index].Get())
+    {
+        SelectedDroneIndex = Index;
+        if (bAlsoPossess)
+        {
+            if (UWorld* World = GetWorld())
+            {
+                if (APlayerController* PC = UGameplayStatics::GetPlayerController(World, 0))
+                {
+                    if (PC->GetPawn() != Target)
+                    {
+                        PC->Possess(Target);
+                    }
+                    PC->SetViewTarget(Target);
+                    Target->ForceFPVCameraActive();
+                }
+            }
+        }
+    }
 }
 
 
@@ -276,7 +325,7 @@ void ADroneManager::SimulationUpdate_Implementation(float FixedDeltaTime)
 			// Make sure PX4Component updates are synchronized
 			if (UPX4Component* PX4Comp = Drone->FindComponentByClass<UPX4Component>())
 			{
-				if (PX4Comp->bIsActive())
+				if (PX4Comp->IsPX4Active())
 				{
 					PX4Comp->SimulationUpdate(FixedDeltaTime);
 				}

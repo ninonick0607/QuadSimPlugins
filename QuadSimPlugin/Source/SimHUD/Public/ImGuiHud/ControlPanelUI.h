@@ -16,6 +16,7 @@ struct FDronePanelState
     bool bOpen = false;        // panel open state
     bool bGamepad = false;     // toggle for gamepad mode UI
     bool bPX4 = false;         // toggle for PX4 external controller
+    bool bDebug = false;       // toggle for debug drawings
     float HoverAlt = 250.f;    // desired hover altitude (meters)
     bool bHoverActive = false; // toggle for hover mode
     bool bAppliedGamepad = false; // tracks if ToggleGamepadMode applied

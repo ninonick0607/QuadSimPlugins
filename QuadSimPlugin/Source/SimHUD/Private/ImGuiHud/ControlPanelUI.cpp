@@ -87,7 +87,8 @@ void UControlPanelUI::TickAndDraw(UWorld* World)
                 bool bSelected = (i == ActiveIndex);
                 if (ImGui::Selectable(TCHAR_TO_UTF8(*P->GetName()), bSelected))
                 {
-                    DM->SelectedDroneIndex = i;
+                    // Also possess the selected drone and switch camera
+                    DM->SelectDroneByIndex(i, /*bAlsoPossess=*/true);
                 }
                 if (bSelected) ImGui::SetItemDefaultFocus();
             }
@@ -113,10 +114,11 @@ void UControlPanelUI::TickAndDraw(UWorld* World)
                 }
             }
         }
+        // (Debug toggle moved next to mode selection below)
         // Note: Gamepad visualization/modes are controlled by selecting the Gamepad Angle/Acro buttons below.
 
         ImGui::Separator();
-        // Top horizontal 4 buttons for flight modes (slightly tighter default helps sharpness)
+        // Top horizontal buttons for flight modes
         if (!State.bGamepad)
         {
             if (ImGui::Button("Position"))
@@ -138,13 +140,19 @@ void UControlPanelUI::TickAndDraw(UWorld* World)
             {
                 if (Controller) { Controller->SetUseExternalController(false); Controller->SetFlightMode(EFlightMode::RateControl); }
             }
+
+            // Debug toggle next to mode selection
+            ImGui::SameLine();
+            bool bDebugNow = State.bDebug;
+            if (ImGui::Checkbox("Debug", &bDebugNow))
+            {
+                State.bDebug = bDebugNow;
+                if (Controller) { Controller->SetDebugVisualsEnabled(State.bDebug); }
+            }
         }
         else
         {
-            ImGui::BeginDisabled(true);
-            ImGui::Button("Position"); ImGui::SameLine(); ImGui::Button("Velocity");
-            ImGui::EndDisabled();
-            ImGui::SameLine();
+            // Gamepad-only modes; hide Position/Velocity completely
             if (ImGui::Button("Gamepad Angle"))
             {
                 if (Controller) { Controller->SetUseExternalController(false); Controller->SetFlightMode(EFlightMode::JoyStickAngleControl); }
@@ -154,30 +162,44 @@ void UControlPanelUI::TickAndDraw(UWorld* World)
             {
                 if (Controller) { Controller->SetUseExternalController(false); Controller->SetFlightMode(EFlightMode::JoyStickAcroControl); }
             }
+
+            // Debug toggle next to gamepad mode selection
+            ImGui::SameLine();
+            bool bDebugNow = State.bDebug;
+            if (ImGui::Checkbox("Debug", &bDebugNow))
+            {
+                State.bDebug = bDebugNow;
+                if (Controller) { Controller->SetDebugVisualsEnabled(State.bDebug); }
+            }
         }
 
         ImGui::Separator();
         // Control Settings (above control sliders)
         if (ImGui::CollapsingHeader("Control Settings", ImGuiTreeNodeFlags_DefaultOpen))
         {
-            const auto& Cfg = UDroneJSONConfig::Get().Config;
-            static float UiMaxVel   = Cfg.FlightParams.MaxVelocity;
-            static float UiMaxAngle = Cfg.FlightParams.MaxAngle;
-            static float UiMaxRate  = Cfg.FlightParams.MaxAngleRate;
+            auto& Cfg = UDroneJSONConfig::Get().Config;
 
-            const float maxVelBound = FMath::Max(0.1f, Cfg.FlightParams.MaxVelocityBound);
+            // Only expose the current values; clamp ranges by bounds from settings
+            float UiMaxVel   = Cfg.FlightParams.MaxVelocity;
+            float UiMaxAngle = Cfg.FlightParams.MaxAngle;
+            float UiMaxRate  = Cfg.FlightParams.MaxAngleRate;
+
+            const float maxVelBound   = FMath::Max(0.0f, Cfg.FlightParams.MaxVelocityBound);
+            const float maxAngleBound = FMath::Max(0.0f, Cfg.FlightParams.MaxAngleBound);
+
             if (ImGui::SliderFloat("Max Velocity (m/s)", &UiMaxVel, 0.0f, maxVelBound, "%.2f"))
             {
+                Cfg.FlightParams.MaxVelocity = UiMaxVel;
                 if (Controller) Controller->SetMaxVelocity(UiMaxVel);
             }
-
-            if (ImGui::SliderFloat("Max Angle (deg)", &UiMaxAngle, 0.0f, Cfg.FlightParams.MaxAngle, "%.1f"))
+            if (ImGui::SliderFloat("Max Angle (deg)", &UiMaxAngle, 0.0f, maxAngleBound, "%.1f"))
             {
+                Cfg.FlightParams.MaxAngle = UiMaxAngle;
                 if (Controller) Controller->SetMaxAngle(UiMaxAngle);
             }
-
-            if (ImGui::SliderFloat("Max Angle Rate (deg/s)", &UiMaxRate, 0.0f, Cfg.FlightParams.MaxAngleRate, "%.1f"))
+            if (ImGui::SliderFloat("Max Angle Rate (deg/s)", &UiMaxRate, 0.0f, 180.0f, "%.1f"))
             {
+                Cfg.FlightParams.MaxAngleRate = UiMaxRate;
                 if (Controller) Controller->SetMaxAngleRate(UiMaxRate);
             }
         }
@@ -385,6 +407,13 @@ void UControlPanelUI::TickAndDraw(UWorld* World)
         ImGui::PopStyleVar();
 
         // (removed duplicate Control Settings block)
+
+        // Per-frame debug visuals when enabled
+        if (State.bDebug)
+        {
+            if (Controller) { Controller->SetDebugVisualsEnabled(true); Controller->DrawMagneticDebugVisuals(); }
+            if (ActivePawn)  { ActivePawn->DebugDrawMagnetometer(); }
+        }
     }
     ImGui::End();
 }

@@ -233,20 +233,21 @@ void UQuadDroneController::FlightController(double DeltaTime)
 	/*-------- Position P Control -------- */
 
 	FVector desiredLocalVelocity;
-	switch (currentFlightMode)
-	{
-	case EFlightMode::AutoWaypoint:
-		{
-			// ───── Update / fetch next set-point ─────
-			if (UNavigationComponent* Nav = dronePawn->FindComponentByClass<UNavigationComponent>())
-			{
-				Nav->UpdateNavigation(currPos);
-				setPoint =(Nav->GetCurrentSetpoint())/100;
-			}
-			DrawDebugVisuals(currPos);
-			const FVector posErr = setPoint - currPos;
-			const FVector localPosErr = yawOnlyRot.UnrotateVector(posErr);
-			desiredLocalVelocity = localPosErr.GetSafeNormal()*maxVelocity;
+    switch (currentFlightMode)
+    {
+    case EFlightMode::AutoWaypoint:
+        {
+            // ───── Update / fetch next set-point ─────
+            if (UNavigationComponent* Nav = dronePawn->FindComponentByClass<UNavigationComponent>())
+            {
+                // Navigation operates in meters; pass meters and receive meters
+                Nav->UpdateNavigation(currPos);
+                setPoint = Nav->GetCurrentSetpoint();
+            }
+            DrawDebugVisuals(currPos);
+            const FVector posErr = setPoint - currPos;
+            const FVector localPosErr = yawOnlyRot.UnrotateVector(posErr);
+            desiredLocalVelocity = localPosErr.GetSafeNormal()*maxVelocity;
 			break;
 		}
 	case EFlightMode::VelocityControl:
@@ -471,11 +472,11 @@ void UQuadDroneController::SetDestination(FVector desiredSetPoints) {
 // ---------------------- Helper Functions -----------------------
 void UQuadDroneController::DrawDebugVisuals(const FVector& currentPosition) const
 {
-   // Draw only a line connecting the current position to the setpoint (no spheres).
+   // Draw only a line connecting the current position to the setpoint (convert m → cm for world debug)
    DrawDebugLine(
        dronePawn->GetWorld(),
-       currentPosition,
-       setPoint,
+       currentPosition * 100.0f,
+       setPoint * 100.0f,
        FColor::Green,
        /*bPersistent=*/false,
        /*LifeTime=*/0.0f
@@ -485,9 +486,9 @@ void UQuadDroneController::DrawDebugVisuals(const FVector& currentPosition) cons
  {
  	if (!bDebugVisualsEnabled || !dronePawn || !dronePawn->DroneBody) return;
 
-	FVector GPSData = dronePawn->SensorManager->GPS->GetLastGPS();
-	float Altitude = dronePawn->SensorManager->Barometer->GetEstimatedAltitude()*100;
-	const FVector  dronePos = {GPSData.X, GPSData.Y, Altitude};
+    FVector GPSData = dronePawn->SensorManager->GPS->GetLastGPS();
+    float Altitude = dronePawn->SensorManager->Barometer->GetEstimatedAltitude()*100;
+    const FVector  dronePos = {GPSData.X * 100.0f, GPSData.Y * 100.0f, Altitude};
 	const float scaleXYZ = 0.5f;
 
  	// Velocity debug lines
@@ -527,9 +528,10 @@ void UQuadDroneController::SetFlightMode(EFlightMode NewMode)
 		break;
 	}
 
-	FVector GPSData = dronePawn->SensorManager->GPS->GetLastGPS();
-	float Altitude = dronePawn->SensorManager->Barometer->GetEstimatedAltitude()*100;
-	const FVector  currPos = {GPSData.X, GPSData.Y, Altitude};     
+    FVector GPSData = dronePawn->SensorManager->GPS->GetLastGPS();
+    float Altitude = dronePawn->SensorManager->Barometer->GetEstimatedAltitude();
+    // Use meters when creating the waypoint plan
+    const FVector  currPos = {GPSData.X, GPSData.Y, Altitude};     
     currentFlightMode = NewMode;
 
     // Enable direct gamepad control path for joystick-driven modes
@@ -549,75 +551,81 @@ void UQuadDroneController::SetFlightMode(EFlightMode NewMode)
         UWorld* World = dronePawn->GetWorld();
         if (World)
         {
-            // Persistent debug: sample path sparsely for performance
-            const float SphereSize = 50.0f;
-            const int32 debugStep = 5;
-            const bool bPersistent = true;
-            const float LifeTime = 0.0f;
-            for (int32 i = 0; i < plan.Num(); i += debugStep)
+            // Draw the entire polyline as consecutive segments (visible for some time)
+            const float LifeTime = 60.0f; // seconds
+            for (int32 i = 0; i + 1 < plan.Num(); ++i)
             {
-                // Draw only connecting lines for auto-waypoint path (no spheres)
-                int32 nextIdx = i + debugStep;
-                if (nextIdx < plan.Num())
-                {
-                    DrawDebugLine(World,
-                        plan[i],
-                        plan[nextIdx],
-                        FColor::Green,
-                        /*bPersistent=*/true,
-                        /*LifeTime=*/0.0f,
-                        /*DepthPriority=*/0,
-                        /*Thickness=*/5.0f);
-                }
+                DrawDebugLine(World,
+                    plan[i] * 100.0f,
+                    plan[i+1] * 100.0f,
+                    FColor::Green,
+                    /*bPersistent=*/false,
+                    /*LifeTime=*/LifeTime,
+                    /*DepthPriority=*/0,
+                    /*Thickness=*/3.0f);
             }
         }
     }
 }
 //=========================== PX4 Implementation =========================== //
-
-void UQuadDroneController::ApplyMotorCommands(const TArray<float>& MotorCommands)
+// QuadDroneController.cpp
+void UQuadDroneController::ApplyMotorCommands(const TArray<float>& MotorCmd01)
 {
-    float DroneMass = dronePawn->GetMass();
-    const float Gravity = 980.0f; // cm/s^2 in Unreal units
-	
-    float TotalHoverThrust = DroneMass * Gravity; // Total thrust needed to hover in centiNewtons
-    float HoverThrustPerMotor = TotalHoverThrust / 4.0f;
-    
-    // Maximum thrust per motor (hover thrust * some factor, e.g., 2x for good control authority)
-    const float MaxThrustPerMotor = HoverThrustPerMotor * 2.5f;
-    
-    // Debug logging
-    static int32 LogCounter = 0;
-    bool bShouldLog = (LogCounter++ % 50 == 0); // Log every 50 calls
-    
-    if (bShouldLog)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("ApplyMotorCommands: DroneMass=%.2f kg, HoverThrustPerMotor=%.2f cN, Commands=[%.3f, %.3f, %.3f, %.3f]"),
-               DroneMass, HoverThrustPerMotor, 
-               MotorCommands.IsValidIndex(0) ? MotorCommands[0] : 0.0f,
-               MotorCommands.IsValidIndex(1) ? MotorCommands[1] : 0.0f,
-               MotorCommands.IsValidIndex(2) ? MotorCommands[2] : 0.0f,
-               MotorCommands.IsValidIndex(3) ? MotorCommands[3] : 0.0f);
-    }
+    if (!dronePawn) return;
 
-	
-    for (int32 i = 0; i < FMath::Min(MotorCommands.Num(), 4); i++)
+    const float MassKg   = dronePawn->GetMass(); // kg
+    // Use world gravity to stay consistent with your physics settings
+    const float g_cm_s2  = FMath::Abs(GetWorld()->GetGravityZ()); // ~980 cm/s^2
+    const float g_m_s2   = g_cm_s2 * 0.01f;                        // 9.8 m/s^2
+
+    const float TotalHover_N       = MassKg * g_m_s2;      // N
+    const float HoverPerMotor_N    = TotalHover_N / 4.0f;  // N
+    const float MaxPerMotor_N      = HoverPerMotor_N * 2.0f;  // 2x hover is a good start
+
+    // Optional: small slew-rate limit to avoid spikes from PX4 startup
+    static float prevN[4] = {0,0,0,0};
+    const float maxSlewN  = HoverPerMotor_N * 0.25f; // N per call (tune)
+
+    // Debug every ~50 calls
+    static int32 C=0; const bool bLog = ((C++ % 50) == 0);
+    if (bLog)
+        UE_LOG(LogTemp, Warning, TEXT("ApplyMotorCommands: Mass=%.2f kg, Hover/motor=%.2f N  cmds=[%.3f %.3f %.3f %.3f]"),
+               MassKg, HoverPerMotor_N,
+               MotorCmd01.IsValidIndex(0)?MotorCmd01[0]:0,
+               MotorCmd01.IsValidIndex(1)?MotorCmd01[1]:0,
+               MotorCmd01.IsValidIndex(2)?MotorCmd01[2]:0,
+               MotorCmd01.IsValidIndex(3)?MotorCmd01[3]:0);
+
+    for (int i=0; i<4; ++i)
     {
-        if (dronePawn->Thrusters.IsValidIndex(i) && dronePawn->Thrusters[i])
-        {
-            float Command = FMath::Clamp(MotorCommands[i], 0.0f, 1.0f);
-            // Linear mapping instead of quadratic for better response
-        	float ThrustForce = MaxThrustPerMotor * Command;
-            dronePawn->Thrusters[i]->ApplyForce(ThrustForce*100);
-            
-            if (bShouldLog)
-            {
-                UE_LOG(LogTemp, Warning, TEXT("Motor %d: Command=%.3f, ThrustForce=%.2f cN"), 
-                       i, Command, ThrustForce);
-            }
-        }
+        if (!dronePawn->Thrusters.IsValidIndex(i) || !dronePawn->Thrusters[i]) continue;
+
+        const float cmd01    = FMath::Clamp(MotorCmd01[i], 0.f, 1.f);
+
+        // Map 0..1 → 0..MaxPerMotor_N
+        float thrustN = cmd01 * MaxPerMotor_N;
+
+        // simple slew
+        const float delta = FMath::Clamp(thrustN - prevN[i], -maxSlewN, maxSlewN);
+        thrustN = prevN[i] + delta;
+        prevN[i]= thrustN;
+
+        // Convert Newtons → Unreal force units (kg*cm/s^2). 1 N = 100 Unreal units
+        const float unrealForce = thrustN * 100.0f;
+        const float appliedForce = FMath::Clamp(unrealForce, 0.0f, maxThrust);
+
+        // Update controller's Thrusts array so HUD/state data can display values
+        if (Thrusts.IsValidIndex(i)) Thrusts[i] = appliedForce;
+
+        // Apply to physics
+        dronePawn->Thrusters[i]->ApplyForce(appliedForce);
+
+        if (bLog)
+            UE_LOG(LogTemp, Warning, TEXT("Motor %d: cmd=%.3f -> %.2f N"), i, cmd01, thrustN);
     }
 }
+
+
 void UQuadDroneController::SetUseExternalController(bool bUseExternal)
 {
     if (bUseExternalController != bUseExternal)

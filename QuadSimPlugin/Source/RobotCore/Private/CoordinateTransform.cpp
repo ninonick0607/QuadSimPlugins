@@ -12,7 +12,7 @@
 
 const FMatrix UCoordinateTransform::UnrealToNEDMat = FMatrix(
     FPlane(0.01f,  0.0f,   0.0f, 0.0f),  // X_NED = X_Unreal / 100
-    FPlane(0.0f,  -0.01f,  0.0f, 0.0f),  // Y_NED = -Y_Unreal / 100  
+    FPlane(0.0f,  -0.01f,  0.0f, 0.0f),  // Y_NED = -Y_Unreal / 100 (left-handed -> right-handed)
     FPlane(0.0f,   0.0f,  -0.01f, 0.0f), // Z_NED = -Z_Unreal / 100
     FPlane(0.0f,   0.0f,   0.0f, 1.0f)
 );
@@ -67,6 +67,18 @@ FVector UCoordinateTransform::NEDToUnreal(const FVector& NEDPos)
     );
 }
 
+FVector UCoordinateTransform::UnrealMetersToNED(const FVector& UnrealPosMeters)
+{
+    // Unreal (m): X=Forward, Y=Right, Z=Up (FRU, left-handed)
+    // NED (m):    X=North,  Y=East,  Z=Down (right-handed)
+    // When inputs are already meters, do not scale, only flip Y and Z for handedness
+    return FVector(
+        UnrealPosMeters.X,   // Forward -> North (m)
+        -UnrealPosMeters.Y,  // Right -> East (flip for handedness)
+        -UnrealPosMeters.Z   // Up -> Down (flip)
+    );
+}
+
 FVector UCoordinateTransform::UnrealToENU(const FVector& UnrealPos)
 {
     // Unreal (cm): X=Forward, Y=Right, Z=Up
@@ -102,6 +114,16 @@ FVector UCoordinateTransform::UnrealVelocityToENU(const FVector& UnrealVel)
 {
     // Same transformation as position but for velocity (cm/s to m/s)
     return UnrealToENU(UnrealVel);
+}
+
+FVector UCoordinateTransform::UnrealMetersVelocityToNED(const FVector& UnrealVelMS)
+{
+    // Same mapping as position, but velocity already in m/s
+    return FVector(
+        UnrealVelMS.X,     // Forward -> North
+        -UnrealVelMS.Y,    // Right -> East (flip)
+        -UnrealVelMS.Z     // Up -> Down (flip)
+    );
 }
 
 // ==================== ROTATION TRANSFORMS ====================
@@ -192,17 +214,18 @@ FVector UCoordinateTransform::UnrealAngularVelocityToENU(const FVector& UnrealAn
 FVector UCoordinateTransform::UnrealBodyAccelToFRD(const FVector& UnrealBodyAccel)
 {
     // Transform from Unreal body frame (FLU) to PX4 body frame (FRD)
-    // Unreal FLU: X=Forward, Y=Left, Z=Up
-    // PX4 FRD:    X=Forward, Y=Right, Z=Down
+    // Unreal FRU: X=Forward, Y=Right, Z=Up (left-handed)
+    // PX4 FRD:    X=Forward, Y=Right, Z=Down (right-handed)
     //
     // Key insight: When drone is level, gravity appears as:
     // - Unreal FLU: (0, 0, +9.81) - positive Z is up, gravity pulls down but IMU measures up
     // - PX4 FRD:    (0, 0, -9.81) - negative Z is down, gravity should be negative Z
     //
     // Transformation:
-    // X_FRD =  X_FLU  (Forward stays forward)
-    // Y_FRD = -Y_FLU  (Left becomes right, flip sign)
-    // Z_FRD = -Z_FLU  (Up becomes down, flip sign)
+    // To convert from left-handed FRU to right-handed FRD, flip Y and Z
+    // X_FRD =  X_FRU  (Forward stays forward)
+    // Y_FRD = -Y_FRU  (flip)
+    // Z_FRD = -Z_FRU  (flip)
 
     return FVector(
         UnrealBodyAccel.X,   // Forward stays forward
@@ -214,7 +237,7 @@ FVector UCoordinateTransform::UnrealBodyAccelToFRD(const FVector& UnrealBodyAcce
 FVector UCoordinateTransform::UnrealBodyAngVelToFRD(const FVector& UnrealBodyAngVel)
 {
     // Transform angular velocity from Unreal body frame (FLU) to PX4 body frame (FRD)
-    // Unreal FLU: X=Forward(Roll), Y=Left(Pitch), Z=Up(Yaw)
+    // Unreal FRU: X=Forward(Roll), Y=Right(Pitch), Z=Up(Yaw)
     // PX4 FRD:    X=Forward(Roll), Y=Right(Pitch), Z=Down(Yaw)
     //
     // For angular velocities about body axes:
@@ -226,8 +249,8 @@ FVector UCoordinateTransform::UnrealBodyAngVelToFRD(const FVector& UnrealBodyAng
 
     return FVector(
         FMath::DegreesToRadians(UnrealBodyAngVel.X),   // Roll about X (forward) - same
-        FMath::DegreesToRadians(-UnrealBodyAngVel.Y),  // Pitch about Y - flip for Left->Right
-        FMath::DegreesToRadians(-UnrealBodyAngVel.Z)   // Yaw about Z - flip for Up->Down
+        FMath::DegreesToRadians(-UnrealBodyAngVel.Y),  // Pitch about Y - flip (handedness)
+        FMath::DegreesToRadians(-UnrealBodyAngVel.Z)   // Yaw about Z - flip (Up->Down)
     );
 }
 
@@ -247,6 +270,16 @@ FVector UCoordinateTransform::BodyToWorldFrame(const FVector& BodyVector, const 
 {
     // Transform from body frame to world frame
     return BodyRotation.RotateVector(BodyVector);
+}
+
+FVector UCoordinateTransform::UnrealBodyToFRD(const FVector& UnrealBodyVec)
+{
+    // Generic body-frame mapping from Unreal FRU (left-handed) to FRD (right-handed)
+    return FVector(
+        UnrealBodyVec.X,
+        -UnrealBodyVec.Y,
+        -UnrealBodyVec.Z
+    );
 }
 
 // ==================== BATCH OPERATIONS ====================
