@@ -17,17 +17,19 @@ UGPSSensor::UGPSSensor()
 
 void UGPSSensor::Initialize()
 {
-    // Find the GeoReferencingSystem in the world
-    if (UWorld* World = GetWorld())
-    {
-        GeoRefSystem = AGeoReferencingSystem::GetGeoReferencingSystem(World);
-        if (!GeoRefSystem)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("GPSSensor: No GeoReferencingSystem found in level! Please add one."));
-        }
-        else
+	if (UWorld* World = GetWorld())
+	{
+		GeoRefSystem = AGeoReferencingSystem::GetGeoReferencingSystem(World);
+		if (!GeoRefSystem)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GPSSensor: No GeoReferencingSystem found in level!"));
+		}
+		else
 		{
 			UE_LOG(LogTemp, Display, TEXT("GPSSensor: Found GeoReferencingSystem"));
+			bInitialized = true;
+			bHasFix = true;
+			SatelliteCount = 12;
 		}
 	}
 }
@@ -71,6 +73,11 @@ void UGPSSensor::UpdateSensor(float DeltaTime, bool bNoise)
 		return;
 	AccumulatedTime -= Period;
 
+	if (UWorld* World = GetWorld())
+	{
+		LastUpdateTime = World->GetTimeSeconds();
+	}
+	
     FVector PosMeters = SampleRawGPS();
 
     if (bNoise)
@@ -82,6 +89,8 @@ void UGPSSensor::UpdateSensor(float DeltaTime, bool bNoise)
 
     LastGPS = PosMeters; // meters in engine world frame
     LastGeographicCoords = GetGeographicCoordinates();
+	TimeSinceLastUpdate = Period;
+
 
 }
 

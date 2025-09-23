@@ -2,14 +2,14 @@
 	"flight_parameters":
 	{
 		"max_velocity_bound": 8,
-		"max_velocity": 3,
-		"max_angle_bound": 30,
+		"max_velocity": 4,
+		"max_angle_bound": 45,
 		"max_angle": 15,
 		"max_angle_rate": 10,
 		"max_pid_output": 10000,
-		"max_thrust": 900,
+		"max_thrust": 700,
 		"altitude_threshold": 0.60000002384185791,
-		"min_altitude_local": 500,
+		"min_altitude_local": 2,
 		"acceptable_distance": 150
 	},
 	"controller":
@@ -20,8 +20,8 @@
 	},
 	"obstacle_parameters":
 	{
-		"outer_boundary": 10000,
-		"inner_boundary": 10000,
+		"outer_boundary": 1,
+		"inner_boundary": 1,
 		"spawn_height": 0
 	}
 }

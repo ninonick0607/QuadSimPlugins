@@ -27,6 +27,10 @@ void UBaroSensor::Initialize()
         {
             UE_LOG(LogTemp, Warning, TEXT("BaroSensor: No GeoReferencingSystem found in level! Using default altitude."));
         }
+    	else
+    	{
+    		bInitialized = true;
+    	}
 	}
 	
 	// Reset drift

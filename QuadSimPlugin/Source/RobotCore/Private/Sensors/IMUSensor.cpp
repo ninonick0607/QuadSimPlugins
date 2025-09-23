@@ -65,10 +65,12 @@ FVector UIMUSensor::SampleRawVelocity(){
 	if (!bInitialized || !AttachedBody)
 		return FVector::ZeroVector;
 	
-	// Get velocity in m/s and transform to body frame (NED)
-	FVector CurrVel = AttachedBody->GetPhysicsLinearVelocity() / 100.0f; // cm/s to m/s
-	// Transform to body frame using full rotation
-	return AttachedBody->GetComponentTransform().InverseTransformVectorNoScale(CurrVel);
+	FVector CurrVel = AttachedBody->GetPhysicsLinearVelocity()/100;
+	FRotator ComponentRot = AttachedBody->GetComponentRotation();
+	FRotator YawOnlyRot(0.f, ComponentRot.Yaw, 0.f);
+    
+	// Transform using only yaw
+	return YawOnlyRot.UnrotateVector(CurrVel);
 }
 
 FRotator UIMUSensor::SampleRawAttitude(){
@@ -85,7 +87,10 @@ void UIMUSensor::UpdateSensor(float DeltaTime, bool bNoise)
 	if (AccumulatedTime < Period)
 		return;
 	AccumulatedTime -= Period;
-
+	if (UWorld* World = GetWorld())
+	{
+		LastUpdateTime = World->GetTimeSeconds();
+	}
 	// Sample all sensor data
 	FVector Accel = SampleRawAcceleration(Period);
 	FVector Gyro = SampleRawAngularVelocity();

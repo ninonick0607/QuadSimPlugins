@@ -43,21 +43,26 @@ void UPX4Component::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void UPX4Component::TickComponent(float, ELevelTick, FActorComponentTickFunction*)
 {
+    // Inactive when PX4 button is off
+    if (!bEnablePX4)
+    {
+        return;
+    }
 
-	UpdateCurrentState();
+    UpdateCurrentState();
 
-	if (bListening && !bTCPConnected) AcceptOnce();
+    if (bListening && !bTCPConnected) AcceptOnce();
 
-	// deliver motor commands on game thread
-	FMotorCmd C;
-	while (MotorQueue.Dequeue(C))
-	{
-		if (auto* Pawn = Cast<AQuadPawn>(GetOwner()))
-		if (auto* Ctrl = Pawn->QuadController)
-		{
-			Ctrl->ApplyMotorCommands(C.Values);
-		}
-	}
+    // deliver motor commands on game thread only when enabled
+    FMotorCmd C;
+    while (MotorQueue.Dequeue(C))
+    {
+        if (auto* Pawn = Cast<AQuadPawn>(GetOwner()))
+        if (auto* Ctrl = Pawn->QuadController)
+        {
+            Ctrl->ApplyMotorCommands(C.Values);
+        }
+    }
 }
 
 // --------- Connection control ---------

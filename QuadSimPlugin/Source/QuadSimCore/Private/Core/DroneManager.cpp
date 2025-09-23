@@ -365,11 +365,7 @@ void ADroneManager::ResetRobot_Implementation()
                 ETeleportType::ResetPhysics);
             Drone->SetActorScale3D(CurrentScale);
 
-            // Also call your controller's reset logic for other things (like motor values)
-            if (UQuadDroneController* Controller = Drone->QuadController)
-            {
-                Controller->ResetDroneOrigin(); // A new function that doesn't change position
-            }
+            Drone->ResetPosition();
         }
     }
 }

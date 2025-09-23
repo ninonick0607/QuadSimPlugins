@@ -75,6 +75,7 @@ bool USimHUDTaskbarSubsystem::TryBindImGui(float /*DeltaSeconds*/)
 
 void USimHUDTaskbarSubsystem::HandleImGuiDraw()
 {
+    
     UWorld* World = GetWorld();
     if (!World)
         return;
@@ -510,12 +511,17 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
                         ImGui::Separator();
                         ImGui::TextColored(ImVec4(0.6f,0.9f,1.0f,1.0f), "Attitude");
                         ImGui::Separator();
-
+                        
+                        FSensorData SensorData;
+                        if (Pawn->SensorManager)
+                        {
+                            SensorData = Pawn->SensorManager->GetCurrentSensorData();
+                        }
                         // Drone Mass
                         ImGui::Text("Drone Mass: %.2f kg", Pawn->GetMass());
 
                         // Attitude (current & desired)
-                        FRotator curAtt = Pawn->SensorManager ? Pawn->SensorManager->IMU->GetLastAttitude() : Pawn->GetActorRotation();
+                        FRotator curAtt = Pawn->SensorManager ? SensorData.IMUAttitude : Pawn->GetActorRotation();
                         ImGui::Text("Current Roll/Pitch: %.2f / %.2f deg", curAtt.Roll, curAtt.Pitch);
                         ImGui::Text("Desired Roll/Pitch: %.2f / %.2f deg", Ctrl->GetDesiredRoll(), Ctrl->GetDesiredPitch());
 
@@ -525,18 +531,18 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
                         ImGui::Text("Desired Rate Roll/Pitch: %.2f / %.2f deg/s", (float)Ctrl->GetDesiredRollRate(), (float)Ctrl->GetDesiredPitchRate());
 
                         ImGui::TextColored(ImVec4(1.0f,0.9f,0.4f,1.0f), "Acceleration");
-                        FVector curAcc = Pawn->SensorManager ? Pawn->SensorManager->IMU->GetLastAccelerometer() : FVector::ZeroVector;
+                        FVector curAcc =SensorData.IMULinearAccelMS2;
                         ImGui::Text("Current Acceleration: X %.2f Y %.2f Z %.2f m/s^2", curAcc.X, curAcc.Y, curAcc.Z);
 
                         ImGui::TextColored(ImVec4(0.6f,1.0f,0.6f,1.0f), "Position");
-                        FVector curPos = Pawn->SensorManager ? Pawn->SensorManager->GPS->GetLastGPS() : Pawn->GetActorLocation();
+                        FVector curPos = SensorData.GPSPosMeters;
                         ImGui::Text("Current Position: X %.1f Y %.1f Z %.1f", curPos.X, curPos.Y, curPos.Z);
                         ImGui::TextColored(ImVec4(0.6f,1.0f,0.8f,1.0f), "Geo Position");
-                        FVector geo = Pawn->SensorManager ? Pawn->SensorManager->GPS->GetGeographicCoordinates() : FVector::ZeroVector;
+                        FVector geo = SensorData.GPSLatLong;
                         ImGui::Text("Geo Position: Lat %.3f Lon %.3f Alt %.1f", geo.X, geo.Y, geo.Z);
 
                         ImGui::TextColored(ImVec4(0.5f,0.7f,1.0f,1.0f), "Velocity");
-                        FVector curVel = Pawn->SensorManager ? Pawn->SensorManager->IMU->GetLastVelocity() : Pawn->GetVelocity();
+                        FVector curVel = SensorData.IMUVelMS;
                         ImGui::Text("Current Velocity: X %.2f Y %.2f Z %.2f m/s", curVel.X, curVel.Y, curVel.Z);
                         FVector desVel = Ctrl->GetDesiredVelocity();
                         ImGui::Text("Desired Velocity: X %.2f Y %.2f Z %.2f m/s", desVel.X, desVel.Y, desVel.Z);
@@ -546,9 +552,9 @@ void USimHUDTaskbarSubsystem::HandleImGuiDraw()
                         if (Pawn->SensorManager && Pawn->SensorManager->Barometer)
                         {
                             UBaroSensor* Baro = Pawn->SensorManager->Barometer;
-                            ImGui::Text("Pressure: %.2f hPa", Baro->GetLastPressureHPa());
-                            ImGui::Text("Temperature: %.1f C", Baro->GetLastTemperature());
-                            ImGui::Text("Altitude: %.1f m", Baro->GetEstimatedAltitude());
+                            ImGui::Text("Pressure: %.2f hPa", SensorData.BaroLastPressureHPa);
+                            ImGui::Text("Temperature: %.1f C", SensorData.BaroTemp);
+                            ImGui::Text("Altitude: %.1f m", SensorData.BaroAltitudeM);
                         }
 
                         // (Removed legacy bottom thruster progress bars)

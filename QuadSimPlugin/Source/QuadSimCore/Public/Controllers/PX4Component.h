@@ -27,8 +27,8 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	// Settings
-	UPROPERTY(EditAnywhere, Category="PX4")
-	bool bEnablePX4 = true;
+    UPROPERTY(EditAnywhere, Category="PX4")
+    bool bEnablePX4 = false;
 
 	UPROPERTY(EditAnywhere, Category="PX4")
 	int32 SimulatorTcpPort = 4560; // PX4 SITL connects here
